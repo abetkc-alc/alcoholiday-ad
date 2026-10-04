@@ -176,6 +176,7 @@ def produce(oid, d, order, clips, ask, what, keep_voice):
                        "narr": x["narr"], "subs": x["subs"]} for i, (c, x) in enumerate(zip(clips, a["clips"]))],
             "product": a["product"], "price": a["price"], "shop": order["店名"], "area": a["area"], "hours": a["hours"],
             "music": music.as_posix(), "music_ss": 0, "limited": order.get("数量限定") == "はい",
+            "date": str(order.get("投稿日") or order.get("投稿日時", ""))[:10],   # 動画1の右上に出す投稿日
         }
         spec["clips"][1]["show"] = "product"
         spec["clips"][2]["show"] = "shop"

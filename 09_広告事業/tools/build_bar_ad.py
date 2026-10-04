@@ -7,6 +7,7 @@
 #   ・ナレーションは案内役（A＝ローズ／B＝ラフィ／C＝アイラ）の声で AI が読む（tools/narrate.py）
 #   ・各動画の長さは「ナレーションの長さ＋少しの間」。足りないときは止める（静止・ループ・逆再生で伸ばさない）
 #   ・お客さんの動画の音は使わない（音楽＋ナレーション）。左上に「PR」を出し続ける
+#   ・動画1のあいだ、右上に投稿日（制作.json の "date"：2026-10-05 の形）を出す
 #   ・横向きの動画は、ぼかした同じ映像を背景にして、切らずに真ん中に置く。iPhone の HDR 動画は色を直す
 #
 # 使い方: python tools/build_bar_ad.py 案件/<受付番号>/制作.json
@@ -26,7 +27,7 @@ import narrate  # noqa: E402
 SHARED = pathlib.Path(r"C:\Users\abetk\Documents\Codex\2026-09-19\chatgpt-alcoholiday-sns-alcoholiday-instagram-x\outputs")
 # 締め画像は BAR広告専用（アマゾンの案内を外し「紹介したお店の詳細はキャプションから。」を大きく・赤枠と赤文字で目立たせたもの）。
 # 元の ending-title.jpg は ALCOHOLIDAY 自身の動画用なので変えない
-BRAND = pathlib.Path(__file__).resolve().parent.parent / "素材" / "ending-bar-v3.jpg"
+BRAND = pathlib.Path(__file__).resolve().parent.parent / "素材" / "ending-bar-v4.jpg"   # v4＝赤い文字を枠の上下まん中にそろえた
 NARR_END = SHARED / "ending-assets" / "お酒との時間をもっと楽しく.wav"
 NARR_END_LEN = 4.17
 BRAND_DUR = 4.4
@@ -114,6 +115,27 @@ def pr_badge(path):
     f = font(32)
     w = d.textlength("PR", font=f)
     d.text((98 - w / 2, 100), "PR", font=f, fill=(255, 255, 255, 255))
+    im.save(path)
+
+
+WEEK = "月火水木金土日"
+
+
+def date_chip(path, date):
+    """投稿日を、PR と同じ高さの右上に文字だけで出す（例：2026年10月5日（日））"""
+    import datetime
+    dt = datetime.date.fromisoformat(str(date)[:10])
+    text = f"{dt.year}年{dt.month}月{dt.day}日（{WEEK[dt.weekday()]}）"
+    im = Image.open(path).convert("RGBA")
+    d = ImageDraw.Draw(im)
+    # 枠や塗りはつけず、文字だけ（字幕と同じ影と縁どりで、明るい映像の上でも読めるようにする）
+    f = font(46)
+    w = d.textlength(text, font=f)
+    x, y = W - 48 - w, 92
+    shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).text((x + 2, y + 3), text, font=f, fill=(0, 0, 0, 190))
+    im = Image.alpha_composite(im, shadow.filter(ImageFilter.GaussianBlur(5)))
+    ImageDraw.Draw(im).text((x, y), text, font=f, fill=(255, 255, 255, 255), stroke_width=3, stroke_fill=(20, 20, 20, 220))
     im.save(path)
 
 
@@ -251,6 +273,8 @@ def main():
             shop_overlay(S["shop"], S.get("area", ""), S.get("hours", ""), ov)
         else:
             plain_overlay(ov)
+        if i == 1 and S.get("date"):
+            date_chip(ov, S["date"])
         overlays.append(ov)
         # 字幕：声の長さを文字数で分けて順に出す
         lines = p["c"].get("subs") or [p["c"]["narr"]]
