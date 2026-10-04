@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALCOHOLIDAY 日誌ツール</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --counter: #211c18;
+    --counter-glow: #3a2c1f;
+    --paper: #f6efe2;
+    --ink: #2a2420;
+    --ink-soft: #75695c;
+    --accent: #9c5a28;
+    --accent-deep: #6e3e1b;
+    --accent-soft: #f1e3d3;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 56px 20px 80px;
+    background:
+      radial-gradient(ellipse 700px 500px at 50% 0%, var(--counter-glow), transparent 70%),
+      var(--counter);
+    font-family: "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+    color: var(--ink);
+  }
+
+  .ticket {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    background: var(--paper);
+    border-radius: 3px 3px 0 0;
+    padding: 44px 36px 40px;
+    box-shadow: 0 40px 70px -30px rgba(0, 0, 0, 0.65), 0 2px 0 rgba(0, 0, 0, 0.05);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .ticket::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 3px 3px 0 0;
+  }
+
+  .ticket.is-saved {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+
+  .eyebrow {
+    font-family: "Courier Prime", "Courier New", monospace;
+    font-size: 13px;
+    letter-spacing: 0.32em;
+    color: var(--accent-deep);
+    text-align: center;
+    margin: 4px 0 0;
+  }
+
+  h1 {
+    font-family: "Courier Prime", "Courier New", monospace;
+    font-weight: 700;
+    font-size: 30px;
+    letter-spacing: 0.06em;
+    text-align: center;
+    margin: 10px 0 6px;
+    color: var(--ink);
+  }
+
+  .lede {
+    text-align: center;
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin: 0 0 26px;
+    line-height: 1.7;
+  }
+
+  .meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    font-family: "Courier Prime", "Courier New", monospace;
+    font-size: 13px;
+    border-top: 1px dashed rgba(42, 36, 32, 0.25);
+    border-bottom: 1px dashed rgba(42, 36, 32, 0.25);
+    padding: 10px 2px;
+    margin-bottom: 30px;
+  }
+
+  .date {
+    color: var(--ink);
+    letter-spacing: 0.02em;
+  }
+
+  .status-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    text-align: right;
+  }
+
+  .status {
+    color: var(--ink-soft);
+  }
+
+  .link-btn {
+    appearance: none;
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: "Courier Prime", "Courier New", monospace;
+    font-size: 13px;
+    color: var(--accent-deep);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
+  .link-btn:hover { color: var(--accent); }
+
+  .field { margin-bottom: 22px; }
+
+  label {
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--ink);
+  }
+
+  textarea {
+    width: 100%;
+    font-family: inherit;
+    font-size: 17px;
+    line-height: 1.7;
+    padding: 14px;
+    border: 1.5px solid rgba(42, 36, 32, 0.22);
+    border-radius: 4px;
+    resize: vertical;
+    background: #fffdf8;
+    color: var(--ink);
+  }
+
+  textarea::placeholder { color: #a89c8c; }
+
+  textarea:focus, .link-btn:focus-visible, button:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .perf {
+    position: relative;
+    height: 0;
+    margin: 30px -36px 26px;
+    border-top: 2px dashed rgba(42, 36, 32, 0.28);
+  }
+
+  .perf::before, .perf::after {
+    content: "";
+    position: absolute;
+    top: -9px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--counter);
+  }
+
+  .perf::before { left: -9px; }
+  .perf::after { right: -9px; }
+
+  button.primary {
+    display: block;
+    width: 100%;
+    padding: 17px;
+    font-family: "Courier Prime", "Courier New", monospace;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+
+  button.primary:hover { background: var(--accent-deep); }
+  button.primary:active { transform: translateY(1px); }
+
+  #message {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--ink-soft);
+    white-space: pre-wrap;
+    min-height: 1.4em;
+  }
+
+  @media (max-width: 420px) {
+    .ticket { padding: 36px 22px 32px; }
+    .perf { margin-inline: -22px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ticket { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<main class="ticket" id="ticket">
+  <p class="eyebrow">ALCOHOLIDAY</p>
+  <h1>日誌</h1>
+  <p class="lede">今日という一日を、そっと締めくくる。</p>
+
+  <div class="meta">
+    <span class="date" id="today"></span>
+    <span class="status-row">
+      <span class="status" id="folderStatus">保存先フォルダ：未設定</span>
+      <button id="folderBtn" class="link-btn">設定する</button>
+    </span>
+  </div>
+
+  <div class="field">
+    <label for="did">今日やったこと</label>
+    <textarea id="did" rows="4" placeholder="ここに書いてください"></textarea>
+  </div>
+
+  <div class="field">
+    <label for="noticed">気づいたこと・反省点</label>
+    <textarea id="noticed" rows="4" placeholder="ここに書いてください"></textarea>
+  </div>
+
+  <div class="field">
+    <label for="next">次にやること</label>
+    <textarea id="next" rows="4" placeholder="ここに書いてください"></textarea>
+  </div>
+
+  <div class="perf" aria-hidden="true"></div>
+
+  <button id="saveBtn" class="primary">保存する</button>
+  <div id="message"></div>
+</main>
+
+<script>
+const DB_NAME = "alcoholiday-diary";
+const STORE_NAME = "handles";
+const KEY = "rootFolder";
+
+function openDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(STORE_NAME);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveHandle(handle) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).put(handle, KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function loadHandle() {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const req = tx.objectStore(STORE_NAME).get(KEY);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function todayParts() {
+  const d = new Date();
+  const y = String(d.getFullYear());
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const weekday = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
+  return { y, m, day, weekday, full: `${y}-${m}-${day}` };
+}
+
+const today = todayParts();
+document.getElementById("today").textContent =
+  `${today.y}年${parseInt(today.m)}月${parseInt(today.day)}日（${today.weekday}）`;
+
+const folderStatusEl = document.getElementById("folderStatus");
+const messageEl = document.getElementById("message");
+
+async function updateFolderStatus() {
+  const handle = await loadHandle();
+  if (handle) {
+    folderStatusEl.textContent = "保存先フォルダ：設定済み（" + handle.name + "）";
+  } else {
+    folderStatusEl.textContent = "保存先フォルダ：未設定";
+  }
+}
+updateFolderStatus();
+
+document.getElementById("folderBtn").addEventListener("click", async () => {
+  try {
+    const handle = await window.showDirectoryPicker();
+    await saveHandle(handle);
+    await updateFolderStatus();
+    messageEl.textContent = "保存先フォルダを設定しました。";
+  } catch (err) {
+    if (err.name !== "AbortError") {
+      messageEl.textContent = "フォルダの設定に失敗しました：" + err.message;
+    }
+  }
+});
+
+document.getElementById("saveBtn").addEventListener("click", async () => {
+  const did = document.getElementById("did").value;
+  const noticed = document.getElementById("noticed").value;
+  const next = document.getElementById("next").value;
+
+  const now = new Date();
+  const timeStr =
+    String(now.getHours()).padStart(2, "0") + ":" +
+    String(now.getMinutes()).padStart(2, "0");
+
+  const section =
+    "## " + timeStr + "\n" +
+    "### 今日やったこと\n" + did + "\n\n" +
+    "### 気づいたこと・反省点\n" + noticed + "\n\n" +
+    "### 次にやること\n" + next + "\n";
+
+  const fileName = today.full + ".md";
+
+  let rootHandle = await loadHandle();
+  if (!rootHandle) {
+    messageEl.textContent = "先に「設定する」で、06_日誌フォルダを選んでください。";
+    return;
+  }
+
+  try {
+    const permission = await rootHandle.requestPermission({ mode: "readwrite" });
+    if (permission !== "granted") {
+      messageEl.textContent = "フォルダへのアクセスが許可されませんでした。";
+      return;
+    }
+
+    const yearHandle = await rootHandle.getDirectoryHandle(today.y, { create: true });
+    const monthHandle = await yearHandle.getDirectoryHandle(today.m, { create: true });
+
+    let existingContent = "";
+    try {
+      const existingHandle = await monthHandle.getFileHandle(fileName);
+      const file = await existingHandle.getFile();
+      existingContent = await file.text();
+    } catch (e) {
+      existingContent = "";
+    }
+
+    const content = existingContent
+      ? existingContent.trimEnd() + "\n\n---\n\n" + section
+      : "# " + today.full + "\n\n[[06_日誌]]\n\n" + section;
+
+    const fileHandle = await monthHandle.getFileHandle(fileName, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(content);
+    await writable.close();
+
+    messageEl.textContent =
+      today.y + "/" + today.m + "/" + fileName + " に追記しました。閉じています…";
+    document.getElementById("ticket").classList.add("is-saved");
+    setTimeout(() => window.close(), 800);
+  } catch (err) {
+    messageEl.textContent = "保存に失敗しました：" + err.message;
+  }
+});
+</script>
+
+</body>
+</html>

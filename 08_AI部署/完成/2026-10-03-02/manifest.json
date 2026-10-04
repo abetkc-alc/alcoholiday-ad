@@ -1,0 +1,28 @@
+{
+  "order": "2026-10-03-02",
+  "product": "Tシャツ 1966 ISLAY WAS FRUIT（Tshirt_1966_BL）",
+  "video": "editing/成果物/2026-10-03-02/tshirt1966-sns-v7.mp4",
+  "editing": "e7",
+  "script": "s1（案A シュール→暖かい・15秒。「わかったら、乾杯。」の字幕は外した）",
+  "design": "d2（候補B）",
+  "shots": [
+    "design/成果物/2026-10-03-02/tshirt1966-womanB-v2-blend.png",
+    "design/成果物/2026-10-03-02/tshirt1966-B-closeup-v1.png",
+    "design/成果物/2026-10-03-02/tshirt1966-B-smile-start-v2-blend.png"
+  ],
+  "clips": [
+    "editing/成果物/2026-10-03-02/b-talk-kling3-sound-v3.mp4",
+    "editing/成果物/2026-10-03-02/closeup-kling3-v5-fix4.mp4",
+    "editing/成果物/2026-10-03-02/smile-kling3-v4.mp4"
+  ],
+  "titleDesign": "C:/Users/abetk/Desktop/ALCOHOLIDAY/画像/商品画像/ORIGINAL/PNG_1966_ISLAY_BLUE.png（白に塗り替えて重ねた）",
+  "productImage": "editing/成果物/2026-10-03-02/Tshirt_1966_BL-fixed.png（元画像 Tshirt_1966_BL.png の「INCLUDINT TAX」を「INCLUDING TAX」に直したもの）",
+  "music": "C:/Users/abetk/Desktop/ALCOHOLIDAY/音声/backmusic/2_23_AM.mp3",
+  "sound": "C:/Users/abetk/Desktop/ALCOHOLIDAY/音声/アップしたもの/カモメ 5.mp3",
+  "voice": "Kling 3.0 で生成（「シングルモルトを知らないと……この意味は、わからない。」文字起こしで確認済み）",
+  "cover": "0.4秒目のコマ（白いデザインが女性に重なる）",
+  "costUsd": 2.68,
+  "note": "Tシャツのアップは0.8秒から文字が崩れたため、最初のコマのプリントを重ねて直した版（closeup-kling3-v5-fix4）。v7 で商品画像の価格表示のつづりを INCLUDING TAX に修正（社長指示）。前の v6 は v6-INCLUDINT/ に移した。",
+  "createdAt": "2026-10-03T18:30:00+09:00",
+  "updatedAt": "2026-10-03T21:00:00+09:00"
+}

@@ -1,0 +1,13 @@
+﻿{
+    "generated_at":  "2026-10-03T17:03:47.5268987+09:00",
+    "model":  "kling-video/v3.0/std/image-to-video",
+    "request_id":  "ae5856fa-a42e-4049-943a-5e2ebf60fe32",
+    "estimate_usd":  "0.536",
+    "source":  "tshirt1966-womanB-v2-blend.png",
+    "input":  {
+                  "prompt":  "The camera is completely locked off like a tripod shot: no zoom, no push-in, no drift, no pan, no camera movement at all. The yellow print on her black T-shirt (the words \u00271966\u0027, \u0027ISLAY\u0027, \u0027WAS\u0027, \u0027FRUIT\u0027 and the seagull line drawing) stays exactly the same: same letters, same spelling, same shapes, never redrawn, never morphing, it only moves naturally with the fabric. A cool young Japanese woman stands still at a dim whisky bar counter, staring straight into the camera with a completely deadpan, expressionless face, slightly surreal. After a short silent stare, she speaks to the viewer in natural, fluent Japanese, in a calm, low, quiet female voice, slowly and clearly, with a small pause before the last words: 「シングルモルトを知らないと……この意味は、わからない。」 Her lips move in exact sync with the Japanese words. She says only this one sentence, nothing else. Her eyes never leave the camera, she does not smile, her head and shoulders stay almost still. Only her lips, a slow blink and a few strands of hair move. Audio: only her voice and a very faint quiet bar ambience, no music, no other voices. The warm bokeh lights of the bar softly glimmer in the background. Avoid: zoom, zooming in, zooming out, camera push-in, dolly, pan, tilt, camera shake, garbled text, changing letters, misspelled words, nonsense text, extra text, new text, morphing print, print redrawing, warped logo, extra fingers, deformed hands, distorted face, face morphing, identity change, different person, teeth distortion, flicker, watermark, captions, subtitles, music, singing, English speech, extra words",
+                  "duration":  5,
+                  "image_url":  "https://d3snorpfx4xhv8.cloudfront.net/30af197c-76ac-4037-b137-705ad83dab27/e9332cc9-7bfe-40b5-8ae9-6228f1fac92e.png",
+                  "sound":  "on"
+              }
+}

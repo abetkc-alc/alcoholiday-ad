@@ -1,0 +1,158 @@
+<!-- 受付サイトの見た目（トップページ・受付ページで共通）。Apps Script に HTML ファイル「css」として置く
+     Pinterest（jp.pinterest.com）ふう：白い背景・赤い丸いボタン・灰色の丸いボタン・角の丸い写真と区切り。
+     高齢の方にも読みやすいように、文字とボタンは大きめにしている -->
+<style>
+  :root { --bg:#ffffff; --card:#f6f6f3; --white:#ffffff; --text:#111111; --sub:#5f5f5f; --line:#cdcdcd;
+          --main:#e60023; --main2:#ad081b; --gray:#e9e9e9; --gray2:#d6d6d6; --soft:#fff0f2; --red:#e60023; --ok:#0a7c3d; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic","Meiryo",sans-serif; font-size:20px; line-height:1.8; }
+  .wrap { max-width:760px; margin:0 auto; padding:0 16px 100px; }
+  .wrap.wide { max-width:1160px; }
+  .wrap.wide .panel:not(#p-home) { max-width:760px; margin-left:auto; margin-right:auto; }
+  @media (min-width:720px) { .wrap.wide .collage { columns:3; } }
+  img { max-width:100%; }
+
+  /* 上の帯（左にロゴ、右に丸いボタン） */
+  .topbar { position:sticky; top:0; z-index:10; background:#fff; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 16px; margin:0 -16px; }
+  .topbar .logoimg { width:auto; height:44px; margin:0; }
+  .topbar .pills { display:flex; gap:8px; align-items:center; }
+  .pill { display:inline-flex; align-items:center; justify-content:center; padding:10px 18px; border-radius:24px; border:0; font-size:17px; font-weight:700; cursor:pointer; text-decoration:none; font-family:inherit; white-space:nowrap; }
+  .pill.red { background:var(--main); color:#fff; }
+  .pill.red:hover { background:var(--main2); }
+  .pill.gray { background:var(--gray); color:var(--text); }
+  .pill.gray:hover { background:var(--gray2); }
+  .memberbar { position:sticky; top:0; z-index:10; background:#fff; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; padding:10px 0; font-size:18px; }
+  .memberbar .who { display:flex; align-items:center; gap:10px; }
+  .memberbar .logoimg { width:auto; height:38px; margin:0; }
+  .memberbar b { font-size:19px; }
+
+  header { text-align:center; padding:20px 0 8px; }
+  .logoimg { display:block; width:min(300px, 75%); height:auto; margin:0 auto; }
+  h1 { font-size:clamp(30px, 8vw, 44px); line-height:1.35; margin:18px 0 10px; font-weight:800; letter-spacing:.01em; }
+  .lead { color:var(--sub); margin:0; }
+  .flow { list-style:none; padding:0; margin:18px 0 0; display:grid; gap:10px; text-align:left; }
+  .flow li { background:var(--white); border-radius:20px; padding:12px 16px; display:flex; gap:14px; align-items:center; }
+  .flow b { background:var(--main); color:#fff; border-radius:50%; min-width:38px; height:38px; display:inline-flex; align-items:center; justify-content:center; }
+  header .flow li, .donebox ~ section .flow li { background:var(--card); }
+  .help { background:var(--card); border-radius:20px; padding:14px 18px; margin:18px 0 0; font-size:19px; }
+  section { background:var(--card); border-radius:32px; padding:26px 20px; margin:22px 0; }
+  h2 { font-size:clamp(23px, 6vw, 28px); margin:0 0 8px; display:flex; align-items:center; gap:12px; line-height:1.4; font-weight:800; }
+  h2 .no { background:var(--main); color:#fff; min-width:44px; height:44px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:21px; }
+  .step { color:var(--sub); font-size:17px; margin:0 0 6px; }
+
+  /* 入力欄 */
+  .field { margin-top:22px; }
+  .lab { display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-weight:800; font-size:21px; margin-bottom:6px; }
+  .tag { font-size:15px; font-weight:800; padding:1px 12px; border-radius:20px; }
+  .tag.must { background:var(--main); color:#fff; }
+  .tag.opt { background:var(--gray2); color:#333; }
+  .ex { color:var(--sub); font-size:17px; margin:0 0 6px; }
+  input[type=text], input[type=email], input[type=tel], input[type=password], textarea, select {
+    width:100%; padding:15px 18px; font-size:21px; background:#fff; color:var(--text);
+    border:2px solid var(--line); border-radius:16px; font-family:inherit; }
+  textarea { min-height:130px; resize:vertical; line-height:1.7; }
+  textarea.grow { min-height:0; resize:none; overflow:hidden; }   /* 商品の名前：文字の量に合わせて広がる */
+  ::placeholder { color:#a5a5a5; opacity:1; }
+  input:focus, textarea:focus, select:focus { outline:4px solid rgba(0, 116, 232, .35); border-color:#0074e8; }
+  .mic { margin-top:8px; padding:10px 18px; font-size:18px; font-weight:700; border-radius:24px; border:0; background:var(--gray); color:var(--text); cursor:pointer; font-family:inherit; }
+  .mic:hover { background:var(--gray2); }
+  .mic.on { background:var(--main); color:#fff; }
+  .count { font-size:17px; color:var(--sub); text-align:right; }
+  .count.over { color:var(--red); font-weight:800; }
+  .msg { font-size:18px; color:var(--red); font-weight:700; margin-top:6px; white-space:pre-wrap; }
+
+  /* 動画3本 */
+  .vbox { position:relative; background:var(--white); border-radius:24px; padding:44px 18px 18px !important; margin-top:18px; }
+  .vbox h3 { margin:0; font-size:22px; }
+  .vbox h3 em { font-style:normal; background:var(--text); color:#fff; border-radius:20px; padding:2px 12px; margin-right:8px; }
+  .rectime { position:absolute; top:12px; right:14px; background:var(--soft); color:var(--main); border-radius:20px; padding:0 12px; font-size:16px; font-weight:800; }
+  .rectime b { color:var(--main); }
+  .filebtn { display:block; text-align:center; margin-top:12px; padding:18px; border:3px dashed var(--line); color:var(--text); background:var(--card); border-radius:20px; cursor:pointer; font-weight:800; font-size:21px; }
+  .filebtn:hover { border-color:var(--main); }
+  .filebtn input { display:none; }
+  .vbox video { display:block; width:160px; max-height:260px; border-radius:16px; margin-top:12px; background:#000; }
+  .vbox video[hidden] { display:none; }
+  .vinfo { font-size:18px; color:var(--ok); font-weight:700; margin-top:6px; }
+  .tips { padding-left:24px; margin:8px 0 0; }
+  .tips li { margin:4px 0; }
+  .copy { margin-top:8px; padding:8px 16px; font-size:17px; border-radius:20px; border:0; background:var(--gray); cursor:pointer; font-family:inherit; }
+
+  /* 声の種類 */
+  .voices { display:grid; gap:12px; margin-top:14px; }
+  .voice { border:3px solid transparent; border-radius:24px; padding:16px 18px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; background:#fff; cursor:pointer; }
+  .voice.on { border-color:var(--text); }
+  .voice .nm { font-size:22px; font-weight:800; }
+  .voice .nm .ck { display:inline-block; width:30px; height:30px; border:3px solid var(--line); border-radius:50%; margin-right:10px; vertical-align:-6px; background:#fff; }
+  .voice.on .nm .ck { border-color:var(--main); background:var(--main); box-shadow:inset 0 0 0 5px #fff; }
+  .voice .ds { display:block; font-size:18px; font-weight:400; color:var(--sub); margin-left:42px; }
+  .play { padding:10px 18px; font-size:18px; font-weight:700; border-radius:24px; border:0; background:var(--gray); color:var(--text); cursor:pointer; font-family:inherit; }
+  .play:hover { background:var(--gray2); }
+
+  /* 投稿する日 */
+  .cal { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; max-height:540px; overflow-y:auto; padding:4px; margin-top:12px; }
+  .day { border-radius:20px; padding:12px; background:#fff; }
+  .day .d { font-weight:800; font-size:21px; }
+  .slot { display:block; width:100%; margin-top:8px; padding:12px 6px; border-radius:24px; border:0; background:var(--gray); color:var(--text); font-size:19px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .slot:hover { background:var(--gray2); }
+  .slot[disabled] { background:#f3f3f3; color:#bdbdbd; font-weight:400; cursor:not-allowed; }
+  .slot.on { background:var(--main); color:#fff; }
+  .chosen { margin-top:14px; font-weight:800; font-size:22px; color:var(--main); }
+
+  /* 確認・申し込む */
+  .notes { padding-left:24px; margin:8px 0 14px; }
+  .notes li { margin:6px 0; }
+  .agree { display:flex; gap:14px; align-items:center; font-weight:800; font-size:22px; padding:14px 16px; background:#fff; border-radius:20px; cursor:pointer; }
+  .agree input { width:34px; height:34px; accent-color:var(--main); flex:none; }
+  .submit, .btn { display:block; width:100%; text-align:center; text-decoration:none; padding:20px; font-size:24px; font-weight:800; background:var(--main); color:#fff; border:0; border-radius:40px; cursor:pointer; margin-top:18px; font-family:inherit; }
+  .submit:hover, .btn:hover { background:var(--main2); }
+  .submit[disabled], .btn[disabled] { opacity:.55; cursor:wait; }
+  .btn.sub { background:var(--gray); color:var(--text); }
+  .btn.sub:hover { background:var(--gray2); }
+  .btn small { display:block; font-size:16px; font-weight:700; opacity:.9; }
+  .progress { margin-top:14px; font-weight:800; font-size:21px; color:var(--main); white-space:pre-wrap; }
+  .err { color:var(--red); font-weight:800; margin-top:14px; white-space:pre-wrap; }
+
+  /* 受け付けた画面 */
+  .donebox { text-align:center; }
+  .okmark { width:76px; height:76px; margin:4px auto 10px; border-radius:50%; background:var(--ok); color:#fff; font-size:44px; font-weight:900; display:flex; align-items:center; justify-content:center; }
+  .donetitle { justify-content:center; font-size:clamp(20px, 6vw, 28px); white-space:nowrap; margin:0 0 6px; }
+  .donelead { margin:0 0 14px; color:var(--sub); }
+  .summary { text-align:left; margin:0; border-radius:20px; padding:8px 18px; background:#fff; }
+  .summary dt { font-size:17px; color:var(--sub); margin-top:10px; }
+  .summary dd { margin:0 0 6px; font-size:23px; font-weight:800; word-break:break-all; }
+  .summary dd.mail { font-size:19px; }
+  .note:empty { display:none; }
+  .note { margin-top:14px; background:var(--soft); border-radius:20px; padding:12px 18px; text-align:left; font-size:19px; }
+  .thanks { text-align:center; color:var(--sub); margin-top:24px; }
+
+  /* ───── トップページ ───── */
+  .hero { display:grid; gap:22px; align-items:center; padding:18px 0 10px; text-align:left; }
+  .hero h1 { margin:0 0 12px; }
+  .hero .btns { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
+  .hero .btns .pill { font-size:19px; padding:14px 22px; }
+  .collage { columns:2; column-gap:12px; }
+  .collage img { display:block; width:100%; border-radius:24px; margin:0 0 12px; break-inside:avoid; }
+  .collage img:nth-child(3n+2) { aspect-ratio:3/4; object-fit:cover; }
+  @media (min-width:720px) {
+    .hero { grid-template-columns:1fr 1fr; }
+    .collage { columns:2; }
+  }
+  .band { background:var(--card); border-radius:32px; padding:34px 22px; margin:26px 0; text-align:center; }
+  .band h2 { justify-content:center; font-size:clamp(26px, 7vw, 36px); }
+  .band p { color:var(--sub); margin:6px 0 0; }
+  .features { display:grid; gap:18px; margin-top:22px; }
+  .feat { display:grid; gap:14px; align-items:center; text-align:left; }
+  .feat img { width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:28px; }
+  .feat b { display:block; font-size:clamp(23px, 6vw, 28px); line-height:1.4; margin-bottom:4px; }
+  .feat span { color:var(--sub); font-size:19px; }
+  @media (min-width:720px) { .feat { grid-template-columns:1fr 1fr; } .feat:nth-child(even) img { order:2; } }
+  .bigbtns { display:grid; gap:12px; margin:24px 0 8px; }
+  .panel[hidden] { display:none; }
+  .pwrow { display:flex; gap:8px; }
+  .pwrow input { flex:1; min-width:0; }
+  .show { flex:none; padding:0 16px; font-size:17px; font-weight:700; border-radius:16px; border:0; background:var(--gray); cursor:pointer; font-family:inherit; }
+  .linkbtn { background:none; border:0; color:var(--text); text-decoration:underline; font-size:19px; font-weight:700; cursor:pointer; padding:8px 0; font-family:inherit; }
+  .info { background:var(--card); border-radius:20px; padding:14px 18px; margin-top:14px; white-space:pre-wrap; }
+  .info:empty { display:none; }
+  .foot { text-align:center; color:var(--sub); font-size:16px; margin-top:30px; }
+</style>

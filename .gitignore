@@ -1,0 +1,27 @@
+node_modules/
+.env
+
+# 画像・動画・音声（重い・音楽は規約で配布禁止）
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.mp4
+*.mov
+*.mp3
+*.wav
+*.m4a
+
+# お客さんの動画・個人情報
+09_広告事業/案件/
+
+# アカウントの一覧
+07_アカウント管理/
+
+# 作業用
+check/
+動画/
+__pycache__/
+*.pyc
+.obsidian/workspace*.json

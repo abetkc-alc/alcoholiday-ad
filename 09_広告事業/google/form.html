@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<?!= include_('css') ?>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="memberbar">
+    <span class="who"><?!= data.logo ?></span>
+    <span class="who"><span><b id="mname"></b> 様</span><a href="#" class="pill gray" id="logout">ログアウト</a></span>
+  </div>
+  <header>
+    <h1>おすすめ商品の申し込み</h1>
+    <p class="lead">ALCOHOLIDAY の Instagram・TikTok・X で、<br>お店のおすすめを動画で紹介します。</p>
+    <ol class="flow">
+      <li><b>1</b>お店の詳細を入力</li>
+      <li><b>2</b>おすすめ商品の説明を入力</li>
+      <li><b>3</b>動画をアップロード</li>
+      <li><b>4</b>メールで届いた動画を確認</li>
+      <li><b>5</b>えらんだ日時に自動で投稿</li>
+    </ol>
+    <div class="help">🎤 <b>「話して入力」</b>のボタンを押すと、文字を打たずに声で入力できます。<br>スマホのキーボードのマイクのボタンからも、声で入力できます。</div>
+  </header>
+
+  <form id="f" onsubmit="return send(event)" novalidate>
+    <section>
+      <p class="step">全部で7つです</p>
+      <h2><span class="no">1</span>お店のこと</h2>
+      <p class="ex">会員登録のときの内容を入れてあります。変わったところがあれば直してください。</p>
+      <div class="field" data-mic>
+        <div class="lab">店名<span class="tag must">必ず</span></div>
+        <input placeholder="例：BAR アルコホリディ" type="text" name="shop" maxlength="80" required>
+      </div>
+      <div class="field" data-mic>
+        <div class="lab">担当者のお名前<span class="tag opt">なくてもよい</span></div>
+        <input placeholder="例：山田 太郎" type="text" name="person" maxlength="60">
+      </div>
+      <div class="field">
+        <div class="lab">メールアドレス<span class="tag must">必ず</span></div>
+        <p class="ex">できあがった動画を、このアドレスにお送りします</p>
+        <input placeholder="例：info@example.com" type="email" name="email" maxlength="120" required inputmode="email" autocomplete="email">
+      </div>
+      <div class="field">
+        <div class="lab">お店の電話番号<span class="tag must">必ず</span></div>
+        <p class="ex">SNS の文に載せます</p>
+        <input placeholder="例：03-1234-5678" type="tel" name="tel" maxlength="30" inputmode="tel">
+      </div>
+      <div class="field">
+        <div class="lab">都道府県<span class="tag must">必ず</span></div>
+        <select name="pref" required id="pref"><option value="">ここを押してえらぶ</option></select>
+      </div>
+      <div class="field" data-mic>
+        <div class="lab">住所（市区町村から）<span class="tag must">必ず</span></div>
+        <p class="ex">SNS の文に載せます</p>
+        <input placeholder="例：渋谷区恵比寿南1-2-3 ○○ビル2階" type="text" name="address" maxlength="120">
+      </div>
+      <div class="field" data-mic>
+        <div class="lab">最寄り駅<span class="tag opt">なくてもよい</span></div>
+        <input placeholder="例：恵比寿駅 歩いて3分" type="text" name="area" maxlength="80">
+      </div>
+      <div class="field" data-mic>
+        <div class="lab">営業時間<span class="tag must">必ず</span></div>
+        <p class="ex">SNS の文に載せます</p>
+        <input placeholder="例：夜7時〜夜中の2時（日曜休み）" type="text" name="hours" maxlength="80">
+      </div>
+      <div class="field">
+        <div class="lab">お店の SNS<span class="tag opt">なくてもよい</span></div>
+        <input placeholder="例：Instagram @bar_xxx" type="text" name="sns" maxlength="200">
+      </div>
+      <div class="field">
+        <label class="agree"><input type="checkbox" name="saveProfile" value="1" checked>直した内容を会員情報にも保存する</label>
+        <p class="ex">印をつけておくと、次からも直した内容が最初から入ります</p>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="no">2</span>おすすめの商品</h2>
+      <div class="field" data-mic>
+        <div class="lab">商品の名前<span class="tag must">必ず</span></div>
+        <p class="ex"><b><?= data.productMax ?>文字まで</b>。動画の上に大きく出します</p>
+        <!-- 長い商品名も全部見えるように、入れた文字の量に合わせて欄が広がる（改行は入れない） -->
+        <textarea class="grow" rows="1" placeholder="例：季節のフルーツカクテル「桃のベリーニ」" name="product" maxlength="<?= data.productMax ?>" data-count="<?= data.productMax ?>" required></textarea>
+      </div>
+      <div class="field" data-mic>
+        <div class="lab">商品の説明<span class="tag must">必ず</span></div>
+        <p class="ex"><b><?= data.descMax ?>文字まで</b>。味・こだわり・おすすめの飲み方など</p>
+        <textarea placeholder="例：岡山の白桃を丸ごと使った、秋だけのベリーニです。甘さひかえめで、食後の一杯にもおすすめです。" name="desc" maxlength="<?= data.descMax ?>" data-count="<?= data.descMax ?>" required></textarea>
+      </div>
+      <div class="field" data-mic>
+        <div class="lab">値段<span class="tag opt">なくてもよい</span></div>
+        <input placeholder="例：1,600円（税込）" type="text" name="price" maxlength="40">
+      </div>
+      <div class="field">
+        <label class="agree"><input type="checkbox" name="limited" value="1">数量限定の商品です</label>
+        <p class="ex">印をつけると、動画に「数量に限りがありますので、品切れの際は予めご了承ください。」の一文を入れます</p>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="no">3</span>お店で撮った動画を3本</h2>
+      <p>スマホで<b>5秒くらいの動画を3本</b>撮ってください。3本をつないで、声の案内と字幕を入れた1本の動画にします。</p>
+      <ul class="tips">
+        <li>スマホは<b>縦向き</b>で、明るい場所で撮ってください</li>
+        <li>動画の音は使いません（音楽と声の案内を入れます）</li>
+        <li>人・商品・場所などが映るときは、掲載の了承をとってください（7 の確認事項をお読みください）</li>
+        <li>1本 <?= data.maxVideoMb ?>MB まで。送るのに少し時間がかかります（Wi-Fi がおすすめです）</li>
+      </ul>
+      <div id="videos"></div>
+    </section>
+
+    <section>
+      <h2><span class="no">4</span>SNS に載せる文</h2>
+      <p>動画といっしょに Instagram・TikTok・X に載せる文です。<b>書かなくても大丈夫です</b>（空なら ALCOHOLIDAY が書きます）。</p>
+      <ul class="tips">
+        <li>書いた文は <b>Instagram</b> にそのまま載せます。TikTok と X には、短くまとめて載せます</li>
+        <li>最初に入力した<b>お店の住所・営業時間・電話番号</b>は必ず載せます。</li>
+        <li>「#PR」「提供：店名」「お酒は20歳になってから」などの決まった文も、自動で付けます</li>
+      </ul>
+      <div class="field" data-mic>
+        <div class="lab">SNS に載せる文<span class="tag opt">なくてもよい</span></div>
+        <textarea placeholder="例：秋だけの白桃のベリーニができました。とろける甘さを、ぜひ一度。" name="caption" maxlength="1500" data-count="1500"></textarea>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="no">5</span>声の案内の種類</h2>
+      <p>動画の声の案内（ナレーション）の声をえらんでください。<b>「▶ 声を聞く」</b>で聞きくらべられます。</p>
+      <div class="voices" id="voices"></div>
+      <div class="field" data-mic>
+        <div class="lab">ご要望<span class="tag opt">なくてもよい</span></div>
+        <textarea placeholder="例：楽しい雰囲気で／落ち着いた大人の感じで" name="note" maxlength="600" style="min-height:100px"></textarea>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="no">6</span>投稿する日と時間</h2>
+      <p>1日2回、<b>11時〜13時頃</b> と <b>16時〜18時頃</b> に投稿しています（それぞれ1店だけ）。<br><b><?= data.bookMonths ?>か月先まで</b>申し込めます。締め切りは<b>投稿の<?= data.orderHours ?>時間前</b>です。<br>青いボタンが<b>空いている時間</b>です。</p>
+      <div class="cal" id="cal"><p>空いている枠を読みこんでいます…</p></div>
+      <div class="chosen" id="chosen"></div>
+    </section>
+
+    <section>
+      <h2><span class="no">7</span>確認して申し込む</h2>
+      <ul class="notes">
+        <li>動画は、お客様に<b>承認していただいてから</b>投稿します。承認がない場合は投稿しません。</li>
+        <li>動画の<b>直しは1回まで</b>です。直したあとは、直す前と直したあとの2本から選んで承認していただきます。</li>
+        <li>載せる文には、広告であることを示す「#PR」と、お酒の注意書き（20歳未満の飲酒・飲酒運転の禁止）を入れます。</li>
+        <li>送っていただく動画に映っている<b>場所・人・商品・音楽・看板やロゴなど</b>は、撮影と SNS への掲載について、<b>お申し込みいただいた方が、すべて了承を得ているもの</b>とします。</li>
+        <li>送っていただいた動画・文・お店の情報について、ほかの人や会社とのあいだで問題が起きた場合は、<b>お申し込みいただいた方の責任と費用で解決</b>していただきます。<b>ALCOHOLIDAY は一切の責任を負いません。</b></li>
+        <li>紹介による集客や売上などの効果をお約束するものではありません。</li>
+        <li>声の案内は AI の読み上げです。説明の文は、読みやすい長さに整えることがあります（承認のときに確認できます）。</li>
+      </ul>
+      <label class="agree"><input type="checkbox" name="agree" value="1">上の内容に同意します</label>
+      <button class="submit" id="btn">申し込む</button>
+      <div class="progress" id="progress"></div>
+      <div class="err" id="err"></div>
+    </section>
+  </form>
+</div>
+
+<?!= include_('common') ?>
+<script>
+  var DATA = <?!= JSON.stringify(data) ?>;
+  const st = { videos: DATA.videos.map(() => null), upload: '', date: '', slot: '', guide: 'おまかせ' };
+
+  fillPrefs($('pref'));
+
+  /* ───── 会員の情報を最初から入れておく ───── */
+  const M = DATA.member || {};
+  $('mname').textContent = M.shop || '';
+  ['shop', 'person', 'email', 'tel', 'pref', 'address', 'area', 'hours', 'sns'].forEach(k => {
+    const el = document.querySelector('[name=' + k + ']');
+    if (el && M[k]) el.value = M[k];
+  });
+  // ログアウト：押したらトップページへ移り、そこでログアウトする（Google のページはボタンを押したときだけ移れる）
+  $('logout').href = DATA.topUrl + '?p=logout&s=' + encodeURIComponent(DATA.session);
+  $('logout').target = '_top';
+
+  document.querySelectorAll('[data-mic]').forEach(addMic);
+  document.querySelectorAll('[data-count]').forEach(addCount);
+  // 商品の名前：入れた文字が全部見えるように欄の高さを合わせる。改行は入れない
+  document.querySelectorAll('textarea.grow').forEach(t => {
+    const fit = () => { t.value = t.value.replace(/[\r\n]+/g, ' '); t.style.height = 'auto'; t.style.height = (t.scrollHeight + t.offsetHeight - t.clientHeight) + 'px'; };   // 枠の太さの分も足す
+    t.addEventListener('input', fit); t.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+    window.addEventListener('resize', fit); setTimeout(fit, 0);
+  });
+
+  /* ───── 声の種類（写真は出さない。見本の声を聞いてえらぶ） ───── */
+  let playing = null;
+  // 「▶ 声を聞く」ボタン
+  function addPlay(box, src) {
+    const p = document.createElement('button'); p.type = 'button'; p.className = 'play'; p.textContent = '▶ 声を聞く';
+    const au = new Audio(src);
+    au.onended = () => { p.textContent = '▶ 声を聞く'; };
+    p.onclick = ev => {
+      ev.stopPropagation();
+      if (playing && playing !== au) { playing.pause(); playing.currentTime = 0; document.querySelectorAll('.play').forEach(x => x.textContent = '▶ 声を聞く'); }
+      if (!au.paused) { au.pause(); au.currentTime = 0; p.textContent = '▶ 声を聞く'; return; }
+      au.play(); playing = au; p.textContent = '■ 止める';
+    };
+    box.appendChild(p);
+  }
+  DATA.guides.concat([{ key: 'おまかせ', name: 'おまかせ', desc: 'お店の雰囲気に合わせて ALCOHOLIDAY がえらびます', sample: '' }]).forEach(g => {
+    const box = document.createElement('div');
+    box.className = 'voice' + (g.key === st.guide ? ' on' : '');
+    box.innerHTML = '<div class="nm"><span class="ck"></span><span class="n"></span><span class="ds"></span></div>';
+    box.querySelector('.n').textContent = g.name;
+    box.querySelector('.ds').textContent = g.desc;
+    if (g.sample) addPlay(box, g.sample);
+    box.onclick = () => { st.guide = g.key; document.querySelectorAll('.voice').forEach(x => x.classList.remove('on')); box.classList.add('on'); };
+    $('voices').appendChild(box);
+  });
+
+  /* ───── 空いている枠 ───── */
+  function loadCal() {
+    google.script.run.withSuccessHandler(days => {
+      const cal = $('cal'); cal.innerHTML = '';
+      days.forEach(d => {
+        const box = document.createElement('div'); box.className = 'day';
+        box.innerHTML = '<div class="d"></div>'; box.querySelector('.d').textContent = d.label;
+        DATA.slots.forEach(s => {
+          const b = document.createElement('button');
+          const name = s.label;
+          b.type = 'button'; b.className = 'slot';
+          b.disabled = !d.slots[s.key];
+          b.textContent = name;
+          b.onclick = () => {
+            st.date = d.date; st.slot = s.key;
+            document.querySelectorAll('.slot').forEach(x => x.classList.remove('on')); b.classList.add('on');
+            $('chosen').textContent = 'えらんだ日時：' + d.label + ' ' + name;
+          };
+          box.appendChild(b);
+        });
+        cal.appendChild(box);
+      });
+    }).withFailureHandler(e => { $('cal').innerHTML = '<p class="err">空いている枠を読みこめませんでした。ページを開き直してください。</p>'; }).getAvailability();
+  }
+  loadCal();
+
+  /* ───── 動画3本 ───── */
+  const MB = 1024 * 1024, CHUNK = 4 * MB;
+  DATA.videos.forEach((v, i) => {
+    const box = document.createElement('div'); box.className = 'vbox';
+    box.innerHTML = '<div class="rectime">⏱ 録画時間 <b>5秒</b> 程度</div>' +
+      '<h3><em>動画' + (i + 1) + '</em><span class="t"></span></h3><p class="ex h"></p>' +
+      '<label class="filebtn">🎥 ここを押して動画をえらぶ<input type="file" accept="video/*"></label>' +
+      '<p class="msg"></p><video muted playsinline controls hidden></video><div class="vinfo"></div>' +
+      '<div class="field"><div class="lab">この動画の説明<span class="tag must">必ず</span></div>' +
+      '<p class="ex"><b>' + DATA.videoDescMax + '文字まで</b>。声の案内と字幕にします（短くまとめることがあります）</p>' +
+      '<textarea maxlength="' + DATA.videoDescMax + '" data-count="' + DATA.videoDescMax + '" style="min-height:100px"></textarea></div>';
+    box.querySelector('.t').textContent = v.title;
+    box.querySelector('.h').textContent = v.hint;
+    box.querySelector('textarea').placeholder = v.example;
+    const input = box.querySelector('input'), vid = box.querySelector('video'), err = box.querySelector('.msg'), info = box.querySelector('.vinfo');
+    input.onchange = () => {
+      const file = input.files[0];
+      err.textContent = ''; info.textContent = '';
+      if (!file) return;
+      st.upload = '';   // 動画を変えたら、送り直す
+      if (file.size > DATA.maxVideoMb * MB) {
+        st.videos[i] = null; vid.hidden = true;
+        err.textContent = '動画が大きすぎます（' + Math.round(file.size / MB) + 'MB）。' + DATA.maxVideoMb + 'MB までにしてください。短く撮るか、カメラの画質を「1080p」にすると小さくなります。';
+        input.value = ''; return;
+      }
+      st.videos[i] = { file: file, sec: 0 };
+      info.textContent = '✔ えらびました（' + (file.size / MB).toFixed(1) + 'MB）';
+      vid.hidden = false; vid.src = URL.createObjectURL(file);
+      vid.onloadedmetadata = () => {
+        const sec = vid.duration;
+        if (!isFinite(sec)) return;
+        st.videos[i].sec = sec;
+        info.textContent = '✔ えらびました（' + sec.toFixed(1) + '秒）';
+        if (sec < 3) err.textContent = '少し短いです。5秒くらいで撮り直していただけると、きれいに仕上がります。';
+      };
+      vid.onerror = () => { vid.hidden = true; };   // この画面で再生できない形式でも、送ることはできる
+    };
+    $('videos').appendChild(box);
+    addCount(box.querySelector('textarea'));
+    addMic(box.querySelector('.field'));
+  });
+
+  const toB64 = blob => new Promise((ok, ng) => {
+    const r = new FileReader();
+    r.onload = () => ok(String(r.result).split(',').pop()); r.onerror = () => ng(new Error('動画を読みこめませんでした'));
+    r.readAsDataURL(blob);
+  });
+
+  // 動画を約4MBずつに分けて送る（大きい動画でも送れるように）
+  async function sendVideos() {
+    if (!st.upload) { st.upload = await run('startUpload'); st.sent = []; }
+    const total = st.videos.reduce((n, v) => n + v.file.size, 0);
+    let done = st.videos.reduce((n, v, i) => n + (st.sent[i] ? v.file.size : 0), 0);
+    for (let i = 0; i < st.videos.length; i++) {
+      if (st.sent[i]) continue;
+      const f = st.videos[i].file, parts = Math.max(1, Math.ceil(f.size / CHUNK));
+      for (let p = 0; p < parts; p++) {
+        const b64 = await toB64(f.slice(p * CHUNK, (p + 1) * CHUNK));
+        for (let tryNo = 1; ; tryNo++) {
+          try { await run('uploadChunk', st.upload, i + 1, p, b64); break; }
+          catch (e) { if (tryNo >= 3) throw new Error('動画を送れませんでした。電波のよい場所で、もう一度「申し込む」を押してください'); }
+        }
+        done += Math.min(CHUNK, f.size - p * CHUNK);
+        $('progress').textContent = '動画を送っています… ' + Math.round(done / total * 100) + '%\n（この画面を閉じないでください）';
+      }
+      st.sent[i] = parts;
+    }
+  }
+
+  /* ───── 受け付けた画面（申し込み画面と同じ見た目） ───── */
+  function showDone(r, email) {
+    $('app').innerHTML =
+      '<header>' + DATA.logo + '</header>' +
+      '<section class="donebox">' +
+      '  <div class="okmark">✔</div>' +
+      '  <h2 class="donetitle">お申し込みを受け付けました</h2>' +
+      '  <p class="donelead">ありがとうございます。下の内容で受け付けました。</p>' +
+      '  <dl class="summary"><dt>受付番号</dt><dd class="id"></dd><dt>投稿する日時</dt><dd class="when"></dd><dt>確認のメールの送り先</dt><dd class="mail"></dd></dl>' +
+      '  <div class="note"></div>' +
+      '</section>' +
+      '<section>' +
+      '  <h2><span class="no">✉</span>このあとの流れ</h2>' +
+      '  <ol class="flow">' +
+      '    <li><b>1</b>ALCOHOLIDAY が動画をつくります</li>' +
+      '    <li><b>2</b>動画ができたら、メールでお知らせします</li>' +
+      '    <li><b>3</b>メールのページで動画を見て「承認する」を押してください（投稿の' + DATA.approveHours + '時間前まで）</li>' +
+      '    <li><b>4</b>えらんだ日時に自動で投稿します</li>' +
+      '  </ol>' +
+      '  <div class="help">確認のメールが届かないときは、<b>迷惑メール</b>のフォルダもご覧ください。<br>承認がない場合は投稿しません。</div>' +
+      '</section>' +
+      '<p class="thanks">ALCOHOLIDAY（アルコホリディ）</p>';
+    // 受付番号などは文字として入れる（記号がそのまま表示されるように）
+    document.querySelector('.summary .id').textContent = r.id;
+    document.querySelector('.summary .when').textContent = r.when;
+    document.querySelector('.summary .mail').textContent = email;
+    if (r.note) document.querySelector('.donebox .note').innerHTML = r.note;   // お試し版だけが使う案内
+    window.scrollTo(0, 0);
+  }
+
+  async function send(ev) {
+    ev.preventDefault();
+    stopMic();
+    $('err').textContent = '';
+    const fd = new FormData($('f'));
+    const f = Object.fromEntries(fd.entries());
+    f.session = DATA.session; f.saveProfile = !!f.saveProfile;
+    f.agree = !!f.agree; f.limited = !!f.limited; f.date = st.date; f.slot = st.slot; f.guide = st.guide;
+    const desc = Array.from(document.querySelectorAll('#videos textarea')).map(t => t.value.trim());
+    const miss = [];
+    if (!String(f.shop || '').trim()) miss.push('1 の「店名」を入れてください');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(f.email || ''))) miss.push('1 の「メールアドレス」を正しく入れてください');
+    if (!String(f.tel || '').trim()) miss.push('1 の「お店の電話番号」を入れてください');
+    if (!f.pref) miss.push('1 の「都道府県」をえらんでください');
+    if (!String(f.address || '').trim()) miss.push('1 の「住所」を入れてください');
+    if (!String(f.hours || '').trim()) miss.push('1 の「営業時間」を入れてください');
+    if (!String(f.product || '').trim()) miss.push('2 の「商品の名前」を入れてください');
+    if (!String(f.desc || '').trim()) miss.push('2 の「商品の説明」を入れてください');
+    st.videos.forEach((v, i) => { if (!v) miss.push('3 の「動画' + (i + 1) + '（' + DATA.videos[i].title + '）」をえらんでください'); });
+    desc.forEach((d, i) => { if (!d) miss.push('3 の「動画' + (i + 1) + 'の説明」を入れてください'); });
+    if (!f.date) miss.push('6 の「投稿する日と時間」をえらんでください');
+    if (!f.agree) miss.push('7 の「同意します」に印をつけてください');
+    if (miss.length) { $('err').textContent = 'まだ入っていないところがあります：\n・' + miss.join('\n・'); return false; }
+    $('btn').disabled = true; $('btn').textContent = '送っています…';
+    try {
+      await sendVideos();
+      $('progress').textContent = '申し込みを登録しています…';
+      f.upload = st.upload;
+      f.videos = st.videos.map((v, i) => ({ name: v.file.name, type: v.file.type, size: v.file.size, sec: v.sec, parts: st.sent[i], desc: desc[i] }));
+      const r = await run('submitOrder', f);
+      showDone(r, f.email);
+    } catch (e) {
+      $('progress').textContent = '';
+      $('err').textContent = errText(e);
+      $('btn').disabled = false; $('btn').textContent = '申し込む';
+      if (/埋まり/.test(e.message)) loadCal();
+    }
+    return false;
+  }
+</script>
+</body>
+</html>

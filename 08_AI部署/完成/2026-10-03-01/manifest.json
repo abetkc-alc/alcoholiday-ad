@@ -1,0 +1,18 @@
+{
+  "order": "2026-10-03-01",
+  "product": "beer",
+  "video": "editing/成果物/2026-10-03-01/beer-autumn-sns-v2.mp4",
+  "editing": "beer-e1",
+  "script": "beer-s1（案A 秋刀魚と、ビール。）",
+  "design": "beer-d1",
+  "shots": [
+    "design/成果物/2026-10-03-01/beer-autumn-angle2-v2-blend-v2.png",
+    "design/成果物/2026-10-03-01/beer-autumn-angle1-v1-blend-v2.png",
+    "design/成果物/2026-10-03-01/beer-autumn-angle3-v1-blend-v2.png"
+  ],
+  "music": "C:/Users/abetk/Desktop/ALCOHOLIDAY/音声/backmusic/週末京都現実逃避.mp3",
+  "cover": "1.2秒目のコマ（NO BEER, NO LIFE.）",
+  "costUsd": 0.54,
+  "note": "湯気（中アップ）と窓の外の鳥（引き）を最初のコマで覆って消した版",
+  "createdAt": "2026-10-03T14:00:00+09:00"
+}

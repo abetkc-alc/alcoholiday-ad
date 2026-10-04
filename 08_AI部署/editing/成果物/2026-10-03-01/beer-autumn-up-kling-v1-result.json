@@ -1,0 +1,14 @@
+﻿{
+    "generated_at":  "2026-10-03T13:24:02.4647353+09:00",
+    "model":  "kling-video/v2.5-turbo/standard/image-to-video",
+    "request_id":  "02fa85b0-b483-470e-8823-c14eee0c8c6f",
+    "estimate_usd":  "0.179",
+    "source":  "beer-autumn-angle3-v1-blend-v2.png",
+    "input":  {
+                  "prompt":  "The camera itself is completely locked off and motionless like a tripod photograph, with absolutely no zoom, no push-in, no drift, no pan and no camera movement of any kind for the entire clip. The framed sky-blue \u0027NO BEER, NO LIFE.\u0027 poster stays perfectly rigid, flat and exactly the same size for the entire clip: its illustration, hand, beer mug, lettering, logo, white border and proportions never warp, stretch, resize, shift position or change perspective, as if it truly is a static print and not a generated image. The only motion anywhere in this shot is the branch of red and orange autumn leaves in the dark vase at the lower right, which sways very gently as if touched by a soft breeze; every leaf stays firmly attached. Everything else, including the wall, the sunlight pattern on the wall, the sideboard, the books, the beer glass and especially the framed poster, is completely still and motionless. Bright, warm, appetizing autumn golden-hour evening in a tidy modern Japanese 1LDK dining room, interior magazine and food photography quality.",
+                  "duration":  5,
+                  "cfg_scale":  0.9,
+                  "image_url":  "https://d3snorpfx4xhv8.cloudfront.net/30af197c-76ac-4037-b137-705ad83dab27/eed98f9d-3ad0-4ceb-808b-f160bd39fb86.png",
+                  "negative_prompt":  "poster warping, poster bending, poster resizing, poster shifting position, poster tilting, poster swaying, poster vibration, poster micro-movement, poster jitter, perspective change, illustration reshaping, hand redrawing, mug redrawing, cropped poster, warped text, changing letters, misspelled words, garbled text, nonsense text, fake text, distorted logo, animated poster illustration, morphing artwork, new shapes appearing inside the poster, cursive text, script text, handwriting, signature, watermark, ghost text, any text not in the original image, camera orbit, zoom, zooming in, zooming out, camera push-in, dolly, pan, tilt, parallax, fast movement, shaking, flicker, hands entering, people, person, silhouette, face, new objects, added captions, bird, birds, flying animal, insect, airplane, moving cars, falling leaves, flying leaves, floating leaves, leaves detaching from branch, leaf storm, petals flying, floating debris, spark, ember, lens flare, sudden appearing object, glowing particle, steam, smoke, vapor, mist, haze, fog, light bloom, light rays, poster shrinking, poster growing, artwork scaling inside the frame, overflowing beer, spilling, beer level changing, food moving"
+              }
+}

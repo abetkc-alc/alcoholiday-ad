@@ -1,0 +1,13 @@
+﻿{
+    "generated_at":  "2026-10-03T16:46:36.8768790+09:00",
+    "model":  "kling-video/v3.0/std/image-to-video",
+    "request_id":  "64c052da-d496-47b8-a095-3f631b3fffd1",
+    "estimate_usd":  "0.357",
+    "source":  "tshirt1966-B-closeup-v1.png",
+    "input":  {
+                  "prompt":  "The camera is completely locked off like a tripod shot: no zoom, no push-in, no drift, no pan, no camera movement at all. The yellow print on her black T-shirt (the words \u00271966\u0027, \u0027ISLAY\u0027, \u0027WAS\u0027, \u0027FRUIT\u0027 and the seagull line drawing) stays exactly the same: same letters, same spelling, same shapes, never redrawn, never morphing, it only moves naturally with the fabric. The printed letters are a plain upright typewriter-style serif font and stay perfectly upright, never italic, never slanted. Close-up of a woman\u0027s chest wearing a black T-shirt with a yellow print. The only motion is her fingers gently tugging the hem of the T-shirt once and releasing it, so the lower part of the cotton fabric softly ripples; the printed area itself stays flat and calm. Her body otherwise stays still with a slow breath. The warm bar lights in the background stay softly blurred. Realistic cinematic product shot. Avoid: zoom, zooming in, zooming out, camera push-in, dolly, pan, tilt, camera shake, garbled text, changing letters, misspelled words, nonsense text, extra text, new text, morphing print, print redrawing, warped logo, extra fingers, deformed hands, distorted face, face morphing, identity change, different person, teeth distortion, flicker, watermark, captions, subtitles, italic letters, slanted letters, face, head",
+                  "duration":  5,
+                  "image_url":  "https://d3snorpfx4xhv8.cloudfront.net/30af197c-76ac-4037-b137-705ad83dab27/f36cb15a-d14c-4afd-b7fb-a8fe895fedbb.png",
+                  "sound":  "off"
+              }
+}

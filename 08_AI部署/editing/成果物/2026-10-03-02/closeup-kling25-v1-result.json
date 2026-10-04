@@ -1,0 +1,14 @@
+﻿{
+    "generated_at":  "2026-10-03T16:35:35.1544066+09:00",
+    "model":  "kling-video/v2.5-turbo/standard/image-to-video",
+    "request_id":  "0c0bdb52-abd3-41ee-b297-d74b404021f6",
+    "estimate_usd":  "0.179",
+    "source":  "tshirt1966-B-closeup-v1.png",
+    "input":  {
+                  "prompt":  "The camera is completely locked off like a tripod shot: no zoom, no push-in, no drift, no pan, no camera movement at all. The yellow print on her black T-shirt (the words \u00271966\u0027, \u0027ISLAY\u0027, \u0027WAS\u0027, \u0027FRUIT\u0027 and the seagull line drawing) stays exactly the same: same letters, same spelling, same shapes, never redrawn, never morphing, it only moves naturally with the fabric. Close-up of a woman\u0027s chest wearing a black T-shirt with a yellow print. The only motion is her fingers gently tugging the hem of the T-shirt once and releasing it, so the cotton fabric softly ripples and the print follows the fabric naturally. Her body otherwise stays still with a slow breath. The warm bar lights in the background stay softly blurred. Realistic cinematic product shot.",
+                  "duration":  5,
+                  "image_url":  "https://d3snorpfx4xhv8.cloudfront.net/30af197c-76ac-4037-b137-705ad83dab27/471a446f-2637-47a3-bd59-2432fd11be66.png",
+                  "negative_prompt":  "zoom, zooming in, zooming out, camera push-in, dolly, pan, tilt, camera shake, garbled text, changing letters, misspelled words, nonsense text, extra text, new text, morphing print, print redrawing, warped logo, extra fingers, deformed hands, distorted face, face morphing, identity change, different person, teeth distortion, flicker, watermark, captions, subtitles, face, head",
+                  "cfg_scale":  0.9
+              }
+}

@@ -1,0 +1,14 @@
+﻿{
+    "generated_at":  "2026-09-27T20:26:21.0279013+09:00",
+    "model":  "kling-video/v2.5-turbo/standard/image-to-video",
+    "request_id":  "645130e1-fec5-45b3-b2a7-c9626ee5ed20",
+    "estimate_usd":  "0.116",
+    "source":  "wine-3shot-up-v2.png",
+    "input":  {
+                  "prompt":  "The camera itself is completely locked off and motionless like a tripod photograph, with absolutely no zoom, no push-in, no drift, no pan and no camera movement of any kind for the entire clip. The framed yellow \u0027NO WINE, NO LIFE.\u0027 poster stays perfectly rigid, flat and exactly the same size for the entire clip: its illustration, hand, glass, lettering, logo, white border and proportions never warp, stretch, resize, shift position or change perspective, as if it truly is a static print and not a generated image. The only motion anywhere in this shot is the red-orange autumn branch in the lower right foreground, which sways very gently as if touched by a soft breeze; every leaf stays firmly attached. Everything else, including the wall, the sofa, the plant on the left and especially the framed poster, is completely still and motionless. Bright, warm, cozy early-autumn Friday evening, interior magazine photography quality.",
+                  "duration":  5,
+                  "cfg_scale":  0.9,
+                  "image_url":  "https://d3snorpfx4xhv8.cloudfront.net/30af197c-76ac-4037-b137-705ad83dab27/23d13bc4-03de-4de2-bfa8-90b3e0d192d9.png",
+                  "negative_prompt":  "poster warping, poster bending, poster resizing, poster shifting position, poster tilting, poster swaying, poster vibration, poster micro-movement, poster jitter, perspective change, illustration reshaping, hand redrawing, glass redrawing, cropped poster, warped text, changing letters, misspelled words, garbled text, nonsense text, fake text, distorted logo, animated poster illustration, morphing artwork, new shapes appearing inside the poster, cursive text, script text, handwriting, signature, watermark, ghost text, any text not in the original image, camera orbit, zoom, zooming in, zooming out, camera push-in, dolly, pan, tilt, parallax, fast movement, shaking, flicker, hands entering, new objects, added captions, bird, birds, flying animal, falling leaves, flying leaves, floating leaves, leaves detaching from branch, leaf storm, petals flying, floating debris, spark, ember, lens flare, sudden appearing object, glowing particle, steam, smoke, vapor, mist, haze, fog, light bloom, light rays, poster shrinking, poster growing, artwork scaling inside the frame, people"
+              }
+}

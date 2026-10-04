@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<?!= include_('css') ?>
+<style>
+  /* 承認ページだけの見た目（ほかは css と同じ） */
+  .video { width:100%; max-width:360px; aspect-ratio:9/16; display:block; margin:0 auto; border:0; border-radius:24px; background:#000; }
+  .open { display:block; text-align:center; margin-top:12px; color:var(--text); font-weight:700; }
+  .cap { background:#fff; border-radius:20px; padding:14px 18px; margin:0 0 14px; }
+  .cap h3 { margin:0 0 6px; font-size:20px; }
+  .cap pre { white-space:pre-wrap; font-family:inherit; font-size:18px; margin:0; line-height:1.7; }
+  .state { text-align:center; font-size:22px; font-weight:800; }
+  .center { text-align:center; }
+  #fix[hidden], .caps[hidden] { display:none; }
+  /* 直したあと：2本から選ぶ */
+  .pick2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px; margin-top:12px; }
+  .choice { background:#fff; border:4px solid var(--line); border-radius:28px; padding:14px; cursor:pointer; }
+  .choice.on { border-color:var(--main); }
+  .choice .head { display:flex; align-items:center; gap:10px; font-size:21px; font-weight:800; margin-bottom:10px; }
+  .choice .head .ck { width:30px; height:30px; border:3px solid var(--line); border-radius:50%; flex:none; background:#fff; }
+  .choice.on .head .ck { border-color:var(--main); background:var(--main); box-shadow:inset 0 0 0 5px #fff; }
+  .choice .vmsg { font-size:16px; color:var(--sub); margin:8px 0 0; text-align:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><span><?!= data.logo ?></span></div>
+<? if (data.error) { ?>
+  <section class="center"><p class="err"><?= data.error ?></p></section>
+<? } else { ?>
+  <header>
+    <h1>動画のご確認</h1>
+    <p class="lead"><?= data.prev && data.canAct ? '直した動画ができました。直す前と直したあとの2本から、よいほうを選んで承認してください。' : 'できあがった動画と、SNS に載せる文をご確認ください。' ?></p>
+  </header>
+
+  <section>
+    <h2><span class="no">1</span>お申し込みの内容</h2>
+    <dl class="summary">
+      <dt>受付番号</dt><dd><?= data.id ?></dd>
+      <dt>店名</dt><dd><?= data.shop ?></dd>
+      <dt>おすすめ商品</dt><dd><?= data.product ?></dd>
+      <dt>投稿する日時</dt><dd><?= data.when ?></dd>
+      <dt>承認の期限</dt><dd style="color:var(--main)"><?= data.deadline ?> まで</dd>
+    </dl>
+  </section>
+
+<? if (data.prev && data.canAct) { ?>
+  <!-- 直したあと：「直す前」と「直したあと」の2本から選ぶ（直しは1回まで） -->
+  <section>
+    <h2><span class="no">2</span>動画を選ぶ</h2>
+    <p class="ex">▶ を押すと再生されます。音も確かめて、よいほうを押して選んでください。</p>
+    <div class="pick2">
+      <div class="choice on" data-choice="new">
+        <div class="head"><span class="ck"></span>直したあとの動画</div>
+        <video class="video" id="vid-new" controls playsinline preload="metadata"></video>
+        <p class="vmsg" id="vmsg-new">動画を読み込んでいます…</p>
+      </div>
+      <div class="choice" data-choice="prev">
+        <div class="head"><span class="ck"></span>直す前の動画</div>
+        <video class="video" id="vid-prev" controls playsinline preload="metadata"></video>
+        <p class="vmsg" id="vmsg-prev">動画を読み込んでいます…</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="no">3</span>SNS に載せる文（選んだ動画の文）</h2>
+    <div class="caps" id="caps-new">
+      <? if (data.captions.instagram) { ?><div class="cap"><h3>Instagram</h3><pre><?= data.captions.instagram ?></pre></div><? } ?>
+      <? if (data.captions.tiktok) { ?><div class="cap"><h3>TikTok</h3><pre><?= data.captions.tiktok ?></pre></div><? } ?>
+      <? if (data.captions.x) { ?><div class="cap"><h3>X</h3><pre><?= data.captions.x ?></pre></div><? } ?>
+    </div>
+    <div class="caps" id="caps-prev" hidden>
+      <? if (data.prev.captions.instagram) { ?><div class="cap"><h3>Instagram</h3><pre><?= data.prev.captions.instagram ?></pre></div><? } ?>
+      <? if (data.prev.captions.tiktok) { ?><div class="cap"><h3>TikTok</h3><pre><?= data.prev.captions.tiktok ?></pre></div><? } ?>
+      <? if (data.prev.captions.x) { ?><div class="cap"><h3>X</h3><pre><?= data.prev.captions.x ?></pre></div><? } ?>
+    </div>
+  </section>
+<? } else { ?>
+  <? if (data.videoId) { ?>
+  <section>
+    <h2><span class="no">2</span>動画</h2>
+    <p class="ex" id="vmsg-new">動画を読み込んでいます…（10秒ほどかかることがあります）</p>
+    <!-- 動画はページの中に直接読み込む（スマホで Google ドライブの画面だとログインを求められることがあるため） -->
+    <video class="video" id="vid-new" controls playsinline preload="metadata"></video>
+    <a class="open" href="https://drive.google.com/file/d/<?= data.videoId ?>/view" target="_blank">それでも再生できないときはこちら（Google ドライブで開く）</a>
+  </section>
+  <? } ?>
+
+  <section>
+    <h2><span class="no">3</span>SNS に載せる文</h2>
+    <? if (data.captions.instagram) { ?><div class="cap"><h3>Instagram</h3><pre><?= data.captions.instagram ?></pre></div><? } ?>
+    <? if (data.captions.tiktok) { ?><div class="cap"><h3>TikTok</h3><pre><?= data.captions.tiktok ?></pre></div><? } ?>
+    <? if (data.captions.x) { ?><div class="cap"><h3>X</h3><pre><?= data.captions.x ?></pre></div><? } ?>
+  </section>
+<? } ?>
+
+  <section id="act">
+  <? if (data.canAct) { ?>
+    <h2><span class="no">4</span>承認する</h2>
+    <? if (data.prev) { ?>
+    <p>上で選んだ動画と文で投稿します。よければ<b>「承認する」</b>を押してください。<br>※ 動画の直しは1回までです。</p>
+    <button type="button" class="submit" id="okBtn" onclick="ok()">選んだ動画で承認する</button>
+    <? } else { ?>
+    <p>内容でよければ<b>「承認する」</b>を押してください。投稿する日時に自動で投稿されます。</p>
+    <button type="button" class="submit" id="okBtn" onclick="ok()">承認する（この内容で投稿する）</button>
+      <? if (data.canFix) { ?>
+    <button type="button" class="btn sub" id="fixOpen" onclick="openFix()">直してほしいところがある（1回まで）</button>
+    <div id="fix" hidden>
+      <p class="ex">動画の直しは<b>1回まで</b>です。直したあとは、直す前と直したあとの2本から選んで承認していただきます。</p>
+      <div class="field" data-mic>
+        <div class="lab">直してほしいところ<span class="tag must">必ず</span></div>
+        <textarea id="comment" maxlength="1000" data-count="1000" placeholder="例：商品名の漢字がちがいます／もう少し明るい雰囲気にしてほしい"></textarea>
+      </div>
+      <button type="button" class="submit" id="ngBtn" onclick="ng()">この内容で直しをお願いする</button>
+    </div>
+      <? } ?>
+    <? } ?>
+  <? } else { ?>
+    <p class="state">いまの状態：<?= data.state ?></p>
+    <? if (data.state === '修正依頼') { ?><p class="center">直した動画ができたら、メールでお知らせします。</p><? } ?>
+    <? if (data.state === '予約済み' || data.state === '承認済み') { ?><p class="center">承認ありがとうございます。<?= data.when ?> に投稿されます。</p><? } ?>
+  <? } ?>
+    <div class="err" id="msg"></div>
+  </section>
+<? } ?>
+  <p class="foot">ALCOHOLIDAY（アルコホリディ）　お酒との時間をもっと楽しく</p>
+</div>
+<?!= include_('common') ?>
+<script>
+  const ID = <?!= JSON.stringify(data.id || '') ?>, KEY = <?!= JSON.stringify(data.key || '') ?>;
+  let choice = 'new';
+  document.querySelectorAll('[data-mic]').forEach(addMic);
+  document.querySelectorAll('[data-count]').forEach(addCount);
+
+  // 動画を読み込んで、ページの中で再生できるようにする（which：new＝いまの動画／prev＝直す前の動画）
+  function loadVideo(which) {
+    const v = $('vid-' + which), m = $('vmsg-' + which);
+    if (!v) return;
+    run('reviewVideo', ID, KEY, which).then(b64 => {
+      const bin = atob(b64), buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      v.src = URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
+      m.textContent = '▶ を押すと再生されます。音も確かめてください。';
+    }).catch(e => { m.textContent = '動画を読み込めませんでした。少し待ってから、ページを開き直してください。'; });
+  }
+  loadVideo('new');
+  loadVideo('prev');
+
+  // 2本から選ぶ
+  document.querySelectorAll('.choice').forEach(c => c.onclick = () => {
+    choice = c.dataset.choice;
+    document.querySelectorAll('.choice').forEach(x => x.classList.toggle('on', x === c));
+    document.querySelectorAll('.caps').forEach(x => { x.hidden = x.id !== 'caps-' + choice; });
+  });
+
+  // 終わったら、受け付けた画面と同じ形で知らせる
+  function done(text, good) {
+    $('act').innerHTML = '<div class="donebox"><div class="okmark">' + (good ? '✔' : '✎') + '</div>' +
+      '<h2 class="donetitle"></h2><p class="donelead"></p></div>';
+    $('act').querySelector('.donetitle').textContent = good ? '承認を受け付けました' : '直しのご依頼を受け付けました';
+    $('act').querySelector('.donelead').textContent = text;
+    window.scrollTo(0, document.body.scrollHeight);
+  }
+  function fail(e) {
+    $('msg').textContent = errText(e);
+    document.querySelectorAll('button').forEach(b => b.disabled = false);
+  }
+  function openFix() { $('fix').hidden = false; $('fixOpen').hidden = true; $('comment').focus(); }
+  async function ok() {
+    const label = $('okBtn').textContent;
+    if (!confirm(document.querySelector('.choice') ? '「' + (choice === 'prev' ? '直す前' : '直したあと') + 'の動画」で投稿します。よろしいですか？' : 'この動画と文で投稿します。よろしいですか？')) return;
+    $('msg').textContent = '';
+    document.querySelectorAll('button').forEach(b => b.disabled = true);
+    $('okBtn').textContent = '登録しています…';
+    try { done(await run('approve', ID, KEY, choice), true); } catch (e) { fail(e); $('okBtn').textContent = label; }
+  }
+  async function ng() {
+    stopMic();
+    const c = $('comment').value;
+    if (!c.trim()) { $('msg').textContent = '直してほしいところを書いてください'; return; }
+    $('msg').textContent = '';
+    document.querySelectorAll('button').forEach(b => b.disabled = true);
+    try { done(await run('requestChange', ID, KEY, c), false); } catch (e) { fail(e); }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# ビール 案A｜秋の夕方、1LDKのダイニングで旬の味とビール（指示番号 2026-10-03-01）
+
+社長のイメージ：秋らしい画像。旬な美味しいものと一緒に楽しむビール。30代の男性が暮らす1LDKのマンションのダイニングルーム。夕方の風景。ポスターは部屋に馴染ませる。
+添付画像：beer.jpg（ポスター原画）。角度2・3では角度1の完成画像も「同じ部屋の見本」として添付する。
+出力：beer-autumn-angle1-v1.png 〜 beer-autumn-angle3-v1.png（縦9:16）。同名ファイルがあれば上書きしない。
+過去のワイン（黄色い壁の部屋）・ウイスキー（グレージュの壁・革のソファの部屋）とはまったく別の雰囲気にする。
+
+## 共通プロンプト（全アングル共通）
+
+Use case: ads-marketing / compositing. Asset type: vertical 9:16 photorealistic interior photo for an ALCOHOLIDAY social video.
+Input image: the attached beer.jpg is the exact product artwork to insert, not a style reference. Preserve the complete printed poster: white margins, sky-blue field, pop-art hand holding a large beer mug of bright yellow beer with a white foam head, blue halftone dots, bold black outlines, the small red-framed ALCOHOLIDAY logo at the lower right of the blue field, and the exact bottom lettering "NO BEER, NO LIFE." Do not redraw, retype, crop, mirror, or redesign the artwork. The whole printed poster, including its white margins, sits completely inside the frame opening — nothing sticks out of the frame. It is an A2 print (42 x 59.4 cm) in a slim matte black metal frame (no mat); keep its real-world size believable next to the dining table and chairs.
+The poster must look physically hung in the room, not pasted on: the same warm low evening sunlight and gentle falloff that falls on the wall also falls across the print (warmer and brighter on the side nearer the window, slightly dimmer on the far side), the frame casts a soft natural shadow on the wall, the frame glass shows a faint, subtle reflection of the window light, matte paper texture, and the print sits perfectly inside the frame with exactly the same perspective as the frame.
+Room (beer version — a completely different room from the wine and whisky videos): the dining area of a modern Japanese 1LDK condominium where a man in his 30s lives alone. Clean, simple, masculine and tidy interior: off-white wall with a subtle light-gray tone, light oak flooring, a solid oak dining table for two or four, two black steel-frame dining chairs with oak seats, a matte black dome pendant lamp hanging low over the table (switched on, soft warm glow), a low oak sideboard against the wall under the poster with a few simple items (a small speaker, a stack of books, a dark ceramic vase with a few branches of autumn leaves), a tall snake plant in a concrete pot. On the left side, a large window with a thin light-linen curtain pulled aside; low orange western sunset light streams in diagonally and lays long warm stripes of light across the floor, the table and part of the wall. Outside the window: only a softly blurred clear autumn evening sky glowing orange to pale blue and distant blurred low-rise buildings — nothing else.
+Story: on an autumn weekday evening, a man in his 30s has come home and is about to enjoy beer with seasonal autumn food. On the oak table: a glass of freshly poured golden beer with a fine white foam head (plus a beer can or bottle with no readable label), a long dish with two salt-grilled sanma (Pacific saury) with a lemon wedge and grated daikon, a small bowl of sauteed mixed mushrooms (shiitake, maitake, shimeji), a small dish of roasted chestnuts, a bowl of edamame, chopsticks on a rest, dark ceramic Japanese tableware and a linen place mat.
+Mood: bright, warm, appetizing, positive and relaxed — golden-hour glow, never dark or gloomy. Contemporary Japanese interior magazine and food photography.
+Constraints: one coherent photorealistic image. No people, no face, no hands. No added text, slogans, prices, Amazon logo, watermark, interface or invented labels (cans and bottles have no readable label). Nothing outside the window except blurred sky and buildings: no birds, no insects, no airplanes, no people or silhouettes. No animals. No steam, smoke or haze.
+
+## 角度1：引き・ダイニング全体（ポスターは小さめ）
+
+Camera: wide shot at standing eye level from the kitchen side, showing the whole dining area: the oak table with the beer and autumn dishes in the lower-middle, the two black chairs, the pendant lamp, the window with the orange sunset light on the left, the sideboard and the snake plant. The framed poster hangs on the wall above the sideboard (to the right of the window) and occupies only about 15-20% of the image height — the room and the table are the stars. Keep the poster nearly front-on. Leave a little calm wall space in the upper part of the image.
+
+## 角度2：中ぐらいのアップ（ポスターは画面の高さの約40%）
+
+Same room, furniture, lighting and time of day as the attached angle1 reference image. Only the camera position changes: a medium shot, nearly straight-on, from just behind the far end of the oak dining table. In the lower part of the image the near edge of the table with the glass of beer, the sanma dish and the edamame bowl (slightly soft focus); behind it the sideboard and the wall with the framed poster, which occupies about 40% of the image height. The orange window light falls diagonally across the wall and part of the poster. The whole frame, logo and bottom lettering are entirely inside the image.
+
+## 角度3：アップ（ポスターが画面の大部分）
+
+Same room, furniture, lighting and time of day as the attached angle1 reference image. Only the camera position changes: a close-up, nearly straight-on, of the framed poster on the wall, so the frame fills about 70% of the image height. Only the top of the sideboard with the dark vase of autumn leaves and the rim of the beer glass peek in at the bottom edge. The whole frame, logo and bottom lettering are entirely inside the image with a little wall around it. The warm evening light falls naturally and slightly unevenly across the print, brighter on the window side.

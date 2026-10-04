@@ -1,0 +1,13 @@
+﻿{
+    "generated_at":  "2026-10-03T17:22:33.7055137+09:00",
+    "model":  "kling-video/v3.0/std/image-to-video",
+    "request_id":  "11075c53-06d6-4a79-b795-5dd6feffc3c6",
+    "estimate_usd":  "0.357",
+    "source":  "tshirt1966-B-closeup-v1.png",
+    "input":  {
+                  "prompt":  "The camera is completely locked off like a tripod shot: no zoom, no push-in, no drift, no pan, no camera movement at all. The yellow print on her black T-shirt (the words \u00271966\u0027, \u0027ISLAY\u0027, \u0027WAS\u0027, \u0027FRUIT\u0027 and the seagull line drawing) stays exactly the same: same letters, same spelling, same shapes, never redrawn, never morphing, it only moves naturally with the fabric. The printed letters are a plain upright typewriter-style serif font and stay perfectly upright and sharp in every frame, never italic, never slanted, never wavy. Close-up of a woman\u0027s chest wearing a black T-shirt with a yellow print, like a still product photo that slowly comes alive. The T-shirt fabric and the print do not move at all. Her hand rests still on the hem and does not pull it. The only motion is a very slow, gentle breath and the warm bokeh lights of the whisky bar softly twinkling in the background, plus a strand of her hair moving slightly. Realistic cinematic product shot. Avoid: zoom, zooming in, zooming out, camera push-in, dolly, pan, tilt, camera shake, garbled text, changing letters, misspelled words, nonsense text, extra text, new text, morphing print, print redrawing, warped logo, extra fingers, deformed hands, distorted face, face morphing, identity change, different person, teeth distortion, flicker, watermark, captions, subtitles, italic letters, slanted letters, wavy letters, fabric movement, wrinkles moving, hand pulling the shirt, face, head",
+                  "duration":  5,
+                  "image_url":  "https://d3snorpfx4xhv8.cloudfront.net/30af197c-76ac-4037-b137-705ad83dab27/e6dfb38d-ff36-4c36-8887-ce7001fff37c.png",
+                  "sound":  "off"
+              }
+}
