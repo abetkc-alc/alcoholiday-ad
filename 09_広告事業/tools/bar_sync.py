@@ -51,19 +51,20 @@ def env(name):
 
 
 def call(action, **kw):
-    for i in range(3):   # 通信が一瞬切れることがあるので、3回までやり直す
+    # 通信が一瞬切れたり、Google が一時的に「見つかりません（404）」や変な返事を返すことがあるので、5回までやり直す
+    #   （2026-10-06 の申し込みで、大きい動画のかけらを受け取る途中に何度も起きた）
+    for i in range(5):
         try:
             r = requests.post(env("BAR_API_URL"), json={"key": env("BAR_API_KEY"), "action": action, **kw}, timeout=600)
+            r.raise_for_status()
+            res = r.json()
             break
-        except requests.exceptions.ConnectionError:
-            if i == 2:
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout, requests.exceptions.HTTPError, ValueError) as e:
+            if i == 4:
+                if isinstance(e, ValueError):
+                    sys.exit("Google から思わぬ返事が来ました（URLやデプロイを確認）：\n" + r.text[:500])
                 raise
-            time.sleep(10)
-    r.raise_for_status()
-    try:
-        res = r.json()
-    except ValueError:
-        sys.exit("Google から思わぬ返事が来ました（URLやデプロイを確認）：\n" + r.text[:500])
+            time.sleep(10 * (i + 1))
     if not res.get("ok"):
         sys.exit("Google 側でエラー：" + str(res.get("error")))
     return res["result"]
@@ -73,7 +74,7 @@ def show(rows):
     if not rows:
         print("（該当なし）")
     for r in rows:
-        print(f"{r['id']}  [{r['状態']}]  {r['投稿日時']}  {r['店名']}（{r['都道府県']}）  {r['商品名']}  声:{GUIDE_NAMES.get(r['案内役'], 'おまかせ')}")
+        print(f"{r['id']}  [{r['状態']}]  {r.get('投稿日時') or '投稿は承認後'}  {r.get('SNS') or ''}  {r['店名']}（{r['都道府県']}）  {r['商品名']}  声:{GUIDE_NAMES.get(r['案内役'], 'おまかせ')}")
 
 
 def unique(path):
@@ -99,6 +100,10 @@ def pull():
         unique(d / "order.json").write_text(json.dumps(r, ensure_ascii=False, indent=2), encoding="utf-8")
         parts = call("sources", id=r["id"])
         for v in json.loads(r["動画の説明"] or "[]"):
+            # 前の回で最後まで受け取れた動画は、受け取り直さない（同じ動画が何本もたまらないように）
+            have = [p for p in (d / "素材").glob(f"video{v['no']}.*") if v.get("size") and p.stat().st_size == v["size"]]
+            if have:
+                continue
             mine = [x for x in parts if x["name"].startswith(f"v{v['no']}.part")]
             if len(mine) != v["parts"]:
                 sys.exit(f"{r['id']} の動画{v['no']}のかけらが足りません（{len(mine)}/{v['parts']}）")
@@ -160,7 +165,7 @@ def order_note(r):
     return f"""---
 受付番号: {r['id']}
 状態: 制作中
-投稿日時: {r['投稿日時']}
+投稿する SNS: {r.get('SNS') or 'instagram,tiktok,x'}
 tags: [広告事業, BAR広告]
 ---
 
@@ -176,7 +181,7 @@ tags: [広告事業, BAR広告]
 | 担当者 | {r['担当者']}（{r['メール']}／{r['電話']}） |
 | おすすめ商品 | {r['商品名']}（{r['価格']}） |
 | 数量限定 | {r.get('数量限定') or 'いいえ'}（はい なら 制作.json に "limited": true） |
-| 投稿日時 | {r['投稿日時']} |
+| 投稿する SNS | {r.get('SNS') or 'instagram,tiktok,x'}（承認から2時間以内に投稿。時刻は承認のときに決まる） |
 | ナレーションの声 | {r['案内役']}（{GUIDE_NAMES.get(r['案内役'], 'おまかせ')}） |
 
 ## 商品の説明（お客さんの文章）

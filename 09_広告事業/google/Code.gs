@@ -3,9 +3,10 @@
  *
  * できること
  *   0. トップページ（お客さん用）：サービスの紹介・会員登録・ログイン（メール＋パスワード）
- *   1. 受付ページ（会員用）：店・おすすめ商品・お店で撮った動画3本とその説明・投稿日時・ナレーションの声を入力してもらう
+ *   1. 受付ページ（会員用）：店・おすすめ商品・お店で撮った動画3本とその説明・投稿する SNS・ナレーションの声を入力してもらう
  *   2. 承認ページ（お客さん用）：完成した動画を見て「承認」か「直してほしい」を押してもらう
- *   3. 承認されたら、Upload-Post に動画を予約登録する（Instagram・TikTok・X に決まった時刻で自動投稿）
+ *   3. 承認されたら、Upload-Post に動画を予約登録する（えらばれた SNS に、承認から2時間以内を目安に自動投稿。
+ *      同じ SNS は前後2時間あけ、1日6本まで。混んでいるときは空いている一番早い時刻）
  *   4. KAYO（パソコン側の bar_sync.py）との受け渡し口（API）
  *
  * 置き方は「設置手順.md」を見る。最初に一度だけ setup() を実行する。
@@ -14,20 +15,20 @@
 const CONFIG = {
   OWNER_EMAIL: 'abetkc@alcoholiday.org',   // 新しい依頼・承認の知らせを受け取るメール
   TZ: 'Asia/Tokyo',
-  SLOTS: [                                  // 投稿の時間帯（1日2枠。それぞれの時間帯の真ん中の時刻に予約投稿）
-    { key: 'noon', label: '11時〜13時頃', time: '12:00' },     // 11:00〜13:00
-    { key: 'evening', label: '16時〜18時頃', time: '17:00' },       // 16:00〜18:00
-  ],
-  ORDER_BEFORE_HOURS: 3,     // 申し込みの締め切り：投稿の何時間前まで申し込めるか（当日の枠も申し込める）
-  BOOK_MONTHS: 1,            // 何か月先まで申し込めるか（今日から1か月先の同じ日まで）
-  APPROVE_BEFORE_HOURS: 2,   // 投稿時刻の何時間前まで承認できるか（申し込みの締め切り3時間前より後にする）
+  // 投稿の時刻（2026-10-06 社長の指示：お客さんは日時を選ばない。承認から2時間以内に、えらばれた SNS へ投稿。24時間いつでも）
+  POST_WITHIN_HOURS: 2,      // 承認から何時間以内に投稿するか（案内の文に使う。混んでいるときは順番なので超えることがある）
+  POST_GAP_HOURS: 2,         // 同じ SNS への投稿は、前後この時間を必ずあける
+  POSTS_PER_DAY: 6,          // 1つの SNS に1日（日本時間の0時〜24時）投稿する本数の上限
+  POST_LEAD_MIN: 10,         // 承認から最短で何分後に投稿するか（Upload-Post に動画が届くまでの余裕）
+  APPROVE_DAYS: 7,           // 受付から何日以内に承認してもらうか（過ぎたら期限切れ・投稿しない）
   VIDEOS: [                  // お客さんに撮ってもらう動画（各5秒くらい）。この順につなぐ
     { key: 1, title: 'お店の雰囲気', hint: '入口・看板・カウンター・店内など', example: '例：恵比寿駅から歩いて3分。木のカウンターが落ち着く小さなお店です' },
     { key: 2, title: 'おすすめ商品', hint: 'いちばん売りたいもの。つくるところ・注ぐところ・グラスのアップなど', example: '例：岡山の白桃を丸ごと使ったベリーニ。秋だけの限定です' },
     { key: 3, title: '自由', hint: 'バーテンダー・乾杯・お店の自慢など', example: '例：マスターは銀座で20年。好みを伝えれば一杯つくってくれます' },
   ],
-  MAX_VIDEO_MB: 150,         // 1本の大きさの上限
-  VIDEO_DESC_MAX: 100,       // 動画1本ごとの説明の文字数の上限
+  MAX_VIDEO_MB: 25,          // 1本の大きさの上限（2026-10-07 社長の指示で150→25。5秒・1080p なら10MBくらい。大きいと受け取りに時間がかかる）
+  MAX_VIDEO_SEC: 10,         // 1本の長さの上限（秒）。使うのは1本4〜5秒
+  VIDEO_DESC_MAX: 50,        // 動画1本ごとの説明の文字数の上限（2026-10-06 社長の指示で100→50。声と字幕にほぼそのまま使う）
   PW_MIN: 8,                 // パスワードの最短の文字数
   SESSION_DAYS: 30,          // ログインしたままでいられる日数
   LOGIN_MAX_FAIL: 5,         // パスワードを何回まちがえたら、しばらくログインできなくするか
@@ -35,7 +36,7 @@ const CONFIG = {
   RESET_HOURS: 1,            // パスワード再設定のリンクの有効時間
   MAX_FIX: 1,                // 動画の直しは何回までか（2026-10-04 社長の指示：1回だけ。直したあとは2本から選んで承認）
   PRODUCT_MAX: 40,           // 商品の名前の文字数の上限（動画の上に出すので短め）
-  DESC_MAX: 300,             // 商品の説明の文字数の上限
+  DESC_MAX: 50,              // 商品の説明の文字数の上限（2026-10-06 社長の指示で300→50）
   GUIDES: [                  // ナレーションの声（案内役。動画には出ず、声だけ担当）
     { key: 'A', name: 'ローズ', desc: '明るく親しみやすい声' },
     { key: 'B', name: 'ラフィ', desc: 'クールで大人っぽい声' },
@@ -43,6 +44,7 @@ const CONFIG = {
     { key: 'D', name: 'アルビン', desc: '男性の声' },
   ],
   PLATFORMS: ['instagram', 'tiktok', 'x'],
+  PLATFORM_NAMES: { instagram: 'Instagram', tiktok: 'TikTok', x: 'X' },
   UPLOAD_POST_URL: 'https://api.upload-post.com/api/upload',
   SNS_LINKS: 'Instagram・TikTok・X：@alcoholiday25',
 };
@@ -51,7 +53,8 @@ const SHEET_NAME = '依頼';
 const COLS = ['id', '会員ID', '受付日時', '状態', '店名', '担当者', 'メール', '電話', '都道府県', '住所', 'エリア', '営業時間',
   '店のSNS', '商品名', '商品の説明', '価格', '数量限定', '投稿日', '時間帯', '案内役', '要望', 'お客さんの投稿文', '素材動画', '動画の説明', '承認キー',
   '動画', '投稿文', '投稿日時', '承認日時', 'お客さんのコメント', '予約ID', '履歴',
-  '前の動画', '前の投稿文'];   // 直しのあと、お客さんが「直す前」を選べるように残す（2026-10-04 追加。台帳の右端に足される）
+  '前の動画', '前の投稿文',   // 直しのあと、お客さんが「直す前」を選べるように残す（2026-10-04 追加。台帳の右端に足される）
+  'SNS'];                    // 投稿する SNS（instagram,tiktok,x のように。2026-10-06 追加）
 // 会員（受付台帳の「会員」シート）。パスワードはそのまま保存せず、ソルトを足して何度もハッシュにした値だけを残す
 const MEMBER_SHEET = '会員';
 const MCOLS = ['会員ID', '登録日時', '状態', 'メール', 'パスワード', 'ソルト', '店名', '担当者', '電話', '都道府県', '住所',
@@ -142,16 +145,17 @@ function formData_(m, session) {
   member.email = m.rec['メール'];
   return {
     session: session, member: member, topUrl: webAppUrl_(),
-    slots: CONFIG.SLOTS,
+    platforms: CONFIG.PLATFORMS.map(p => ({ key: p, name: CONFIG.PLATFORM_NAMES[p] })),
     guides: (s => CONFIG.GUIDES.map(g => Object.assign({ sample: s[g.key] || '' }, g)))(voiceSamples()),   // 声の見本（フォルダを1回だけ見る）
     videos: CONFIG.VIDEOS,
     maxVideoMb: CONFIG.MAX_VIDEO_MB,
+    maxVideoSec: CONFIG.MAX_VIDEO_SEC,
     videoDescMax: CONFIG.VIDEO_DESC_MAX,
     productMax: CONFIG.PRODUCT_MAX,
     descMax: CONFIG.DESC_MAX,
-    orderHours: CONFIG.ORDER_BEFORE_HOURS,
-    bookMonths: CONFIG.BOOK_MONTHS,
-    approveHours: CONFIG.APPROVE_BEFORE_HOURS,
+    postWithin: CONFIG.POST_WITHIN_HOURS,
+    postGap: CONFIG.POST_GAP_HOURS,
+    approveDays: CONFIG.APPROVE_DAYS,
     logo: logo_(),
   };
 }
@@ -372,33 +376,15 @@ function mupdate_(row, fields, log) {
 
 /* ────────────────────────────── 受付 ────────────────────────────── */
 
-/** 申し込める枠の一覧（受付ページが読む） */
-function getAvailability() {
-  const taken = {};
-  rows_().forEach(r => {
-    if (FREE_STATES.indexOf(r['状態']) < 0) taken[r['投稿日'] + '|' + r['時間帯']] = true;
-  });
-  const days = [];
-  const wd = ['日', '月', '火', '水', '木', '金', '土'];
-  const today = new Date(Utilities.formatDate(new Date(), CONFIG.TZ, "yyyy-MM-dd'T'00:00:00"));
-  const last = new Date(today.getTime());
-  last.setMonth(last.getMonth() + CONFIG.BOOK_MONTHS);
-  const limit = new Date(Date.now() + CONFIG.ORDER_BEFORE_HOURS * 3600000);   // これより前の投稿時刻は締め切り済み
-  for (let i = 0; ; i++) {
-    const d = new Date(today.getTime() + i * 86400000);
-    if (d > last) break;
-    const ds = Utilities.formatDate(d, CONFIG.TZ, 'yyyy-MM-dd');
-    const slots = {};
-    let open = false;
-    CONFIG.SLOTS.forEach(s => {
-      const postAt = new Date(ds + 'T' + s.time + ':00+09:00');
-      slots[s.key] = !taken[ds + '|' + s.key] && postAt > limit;
-      if (postAt > limit) open = true;
-    });
-    if (!open) continue;   // その日の枠がすべて締め切り済みなら、日にちごと出さない
-    days.push({ date: ds, label: Utilities.formatDate(d, CONFIG.TZ, 'M/d') + '（' + wd[d.getDay()] + '）', slots: slots });
-  }
-  return days;
+/** 依頼の投稿先の SNS（古い依頼で空なら、3つとも） */
+function snsOf_(rec) {
+  const list = String(rec['SNS'] || '').split(/[,、\s]+/).filter(p => CONFIG.PLATFORMS.indexOf(p) >= 0);
+  return list.length ? list : CONFIG.PLATFORMS.slice();
+}
+
+/** SNS の名前を「Instagram・TikTok」のようにつなぐ */
+function snsLabel_(list) {
+  return list.map(p => CONFIG.PLATFORM_NAMES[p] || p).join('・');
 }
 
 /** 受付ページの「申し込む」 */
@@ -406,7 +392,7 @@ function submitOrder(f) {
   const member = memberBySession_(f.session);
   if (!member) throw new Error('ログインの期限が切れました。トップページからもう一度ログインしてください（入力した内容は消えてしまいます。お手数ですが、もう一度入力してください）');
   const need = { shop: '店名', email: 'メールアドレス', tel: '電話番号', pref: '都道府県',
-    address: '住所', hours: '営業時間', product: 'おすすめ商品の名前', desc: '商品の説明', date: '投稿日', slot: '時間帯' };
+    address: '住所', hours: '営業時間', product: 'おすすめ商品の名前', desc: '商品の説明' };
   Object.keys(need).forEach(k => {
     if (!f[k] || !String(f[k]).trim()) throw new Error(need[k] + 'を入力してください');
   });
@@ -416,6 +402,8 @@ function submitOrder(f) {
   vids.forEach((v, i) => {
     if (!v.desc || !String(v.desc).trim()) throw new Error('動画' + (i + 1) + '（' + CONFIG.VIDEOS[i].title + '）の説明を入力してください');
     if (String(v.desc).length > CONFIG.VIDEO_DESC_MAX) throw new Error('動画' + (i + 1) + 'の説明は' + CONFIG.VIDEO_DESC_MAX + '文字までです');
+    if (Number(v.size) > CONFIG.MAX_VIDEO_MB * 1024 * 1024) throw new Error('動画' + (i + 1) + 'が大きすぎます。' + CONFIG.MAX_VIDEO_MB + 'MB までの短い動画（5秒くらい）にしてください');
+    if (Number(v.sec) > CONFIG.MAX_VIDEO_SEC + 0.5) throw new Error('動画' + (i + 1) + 'が長すぎます。' + CONFIG.MAX_VIDEO_SEC + '秒までの短い動画（5秒くらい）にしてください');
   });
   const upFolder = uploadFolder_(f.upload);
   const parts = {};
@@ -425,17 +413,13 @@ function submitOrder(f) {
     if ((parts[i + 1] || 0) !== Number(v.parts)) throw new Error('動画' + (i + 1) + 'が最後まで届いていません。もう一度「申し込む」を押してください');
   });
   if (!f.agree) throw new Error('注意事項への同意が必要です');
-  const slot = CONFIG.SLOTS.filter(s => s.key === f.slot)[0];
-  if (!slot) throw new Error('時間帯をえらんでください');
+  const platforms = (Array.isArray(f.platforms) ? f.platforms : []).filter((p, i, a) => CONFIG.PLATFORMS.indexOf(p) >= 0 && a.indexOf(p) === i);
+  if (!platforms.length) throw new Error('投稿する SNS を1つ以上えらんでください');
   const guide = CONFIG.GUIDES.filter(g => g.key === f.guide)[0];
 
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    const day = getAvailability().filter(d => d.date === f.date)[0];
-    if (!day) throw new Error('この日は申し込めません。別の日をえらんでください');
-    if (!day.slots[f.slot]) throw new Error('この枠はちょうど埋まりました。別の日時をえらんでください');
-
     const now = new Date();
     const id = newId_(now);
     const folder = upFolder;   // 送ってもらった動画のフォルダを、そのまま案件のフォルダにする
@@ -451,13 +435,14 @@ function submitOrder(f) {
       '店名': clip_(f.shop, 80), '担当者': clip_(f.person, 60), 'メール': clip_(f.email, 120),
       '電話': clip_(f.tel, 30), '都道府県': clip_(f.pref, 10), '住所': clip_(f.address, 120), 'エリア': clip_(f.area, 80),
       '営業時間': clip_(f.hours, 80), '店のSNS': clip_(f.sns, 200), '商品名': clip_(f.product, CONFIG.PRODUCT_MAX),
-      '商品の説明': clip_(f.desc, CONFIG.DESC_MAX), '価格': clip_(f.price, 40), '数量限定': f.limited ? 'はい' : '', '投稿日': f.date, '時間帯': f.slot,
+      '商品の説明': clip_(f.desc, CONFIG.DESC_MAX), '価格': clip_(f.price, 40), '数量限定': f.limited ? 'はい' : '', 'SNS': platforms.join(','),
       '案内役': guide ? guide.key : 'おまかせ', '要望': clip_(f.note, 600),
       'お客さんの投稿文': clip_(f.caption, 1500),   // 1つだけ。Instagram の文とし、TikTok・X は KAYO が短くまとめる
       '素材動画': folder.getId(), '動画の説明': JSON.stringify(videoInfo), '承認キー': key,
-      '投稿日時': f.date + ' ' + slot.time, '履歴': fmt_(now) + ' 受付',
+      '履歴': fmt_(now) + ' 受付',   // 投稿日時は、承認されたときに決める
     };
     const sh = sheet_();
+    ensureCols_(sh);
     sh.getRange(sh.getLastRow() + 1, 1, 1, COLS.length).setNumberFormat('@')
       .setValues([COLS.map(c => rec[c] === undefined ? '' : rec[c])]);
     if (f.saveProfile) {   // 受付ページで直したお店の情報を、会員情報にも保存する
@@ -466,23 +451,24 @@ function submitOrder(f) {
       if (Object.keys(prof).length) mupdate_(member.row, prof, '受付ページで会員情報を更新（' + Object.keys(prof).join('・') + '）');
     }
 
-    const slotLabel = slot.label;
+    const snsText = snsLabel_(platforms);
     mail_(rec['メール'], '【ALCOHOLIDAY】BAR広告のお申し込みを受け付けました（' + id + '）',
       rec['店名'] + '\n' + dear_(rec) + '\n\n' +
       'お申し込みありがとうございます。以下の内容で受け付けました。\n\n' +
-      '受付番号：' + id + '\n投稿日時：' + f.date + ' ' + slotLabel + '\nおすすめ商品：' + rec['商品名'] + '\n\n' +
+      '受付番号：' + id + '\n投稿する SNS：' + snsText + '\nおすすめ商品：' + rec['商品名'] + '\n\n' +
       '■ このあとの流れ\n' +
       '1. ALCOHOLIDAY が動画をつくります\n' +
       '2. 動画ができたら、確認用ページのリンクをメールでお送りします\n' +
-      '3. 動画を見て「承認」を押してください（投稿の' + CONFIG.APPROVE_BEFORE_HOURS + '時間前まで）\n' +
-      '4. 承認いただいた動画を、指定の日時に自動で投稿します（' + CONFIG.SNS_LINKS + '）\n\n' +
+      '3. 動画を見て「承認」を押してください（受付から' + CONFIG.APPROVE_DAYS + '日以内）\n' +
+      '4. 承認いただいてから' + CONFIG.POST_WITHIN_HOURS + '時間以内に、' + snsText + ' へ自動で投稿します（@alcoholiday25）\n' +
+      '   ※ 混み合っているときは、順番に投稿します（同じ SNS への投稿は' + CONFIG.POST_GAP_HOURS + '時間以上あけています）。投稿の時刻は、承認のあとメールでお知らせします\n\n' +
       '※ 承認がない動画は投稿しません。\n\nALCOHOLIDAY（アルコホリディ）');
     mail_(CONFIG.OWNER_EMAIL, '【BAR広告】新しい依頼 ' + id + ' ' + rec['店名'],
       '新しい依頼が届きました。\n\n店名：' + rec['店名'] + '（' + rec['都道府県'] + rec['住所'] + '）\n' +
-      '商品：' + rec['商品名'] + '\n投稿：' + f.date + ' ' + slotLabel + '\n声：' + guideName_(rec['案内役']) + '\n\n' +
+      '商品：' + rec['商品名'] + '\n投稿：' + snsText + '（承認から' + CONFIG.POST_WITHIN_HOURS + '時間以内）\n声：' + guideName_(rec['案内役']) + '\n\n' +
       'Claude Code に「KAYO、BAR広告の新しい依頼を確認して」と話しかけてください。\n' +
       '受付台帳：' + SpreadsheetApp.openById(prop_('SHEET_ID')).getUrl());
-    return { id: id, when: day.label + ' ' + slotLabel };   // 例：10/8（木） 11時〜13時頃
+    return { id: id, when: snsText };   // 例：Instagram・TikTok
   } finally {
     lock.releaseLock();
   }
@@ -545,10 +531,9 @@ function reviewData_(id, k) {
   const rec = r.rec;
   let captions = {};
   try { captions = JSON.parse(rec['投稿文'] || '{}'); } catch (err) { captions = { instagram: rec['投稿文'] }; }
-  const slot = CONFIG.SLOTS.filter(s => s.key === rec['時間帯'])[0];
   return {
     id: rec.id, key: k, state: rec['状態'], shop: rec['店名'], product: rec['商品名'],
-    when: rec['投稿日'] + ' ' + (slot ? slot.label : rec['時間帯']),
+    when: (rec['投稿日時'] ? rec['投稿日時'] : '承認から' + CONFIG.POST_WITHIN_HOURS + '時間以内') + '（' + snsLabel_(snsOf_(rec)) + '）',
     videoId: rec['動画'], captions: captions, comment: rec['お客さんのコメント'],
     deadline: fmt_(approveDeadline_(rec)), canAct: rec['状態'] === '承認待ち' && new Date() < approveDeadline_(rec),
     canFix: fixCount_(rec) < CONFIG.MAX_FIX,
@@ -565,8 +550,9 @@ function fixCount_(rec) {
   return (String(rec['履歴'] || '').match(/お客さんが修正を依頼/g) || []).length;
 }
 
+// 承認の期限：受付から APPROVE_DAYS 日
 function approveDeadline_(rec) {
-  return new Date(postTime_(rec).getTime() - CONFIG.APPROVE_BEFORE_HOURS * 3600000);
+  return new Date(new Date(String(rec['受付日時']).replace(' ', 'T') + ':00+09:00').getTime() + CONFIG.APPROVE_DAYS * 86400000);
 }
 
 function postTime_(rec) {
@@ -582,9 +568,18 @@ function approve(id, k, choice) {
   }
   update_(r.row, { '状態': '承認済み', '承認日時': fmt_(new Date()) }, 'お客さんが承認');
   const res = schedulePost_(id);
-  mail_(CONFIG.OWNER_EMAIL, '【BAR広告】承認されました ' + id + ' ' + r.rec['店名'],
-    r.rec['店名'] + ' が動画を承認しました。\n投稿日時：' + r.rec['投稿日時'] + '\n予約：' + (res.ok ? '登録しました（' + res.jobId + '）' : '失敗しました → ' + res.error));
-  return res.ok ? '承認ありがとうございます。' + r.rec['投稿日時'] + ' に自動で投稿されます。' :
+  const rec = findRow_(id).rec;
+  const snsText = snsLabel_(snsOf_(rec));
+  mail_(CONFIG.OWNER_EMAIL, '【BAR広告】承認されました ' + id + ' ' + rec['店名'],
+    rec['店名'] + ' が動画を承認しました。\n投稿：' + (rec['投稿日時'] || '未定') + '（' + snsText + '）\n予約：' + (res.ok ? '登録しました（' + res.jobId + '）' : '失敗しました → ' + res.error));
+  if (res.ok) {
+    mail_(rec['メール'], '【ALCOHOLIDAY】承認ありがとうございます。投稿の時刻のお知らせ（' + id + '）',
+      rec['店名'] + ' ' + dear_(rec) + '\n\n動画を承認いただき、ありがとうございます。\n' +
+      '下の時刻に自動で投稿します。\n\n投稿の時刻：' + rec['投稿日時'] + '\n投稿する SNS：' + snsText + '（@alcoholiday25）\n\n' +
+      '※ 承認いただいてから' + CONFIG.POST_WITHIN_HOURS + '時間以内に投稿します。混み合っているときは順番に投稿するため、少し遅くなることがあります。\n\n' +
+      'ALCOHOLIDAY（アルコホリディ）');
+  }
+  return res.ok ? '承認ありがとうございます。' + rec['投稿日時'] + ' に ' + snsText + ' へ自動で投稿されます。' :
     '承認ありがとうございます。投稿の予約はこちらで確認して登録します。';
 }
 
@@ -623,18 +618,55 @@ function checkReview_(id, k) {
 
 /* ────────────────────────────── Upload-Post に予約 ────────────────────────────── */
 
+// 投稿の時刻を決める：できるだけ早く（承認から POST_LEAD_MIN 分後〜）。
+//   ・同じ SNS の別の投稿とは、前後 POST_GAP_HOURS 時間を必ずあける
+//   ・1つの SNS に1日 POSTS_PER_DAY 本まで（日本時間の日付で数える）
+//   いちばん早い時刻は「最短の時刻」「ほかの投稿の2時間後」「次の日の0時」のどれかになるので、それを順に試す
+function nextPostTime_(platforms, exceptId) {
+  const busy = {};
+  CONFIG.PLATFORMS.forEach(p => { busy[p] = []; });
+  rows_().forEach(r => {
+    if (r.id === exceptId || ['承認済み', '予約済み', '投稿済み', '予約エラー'].indexOf(r['状態']) < 0 || !r['投稿日時']) return;
+    const t = postTime_(r).getTime();
+    if (!isNaN(t)) snsOf_(r).forEach(p => busy[p].push(t));
+  });
+  const GAP = CONFIG.POST_GAP_HOURS * 3600000, STEP = 5 * 60000;
+  const dayOf = t => Utilities.formatDate(new Date(t), CONFIG.TZ, 'yyyy-MM-dd');
+  const ok = t => platforms.every(p => busy[p].every(s => Math.abs(s - t) >= GAP) &&
+    busy[p].filter(s => dayOf(s) === dayOf(t)).length < CONFIG.POSTS_PER_DAY);
+  const start = Math.ceil((Date.now() + CONFIG.POST_LEAD_MIN * 60000) / STEP) * STEP;   // 5分きざみ
+  const cand = [start];
+  platforms.forEach(p => busy[p].forEach(s => { if (s + GAP > start) cand.push(Math.ceil((s + GAP) / STEP) * STEP); }));
+  for (let i = 1; i <= 60; i++) cand.push(new Date(dayOf(start + i * 86400000) + 'T00:00:00+09:00').getTime());
+  cand.sort((a, b) => a - b);
+  for (let i = 0; i < cand.length; i++) if (cand[i] >= start && ok(cand[i])) return new Date(cand[i]);
+  throw new Error('投稿できる時刻が見つかりません');
+}
+
 function schedulePost_(id) {
-  const r = findRow_(id);
-  const rec = r.rec;
+  let r = findRow_(id);
   try {
+    // 投稿の時刻が決まっていない（または過ぎた）ときは、空いている一番早い時刻に決める（同時に2人が承認しても重ならないように鍵をかける）
+    let when = postTime_(r.rec);
+    if (isNaN(when.getTime()) || when.getTime() < Date.now() + 60000) {
+      const lock = LockService.getScriptLock();
+      lock.waitLock(30000);
+      try {
+        when = nextPostTime_(snsOf_(r.rec), id);
+        update_(r.row, { '投稿日時': fmt_(when) }, '投稿の時刻を決めた ' + fmt_(when) + '（' + snsLabel_(snsOf_(r.rec)) + '）');
+      } finally {
+        lock.releaseLock();
+      }
+      r = findRow_(id);
+    }
+    const rec = r.rec;
     const apiKey = prop_('UPLOAD_POST_KEY');
     const user = prop_('UPLOAD_POST_USER');
     if (!apiKey || !user) throw new Error('UPLOAD_POST_KEY / UPLOAD_POST_USER が未設定');
-    if (postTime_(rec) < new Date()) throw new Error('投稿時刻を過ぎています');
     const cap = JSON.parse(rec['投稿文'] || '{}');
     const file = DriveApp.getFileById(rec['動画']);
     const fields = [['user', user]];
-    CONFIG.PLATFORMS.forEach(p => fields.push(['platform[]', p]));
+    snsOf_(rec).forEach(p => fields.push(['platform[]', p]));
     fields.push(
       ['title', cap.instagram || ''],
       ['instagram_title', cap.instagram || ''],
@@ -685,16 +717,16 @@ function hourlyCheck() {
     if (rec['状態'] === '承認待ち' && now >= approveDeadline_(rec)) {
       update_(row, { '状態': '期限切れ' }, '承認の期限切れ（投稿しない）');
       mail_(rec['メール'], '【ALCOHOLIDAY】承認の期限が過ぎました（' + rec.id + '）',
-        rec['店名'] + ' ' + dear_(rec) + '\n\n承認の期限を過ぎたため、' + rec['投稿日時'] + ' の投稿は行いません。\n' +
-        '別の日時での投稿をご希望の場合は、このメールにご返信ください。\n\nALCOHOLIDAY（アルコホリディ）');
+        rec['店名'] + ' ' + dear_(rec) + '\n\n承認の期限（' + fmt_(approveDeadline_(rec)) + '）を過ぎたため、この動画の投稿は行いません。\n' +
+        'あらためて投稿をご希望の場合は、このメールにご返信ください。\n\nALCOHOLIDAY（アルコホリディ）');
       mail_(CONFIG.OWNER_EMAIL, '【BAR広告】承認の期限切れ ' + rec.id + ' ' + rec['店名'], '承認されないまま期限を過ぎました。投稿は行いません。');
     } else if (rec['状態'] === '予約済み' && now >= new Date(postTime_(rec).getTime() + 30 * 60000)) {
       update_(row, { '状態': '投稿済み' }, '投稿時刻を過ぎた');
       mail_(rec['メール'], '【ALCOHOLIDAY】動画を投稿しました（' + rec.id + '）',
         rec['店名'] + ' ' + dear_(rec) + '\n\n' + rec['投稿日時'] + ' に、おすすめ商品「' + rec['商品名'] + '」の動画を投稿しました。\n' +
-        CONFIG.SNS_LINKS + '\n\nご利用ありがとうございました。\nALCOHOLIDAY（アルコホリディ）');
-    } else if (rec['状態'] === '予約エラー' && postTime_(rec) > now) {
-      schedulePost_(rec.id);   // 時刻前なら、もう一度予約を試す
+        snsLabel_(snsOf_(rec)) + '：@alcoholiday25\n\nご利用ありがとうございました。\nALCOHOLIDAY（アルコホリディ）');
+    } else if (rec['状態'] === '予約エラー') {
+      schedulePost_(rec.id);   // もう一度予約を試す（時刻を過ぎていたら、空いている時刻に決め直す）
     }
   });
 }
@@ -736,7 +768,7 @@ function api_(req) {
     }
     case 'update': {
       const r = mustFind_(req.id);
-      const allowed = ['状態', '投稿文', '投稿日', '時間帯', '投稿日時', '案内役', 'お客さんのコメント'];
+      const allowed = ['状態', '投稿文', '投稿日時', 'SNS', '案内役', 'お客さんのコメント'];
       const fields = {};
       Object.keys(req.fields || {}).forEach(k => { if (allowed.indexOf(k) >= 0) fields[k] = req.fields[k]; });
       update_(r.row, fields, req.log || ('KAYO: ' + JSON.stringify(fields)));
@@ -762,7 +794,8 @@ function api_(req) {
       mail_(rec['メール'], '【ALCOHOLIDAY】動画ができました。ご確認ください（' + rec.id + '）',
         rec['店名'] + ' ' + dear_(rec) + '\n\nおすすめ商品「' + rec['商品名'] + '」の動画ができました。\n' +
         '下のページで動画と投稿文を見て、「承認する」か「直してほしい」を押してください。\n\n' + url + '\n\n' +
-        '投稿日時：' + rec['投稿日時'] + '\n承認の期限：' + fmt_(approveDeadline_(rec)) + '\n' +
+        '投稿する SNS：' + snsLabel_(snsOf_(rec)) + '\n承認の期限：' + fmt_(approveDeadline_(rec)) + '\n' +
+        '※ 承認いただいてから' + CONFIG.POST_WITHIN_HOURS + '時間以内に投稿します（混み合っているときは順番に投稿します）。\n' +
         '※ 期限までに承認がない場合、投稿は行いません。\n\nALCOHOLIDAY（アルコホリディ）');
       return { videoId: file.getId(), reviewUrl: url };
     }

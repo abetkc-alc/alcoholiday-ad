@@ -19,7 +19,7 @@
       <li><b>2</b>おすすめ商品の説明を入力</li>
       <li><b>3</b>動画をアップロード</li>
       <li><b>4</b>メールで届いた動画を確認</li>
-      <li><b>5</b>えらんだ日時に自動で投稿</li>
+      <li><b>5</b>承認から<?= data.postWithin ?>時間以内に自動で投稿</li>
     </ol>
     <div class="help">🎤 <b>「話して入力」</b>のボタンを押すと、文字を打たずに声で入力できます。<br>スマホのキーボードのマイクのボタンからも、声で入力できます。</div>
   </header>
@@ -102,11 +102,10 @@
       <h2><span class="no">3</span>お店で撮った動画を3本</h2>
       <p>スマホで<b>5秒くらいの動画を3本</b>撮ってください。3本をつないで、声の案内と字幕を入れた1本の動画にします。</p>
       <ul class="tips">
-        <li><b>先にスマホのカメラで撮ってから</b>、下のボタンで「写真ライブラリ」から選んでください。ボタンを押したあとの「ビデオを撮る」で撮ると、画質が粗くなります</li>
         <li>スマホは<b>縦向き</b>で、明るい場所で撮ってください</li>
         <li>動画の音は使いません（音楽と声の案内を入れます）</li>
         <li>人・商品・場所などが映るときは、掲載の了承をとってください（7 の確認事項をお読みください）</li>
-        <li>1本 <?= data.maxVideoMb ?>MB まで。送るのに少し時間がかかります（Wi-Fi がおすすめです）</li>
+        <li>1本 <b><?= data.maxVideoSec ?>秒まで・<?= data.maxVideoMb ?>MB まで</b>（5秒くらいがおすすめです）。長い動画・大きい動画は送れません。送るのに少し時間がかかります（Wi-Fi がおすすめです）</li>
       </ul>
       <div id="videos"></div>
     </section>
@@ -136,10 +135,12 @@
     </section>
 
     <section>
-      <h2><span class="no">6</span>投稿する日と時間</h2>
-      <p>1日2回、<b>11時〜13時頃</b> と <b>16時〜18時頃</b> に投稿しています（それぞれ1店だけ）。<br><b><?= data.bookMonths ?>か月先まで</b>申し込めます。締め切りは<b>投稿の<?= data.orderHours ?>時間前</b>です。<br>青いボタンが<b>空いている時間</b>です。</p>
-      <div class="cal" id="cal"><p>空いている枠を読みこんでいます…</p></div>
-      <div class="chosen" id="chosen"></div>
+      <h2><span class="no">6</span>投稿する SNS</h2>
+      <p>動画を載せる SNS に印をつけてください（いくつでも）。<br>動画を<b>承認していただいてから<?= data.postWithin ?>時間以内</b>に、えらんだ SNS へ自動で投稿します。</p>
+      <ul class="tips">
+        <li>同じ SNS への投稿は<?= data.postGap ?>時間以上あけているため、混み合っているときは順番に投稿します（投稿の時刻は、承認のあとメールでお知らせします）</li>
+      </ul>
+      <div class="snslist" id="snslist"></div>
     </section>
 
     <section>
@@ -164,7 +165,7 @@
 <?!= include_('common') ?>
 <script>
   var DATA = <?!= JSON.stringify(data) ?>;
-  const st = { videos: DATA.videos.map(() => null), upload: '', date: '', slot: '', guide: 'おまかせ' };
+  const st = { videos: DATA.videos.map(() => null), upload: '', guide: 'おまかせ' };
 
   fillPrefs($('pref'));
 
@@ -214,31 +215,14 @@
     $('voices').appendChild(box);
   });
 
-  /* ───── 空いている枠 ───── */
-  function loadCal() {
-    google.script.run.withSuccessHandler(days => {
-      const cal = $('cal'); cal.innerHTML = '';
-      days.forEach(d => {
-        const box = document.createElement('div'); box.className = 'day';
-        box.innerHTML = '<div class="d"></div>'; box.querySelector('.d').textContent = d.label;
-        DATA.slots.forEach(s => {
-          const b = document.createElement('button');
-          const name = s.label;
-          b.type = 'button'; b.className = 'slot';
-          b.disabled = !d.slots[s.key];
-          b.textContent = name;
-          b.onclick = () => {
-            st.date = d.date; st.slot = s.key;
-            document.querySelectorAll('.slot').forEach(x => x.classList.remove('on')); b.classList.add('on');
-            $('chosen').textContent = 'えらんだ日時：' + d.label + ' ' + name;
-          };
-          box.appendChild(b);
-        });
-        cal.appendChild(box);
-      });
-    }).withFailureHandler(e => { $('cal').innerHTML = '<p class="err">空いている枠を読みこめませんでした。ページを開き直してください。</p>'; }).getAvailability();
-  }
-  loadCal();
+  /* ───── 投稿する SNS（はじめは全部に印） ───── */
+  DATA.platforms.forEach(p => {
+    const lab = document.createElement('label'); lab.className = 'agree';
+    lab.innerHTML = '<input type="checkbox" class="postsns" checked><span></span>';
+    lab.querySelector('input').value = p.key;
+    lab.querySelector('span').textContent = p.name;
+    $('snslist').appendChild(lab);
+  });
 
   /* ───── 動画3本 ───── */
   const MB = 1024 * 1024, CHUNK = 4 * MB;
@@ -249,7 +233,7 @@
       '<label class="filebtn">🎥 ここを押して動画をえらぶ<input type="file" accept="video/*"></label>' +
       '<p class="msg"></p><video muted playsinline controls hidden></video><div class="vinfo"></div>' +
       '<div class="field"><div class="lab">この動画の説明<span class="tag must">必ず</span></div>' +
-      '<p class="ex"><b>' + DATA.videoDescMax + '文字まで</b>。声の案内と字幕にします（短くまとめることがあります）</p>' +
+      '<p class="ex"><b>' + DATA.videoDescMax + '文字まで</b>。書いた言葉を、そのまま声の案内と字幕に使います（長いときは少し短くします）</p>' +
       '<textarea maxlength="' + DATA.videoDescMax + '" data-count="' + DATA.videoDescMax + '" style="min-height:100px"></textarea></div>';
     box.querySelector('.t').textContent = v.title;
     box.querySelector('.h').textContent = v.hint;
@@ -262,7 +246,7 @@
       st.upload = '';   // 動画を変えたら、送り直す
       if (file.size > DATA.maxVideoMb * MB) {
         st.videos[i] = null; vid.hidden = true;
-        err.textContent = '動画が大きすぎます（' + Math.round(file.size / MB) + 'MB）。' + DATA.maxVideoMb + 'MB までにしてください。短く撮るか、カメラの画質を「1080p」にすると小さくなります。';
+        err.textContent = '動画が大きすぎて送れません（' + Math.round(file.size / MB) + 'MB）。' + DATA.maxVideoMb + 'MB までの、5秒くらいの短い動画にしてください。カメラの画質を「1080p」にすると小さくなります。';
         input.value = ''; return;
       }
       st.videos[i] = { file: file, sec: 0 };
@@ -273,6 +257,11 @@
         if (!isFinite(sec)) return;
         st.videos[i].sec = sec;
         info.textContent = '✔ えらびました（' + sec.toFixed(1) + '秒）';
+        if (sec > DATA.maxVideoSec + 0.5) {   // 長すぎる動画は送らない（受け取りに時間がかかるため）
+          st.videos[i] = null; vid.hidden = true; info.textContent = ''; input.value = '';
+          err.textContent = '動画が長すぎて送れません（' + sec.toFixed(1) + '秒）。' + DATA.maxVideoSec + '秒までの、5秒くらいの短い動画にしてください。';
+          return;
+        }
         if (sec < 3) err.textContent = '少し短いです。5秒くらいで撮り直していただけると、きれいに仕上がります。';
         // 「ビデオを撮る」で撮ると、iPhone が 480×360 くらいに小さくして渡してくる → 撮り直しをお願いする
         if (vid.videoWidth && Math.min(vid.videoWidth, vid.videoHeight) < 720)
@@ -321,7 +310,7 @@
       '  <div class="okmark">✔</div>' +
       '  <h2 class="donetitle">お申し込みを受け付けました</h2>' +
       '  <p class="donelead">ありがとうございます。下の内容で受け付けました。</p>' +
-      '  <dl class="summary"><dt>受付番号</dt><dd class="id"></dd><dt>投稿する日時</dt><dd class="when"></dd><dt>確認のメールの送り先</dt><dd class="mail"></dd></dl>' +
+      '  <dl class="summary"><dt>受付番号</dt><dd class="id"></dd><dt>投稿する SNS</dt><dd class="when"></dd><dt>確認のメールの送り先</dt><dd class="mail"></dd></dl>' +
       '  <div class="note"></div>' +
       '</section>' +
       '<section>' +
@@ -329,8 +318,8 @@
       '  <ol class="flow">' +
       '    <li><b>1</b>ALCOHOLIDAY が動画をつくります</li>' +
       '    <li><b>2</b>動画ができたら、メールでお知らせします</li>' +
-      '    <li><b>3</b>メールのページで動画を見て「承認する」を押してください（投稿の' + DATA.approveHours + '時間前まで）</li>' +
-      '    <li><b>4</b>えらんだ日時に自動で投稿します</li>' +
+      '    <li><b>3</b>メールのページで動画を見て「承認する」を押してください（受付から' + DATA.approveDays + '日以内）</li>' +
+      '    <li><b>4</b>承認から' + DATA.postWithin + '時間以内に、えらんだ SNS へ自動で投稿します（混み合っているときは順番に投稿します）</li>' +
       '  </ol>' +
       '  <div class="help">確認のメールが届かないときは、<b>迷惑メール</b>のフォルダもご覧ください。<br>承認がない場合は投稿しません。</div>' +
       '</section>' +
@@ -350,7 +339,8 @@
     const fd = new FormData($('f'));
     const f = Object.fromEntries(fd.entries());
     f.session = DATA.session; f.saveProfile = !!f.saveProfile;
-    f.agree = !!f.agree; f.limited = !!f.limited; f.date = st.date; f.slot = st.slot; f.guide = st.guide;
+    f.agree = !!f.agree; f.limited = !!f.limited; f.guide = st.guide;
+    f.platforms = Array.from(document.querySelectorAll('.postsns:checked')).map(x => x.value);
     const desc = Array.from(document.querySelectorAll('#videos textarea')).map(t => t.value.trim());
     const miss = [];
     if (!String(f.shop || '').trim()) miss.push('1 の「店名」を入れてください');
@@ -363,7 +353,7 @@
     if (!String(f.desc || '').trim()) miss.push('2 の「商品の説明」を入れてください');
     st.videos.forEach((v, i) => { if (!v) miss.push('3 の「動画' + (i + 1) + '（' + DATA.videos[i].title + '）」をえらんでください'); });
     desc.forEach((d, i) => { if (!d) miss.push('3 の「動画' + (i + 1) + 'の説明」を入れてください'); });
-    if (!f.date) miss.push('6 の「投稿する日と時間」をえらんでください');
+    if (!f.platforms.length) miss.push('6 の「投稿する SNS」を1つ以上えらんでください');
     if (!f.agree) miss.push('7 の「同意します」に印をつけてください');
     if (miss.length) { $('err').textContent = 'まだ入っていないところがあります：\n・' + miss.join('\n・'); return false; }
     $('btn').disabled = true; $('btn').textContent = '送っています…';
@@ -378,7 +368,6 @@
       $('progress').textContent = '';
       $('err').textContent = errText(e);
       $('btn').disabled = false; $('btn').textContent = '申し込む';
-      if (/埋まり/.test(e.message)) loadCal();
     }
     return false;
   }

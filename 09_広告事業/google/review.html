@@ -41,7 +41,7 @@
       <dt>受付番号</dt><dd><?= data.id ?></dd>
       <dt>店名</dt><dd><?= data.shop ?></dd>
       <dt>おすすめ商品</dt><dd><?= data.product ?></dd>
-      <dt>投稿する日時</dt><dd><?= data.when ?></dd>
+      <dt>投稿</dt><dd><?= data.when ?></dd>
       <dt>承認の期限</dt><dd style="color:var(--main)"><?= data.deadline ?> まで</dd>
     </dl>
   </section>
@@ -104,7 +104,7 @@
     <p>上で選んだ動画と文で投稿します。よければ<b>「承認する」</b>を押してください。<br>※ 動画の直しは1回までです。</p>
     <button type="button" class="submit" id="okBtn" onclick="ok()">選んだ動画で承認する</button>
     <? } else { ?>
-    <p>内容でよければ<b>「承認する」</b>を押してください。投稿する日時に自動で投稿されます。</p>
+    <p>内容でよければ<b>「承認する」</b>を押してください。承認から2時間以内に、自動で投稿されます（混み合っているときは順番に投稿します）。</p>
     <button type="button" class="submit" id="okBtn" onclick="ok()">承認する（この内容で投稿する）</button>
       <? if (data.canFix) { ?>
     <button type="button" class="btn sub" id="fixOpen" onclick="openFix()">直してほしいところがある（1回まで）</button>

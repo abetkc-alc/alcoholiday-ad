@@ -91,7 +91,7 @@ def make_prompt(order, clips, feedback=""):
 - 商品の説明：{order.get('商品の説明', '')}
 - 価格：{order.get('価格', '')}
 - 数量限定：{order.get('数量限定', '')}
-- 投稿日時：{order.get('投稿日時', '')}
+- 投稿する SNS：{order.get('SNS') or 'instagram,tiktok,x'}
 - ご要望：{order.get('要望', '')}
 - お客さんが書いた SNS の文：{order.get('お客さんの投稿文', '')}
 {chr(10).join('- ' + x for x in lines)}
@@ -117,6 +117,8 @@ def make_prompt(order, clips, feedback=""):
 
 ## 気をつけること
 - ナレーションは動画の長さに入りきるように短く（動画が4秒台なら20文字くらいまで）。説明にないことは足さない
+- ナレーションは、お客さんの説明の言葉をそのまま使う。長いときだけ、言いかえずに削って短くする。決まり文句を足さない
+- 「今夜はここへ」「まずはここへ」「今夜はここで」や、それに似た言葉は使わない
 - 投稿文の住所・営業時間・電話番号は、上の「この申し込み」の文字を**そのまま**入れる（自動で確かめるため。言い換えない）
 - 3つの投稿文に「#PR」「提供：{order['店名']}」「お酒は20歳になってから。飲酒運転は法律で禁止されています。」を必ず入れる
 - 数量限定が「はい」なら、投稿文にも「数量限定」とわかる一言を入れる
@@ -176,7 +178,7 @@ def produce(oid, d, order, clips, ask, what, keep_voice):
                        "narr": x["narr"], "subs": x["subs"]} for i, (c, x) in enumerate(zip(clips, a["clips"]))],
             "product": a["product"], "price": a["price"], "shop": order["店名"], "area": a["area"], "hours": a["hours"],
             "music": music.as_posix(), "music_ss": 0, "limited": order.get("数量限定") == "はい",
-            "date": str(order.get("投稿日") or order.get("投稿日時", ""))[:10],   # 動画1の右上に出す投稿日
+            "date": datetime.now().strftime("%Y-%m-%d"),   # 動画1の右上に出す日付（投稿は承認から2時間以内なので、つくった日）
         }
         spec["clips"][1]["show"] = "product"
         spec["clips"][2]["show"] = "shop"
@@ -354,6 +356,10 @@ def main():
         for r in rows:
             oid = r["id"]
             if not (bar_sync.CASES / oid / "order.json").exists():
+                continue
+            # 動画の受け取りが途中で止まった申し込みは、失敗にせず、次の回にもう一度受け取る
+            if r["状態"] == "受付" and any(not list((bar_sync.CASES / oid / "素材").glob(f"video{n}.*")) for n in (1, 2, 3)):
+                log(f"{oid} 動画の受け取りが途中で止まったので、次の回にやり直す")
                 continue
             try:
                 make_case(oid)

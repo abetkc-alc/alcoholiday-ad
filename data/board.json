@@ -1,0 +1,41 @@
+{
+  "orders": [
+    {
+      "id": "2026-10-06-01",
+      "createdAt": "2026-10-06T06:30:59+09:00",
+      "products": [
+        "whisky"
+      ],
+      "image": "火曜日の夜、午後から所用があるから、明日は有休。日曜に買ったウイスキーと買ってきた総菜をつまみながら、サッカーを観戦する。　ワンルームマンションの狭い部屋だけど、趣味のウイスキーとサッカーが詰まった居心地のいい空間",
+      "note": "明るい",
+      "status": "new",
+      "kayo": {
+        "summary": "",
+        "design": "",
+        "scripts": "",
+        "editing": ""
+      },
+      "deliverables": {
+        "design": [],
+        "scripts": [],
+        "editing": []
+      },
+      "selected": {
+        "design": null,
+        "scripts": null,
+        "editing": null
+      },
+      "final": {
+        "files": [],
+        "memo": ""
+      },
+      "log": [
+        {
+          "at": "2026-10-06T06:30:59+09:00",
+          "by": "社長",
+          "text": "指示を受付"
+        }
+      ]
+    }
+  ]
+}

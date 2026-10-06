@@ -553,6 +553,13 @@ async function pickFolder() {
 async function start(h) {
   const perm = await h.requestPermission({ mode: "readwrite" });
   if (perm !== "granted") { showSetup(h); return; }
+  // ひとつ上のフォルダ（AIアルコホリディ）が選ばれたときは、中の 08_AI部署 を使う
+  if (h.name !== "08_AI部署") {
+    try {
+      h = await h.getDirectoryHandle("08_AI部署");
+      await saveHandle(h);
+    } catch (e) {}
+  }
   root = h;
   $("folderStatus").textContent = "📁 " + h.name;
   $("reloadBtn").disabled = false;

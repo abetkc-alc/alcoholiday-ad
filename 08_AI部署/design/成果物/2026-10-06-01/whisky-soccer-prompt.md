@@ -1,0 +1,29 @@
+# ウイスキー 案A｜火曜の夜、明日は有休。ワンルームでサッカー観戦（指示番号 2026-10-06-01）
+
+社長のイメージ：火曜の夜、明日は有休。日曜に買ったウイスキーと買ってきた総菜をつまみながら、テレビでサッカー観戦。ワンルームマンションの狭いけれど、趣味のウイスキーとサッカーが詰まった居心地のいい空間。社長メモ「明るい」。
+添付画像：whisky.jpg（ポスター原画）。角度2・3では角度1の完成画像も「同じ部屋の見本」として添付する。
+出力：whisky-soccer-angle1-v1.png 〜 whisky-soccer-angle3-v1.png（縦9:16）。同名ファイルがあれば上書きしない。
+これまでの夜景のウイスキー部屋（グレージュの壁・革のソファ）、ビールのダイニングとはまったく別の部屋にする。
+
+## 共通プロンプト（全アングル共通）
+
+Use case: ads-marketing / compositing. Asset type: vertical 9:16 photorealistic interior photo for an ALCOHOLIDAY social video.
+Input image: the attached whisky.jpg is the exact product artwork to insert, not a style reference. Preserve the complete printed poster: white margins, beige field, pop-art hand with red nail polish holding a rocks glass of bright yellow whisky with blue halftone dots and black diagonal stripes on the glass, bold black outlines, the small red-framed ALCOHOLIDAY logo at the lower left of the beige field, and the exact bottom lettering "NO WHISKY, NO LIFE." Do not redraw, retype, crop, mirror, or redesign the artwork. The whole printed poster, including its white margins, sits completely inside the frame opening — nothing sticks out of the frame. It is an A2 print (42 x 59.4 cm) in a slim natural light-wood frame (no mat); keep its real-world size believable next to the sofa and TV.
+The poster must look physically hung in the room, not pasted on: the same warm room light and gentle falloff that falls on the wall also falls across the print (a little brighter on the side nearer the floor lamp, slightly dimmer on the far side), the frame casts a soft natural shadow on the wall, the frame glass shows a faint, subtle reflection of the room light, matte paper texture, and the print sits perfectly inside the frame with exactly the same perspective as the frame.
+Room (a completely different room from previous whisky and beer videos): a compact but cozy Japanese one-room apartment (studio, about 8 tatami) of a man who loves whisky and football. Warm white walls, light natural wood flooring with a round mustard-and-cream woven rug, a small two-seat sofa in deep forest-green fabric with a couple of cushions, a low light-oak coffee table in front of it. A medium-size flat TV on a low white TV board, showing a football match: a bright green pitch and small blurred players seen from a high wide broadcast angle, slightly soft focus — absolutely no on-screen text, no score bug, no team names, no logos, no channel marks. The framed poster hangs on the wall above/beside the sofa. Hobby touches: a classic black-and-white football on the floor beside the sofa, a plain knitted scarf-like fabric (solid deep green and cream stripes, no text) draped over the sofa arm, a small open wooden shelf with a few whisky bottles (no readable labels) and a couple of rocks glasses, a potted green plant, a small bed corner visible with neat light-gray bedding.
+Story: Tuesday night, tomorrow is a paid day off. On the coffee table: a whisky bottle with a plain or unreadable label, a rocks glass with whisky and a large ice cube, and takeout deli food in clear plastic packs with lids opened: Japanese karaage fried chicken, french fries, edamame, plus disposable chopsticks and a small towel. Relaxed, happy, lived-in but tidy.
+Light: night, but bright and cheerful — never dark or gloomy. The room is well lit by a warm ceiling light and a warm floor lamp next to the sofa; the TV adds just a slight cool-green glow. Window (if visible) has light curtains drawn closed.
+Mood: bright, warm, cozy, fun and inviting. Contemporary Japanese lifestyle interior magazine photography.
+Constraints: one coherent photorealistic image. No people, no face, no hands. No added text, slogans, prices, Amazon logo, watermark, interface or invented labels (bottles and packs have no readable labels, TV has no text). No birds, insects, people or silhouettes anywhere, including outside windows or on the TV other than tiny blurred players on the pitch. No animals. No steam, smoke or haze.
+
+## 角度1：引き・部屋全体（ポスターは小さめ）
+
+Camera: wide shot at standing eye level from the entrance/kitchen side of the studio, showing the whole cozy room: the green sofa with the scarf and cushions, the coffee table with whisky and deli food in the lower-middle, the TV with the green football pitch on one side, the floor lamp, the football on the floor, the shelf with bottles. The framed poster hangs on the wall above the sofa and occupies only about 15-20% of the image height — the room is the star. Keep the poster nearly front-on. Leave a little calm wall space in the upper part of the image.
+
+## 角度2：中ぐらいのアップ（ポスターは画面の高さの約40%）
+
+Same room, furniture, lighting and time of day as the attached angle1 reference image. Only the camera position changes: a medium shot, nearly straight-on, from in front of the coffee table. In the lower part of the image the coffee table with the rocks glass of whisky, the bottle and the karaage / fries / edamame packs (slightly soft focus); behind it the green sofa with the scarf and cushions, and the wall with the framed poster, whose frame top is about 15% from the top of the image and bottom about 55% from the top (poster about 40% of the image height). The whole frame, logo and bottom lettering are entirely inside the image.
+
+## 角度3：アップ（ポスターが画面の大部分）
+
+Same room, furniture, lighting and time of day as the attached angle1 reference image. Only the camera position changes: a close-up, nearly straight-on, of the framed poster on the wall, so the frame fills about 70% of the image height. Only the top of the green sofa back with a cushion and the end of the green-and-cream scarf peek in at the bottom edge. The whole frame, logo and bottom lettering are entirely inside the image with a little wall around it. The warm room light falls naturally and slightly unevenly across the print, brighter on the floor-lamp side.
