@@ -15,6 +15,12 @@
 const CONFIG = {
   OWNER_EMAIL: 'abetkc@alcoholiday.org',   // 新しい依頼・承認の知らせを受け取るメール
   TZ: 'Asia/Tokyo',
+  // テスト中は、下のメールアドレスの人だけが会員登録・ログインできる（2026-10-08 社長の指示。公開するときは false にする）
+  TEST_ONLY: true,
+  TEST_EMAILS: ['abetkc@gmail.com', 'abetkc@alcoholiday.org'],
+  // 受付サイトを埋め込んだホームページのページ（2026-10-08）。メールのトップページへのリンクはここにする
+  //   （Google のページを直接開くと「Google Apps Script のユーザーによって作成…」のお知らせが出るため）
+  SITE_URL: 'https://www.alcoholiday.org/%E7%BE%8E%E5%91%B3%E3%81%97%E3%81%84%E3%82%82%E3%81%AE',
   // 投稿の時刻（2026-10-06 社長の指示：お客さんは日時を選ばない。承認から2時間以内に、えらばれた SNS へ投稿。24時間いつでも）
   POST_WITHIN_HOURS: 2,      // 承認から何時間以内に投稿するか（案内の文に使う。混んでいるときは順番なので超えることがある）
   POST_GAP_HOURS: 2,         // 同じ SNS への投稿は、前後この時間を必ずあける
@@ -114,7 +120,7 @@ function doGet(e) {
     t.data = topData_('', '', 'ログアウトしました。');
   } else if (p.p === 'form') {
     const m = memberBySession_(p.s);
-    if (m) {
+    if (m && testOk_(m.rec['メール'])) {
       t = HtmlService.createTemplateFromFile('form');
       t.data = formData_(m, p.s);
     } else {
@@ -136,8 +142,14 @@ function include_(name) { return HtmlService.createHtmlOutputFromFile(name).getC
 function logo_() { return include_('logo'); }
 
 function topData_(mode, key, msg) {
-  return { logo: logo_(), mode: mode, key: key, msg: msg, pwMin: CONFIG.PW_MIN };
+  return { logo: logo_(), mode: mode, key: key, msg: msg, pwMin: CONFIG.PW_MIN, testOnly: CONFIG.TEST_ONLY };
 }
+
+/** テスト中は、決めた人だけ通す */
+function testOk_(email) {
+  return !CONFIG.TEST_ONLY || CONFIG.TEST_EMAILS.indexOf(String(email || '').trim().toLowerCase()) >= 0;
+}
+const TEST_NG = 'ただいま準備中です。公開まで、もうしばらくお待ちください。';
 
 function formData_(m, session) {
   const member = {};
@@ -159,6 +171,9 @@ function formData_(m, session) {
     logo: logo_(),
   };
 }
+
+/** メールに書くトップページの URL（ホームページに埋め込んだページ） */
+function siteUrl_() { return CONFIG.SITE_URL || webAppUrl_(); }
 
 function webAppUrl_() {
   return PropertiesService.getScriptProperties().getProperty('WEB_APP_URL') || ScriptApp.getService().getUrl();
@@ -195,10 +210,18 @@ function voiceSample_(key) {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** 申し込みを受け付けたかどうか（返事がスマホに届かなかったときに、スマホから確かめる。2026-10-08） */
+function orderResult(upload) {
+  if (!/^[\w-]{8,}$/.test(String(upload || ''))) return null;
+  const v = CacheService.getScriptCache().get('order-' + upload);
+  return v ? JSON.parse(v) : null;
+}
+
 /** トップページの「登録して申し込みへ進む」 */
 function registerMember(f) {
   const email = String(f.email || '').trim().toLowerCase();
   if (!EMAIL_RE.test(email)) throw new Error('メールアドレスの形が正しくありません');
+  if (!testOk_(email)) throw new Error(TEST_NG);
   if (String(f.password || '').length < CONFIG.PW_MIN) throw new Error('パスワードは' + CONFIG.PW_MIN + '文字以上にしてください');
   const need = { shop: '店名', tel: 'お店の電話番号', pref: '都道府県', address: '住所', hours: '営業時間' };
   Object.keys(need).forEach(k => { if (!String(f[k] || '').trim()) throw new Error(need[k] + 'を入力してください'); });
@@ -223,7 +246,7 @@ function registerMember(f) {
       rec['店名'] + '\n' + dear_(rec) + '\n\n' +
       'ALCOHOLIDAY の BAR 紹介に会員登録いただき、ありがとうございます。\n' +
       '次からは、下のページの「会員の方」から、このメールアドレスとパスワードでログインしてください。\n\n' +
-      webAppUrl_() + '\n\n会員ID：' + rec['会員ID'] + '\n\n' +
+      siteUrl_() + '\n\n会員ID：' + rec['会員ID'] + '\n\n' +
       '※ お心当たりのない場合は、このメールにご返信ください。\n\nALCOHOLIDAY（アルコホリディ）');
     mail_(CONFIG.OWNER_EMAIL, '【BAR広告】新しい会員 ' + rec['会員ID'] + ' ' + rec['店名'],
       '新しい会員が登録しました。\n\n店名：' + rec['店名'] + '（' + rec['都道府県'] + rec['住所'] + '）\n' +
@@ -239,6 +262,7 @@ function login(email, password) {
   email = String(email || '').trim().toLowerCase();
   const m = mfind_('メール', email);
   const ng = 'メールアドレスかパスワードがちがいます';
+  if (!testOk_(email)) throw new Error(TEST_NG);
   if (!m) throw new Error(ng);
   const now = new Date();
   if (m.rec['ロック期限'] && now < new Date(m.rec['ロック期限'].replace(' ', 'T') + ':00+09:00')) {
@@ -266,6 +290,7 @@ function login(email, password) {
 function formPage(session) {
   const m = memberBySession_(session);
   if (!m) throw new Error('ログインの期限が切れました。もう一度ログインしてください。');
+  if (!testOk_(m.rec['メール'])) throw new Error(TEST_NG);
   const t = HtmlService.createTemplateFromFile('form');
   t.data = formData_(m, session);
   return t.evaluate().getContent();
@@ -280,7 +305,7 @@ function logout(session) {
 /** 「パスワードを忘れた方」：再設定のリンクをメールで送る（登録がなくても同じ返事にする） */
 function requestReset(email) {
   email = String(email || '').trim().toLowerCase();
-  const m = EMAIL_RE.test(email) ? mfind_('メール', email) : null;
+  const m = EMAIL_RE.test(email) && testOk_(email) ? mfind_('メール', email) : null;
   if (m && m.rec['状態'] !== '停止') {
     const key = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
     mupdate_(m.row, { '再設定キー': key, '再設定期限': fmt_(new Date(Date.now() + CONFIG.RESET_HOURS * 3600000)) }, '再設定のメールを送った');
@@ -389,6 +414,9 @@ function snsLabel_(list) {
 
 /** 受付ページの「申し込む」 */
 function submitOrder(f) {
+  // 受け付けたのに、返事がスマホに届かなかった（電波・画面が消えた）あとでもう一度押されたときは、同じ受付の返事を返す（2重に受け付けない）
+  const done = orderResult(f.upload);
+  if (done) return done;
   const member = memberBySession_(f.session);
   if (!member) throw new Error('ログインの期限が切れました。トップページからもう一度ログインしてください（入力した内容は消えてしまいます。お手数ですが、もう一度入力してください）');
   const need = { shop: '店名', email: 'メールアドレス', tel: '電話番号', pref: '都道府県',
@@ -468,7 +496,9 @@ function submitOrder(f) {
       '商品：' + rec['商品名'] + '\n投稿：' + snsText + '（承認から' + CONFIG.POST_WITHIN_HOURS + '時間以内）\n声：' + guideName_(rec['案内役']) + '\n\n' +
       'Claude Code に「KAYO、BAR広告の新しい依頼を確認して」と話しかけてください。\n' +
       '受付台帳：' + SpreadsheetApp.openById(prop_('SHEET_ID')).getUrl());
-    return { id: id, when: snsText };   // 例：Instagram・TikTok
+    const res = { id: id, when: snsText };   // 例：Instagram・TikTok
+    if (f.upload) CacheService.getScriptCache().put('order-' + f.upload, JSON.stringify(res), 21600);   // 6時間おぼえておく
+    return res;
   } finally {
     lock.releaseLock();
   }

@@ -201,6 +201,7 @@
 
   if (DATA.mode === 'reset') show('p-reset');
   if (DATA.msg) $('topmsg').textContent = DATA.msg;
+  else if (DATA.testOnly) $('topmsg').textContent = 'ただいま準備中です（テスト中）。公開まで、もうしばらくお待ちください。';
 
   // 申し込みのページへ：このページの中身を申し込みのページに入れ替える（うまくいかないときは、ボタンを押してもらう）
   async function enter(r, title) {

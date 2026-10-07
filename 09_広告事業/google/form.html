@@ -179,6 +179,13 @@
   // ログアウト：押したらトップページへ移り、そこでログアウトする（Google のページはボタンを押したときだけ移れる）
   $('logout').href = DATA.topUrl + '?p=logout&s=' + encodeURIComponent(DATA.session);
   $('logout').target = '_top';
+  // ホームページ（alcoholiday.org）に埋め込んだときも外へ移らないように、その場でログアウトする（2026-10-08）
+  $('logout').onclick = async ev => {
+    ev.preventDefault();
+    try { await run('logout', DATA.session); } catch (e) { goTo($('logout').href); return; }
+    document.body.innerHTML = '<div style="padding:40px 16px;font-size:20px;line-height:1.8;text-align:center">ログアウトしました。<br>もう一度使うときは、このページを開き直してください。</div>';
+    window.scrollTo(0, 0);
+  };
 
   document.querySelectorAll('[data-mic]').forEach(addMic);
   document.querySelectorAll('[data-count]').forEach(addCount);
@@ -231,7 +238,7 @@
     box.innerHTML = '<div class="rectime">⏱ 録画時間 <b>5秒</b> 程度</div>' +
       '<h3><em>動画' + (i + 1) + '</em><span class="t"></span></h3><p class="ex h"></p>' +
       '<label class="filebtn">🎥 ここを押して動画をえらぶ<input type="file" accept="video/*"></label>' +
-      '<p class="msg"></p><video muted playsinline controls hidden></video><div class="vinfo"></div>' +
+      '<p class="msg"></p><video muted playsinline controls preload="metadata" hidden></video><div class="vinfo"></div>' +
       '<div class="field"><div class="lab">この動画の説明<span class="tag must">必ず</span></div>' +
       '<p class="ex"><b>' + DATA.videoDescMax + '文字まで</b>。書いた言葉を、そのまま声の案内と字幕に使います（長いときは少し短くします）</p>' +
       '<textarea maxlength="' + DATA.videoDescMax + '" data-count="' + DATA.videoDescMax + '" style="min-height:100px"></textarea></div>';
@@ -251,7 +258,7 @@
       }
       st.videos[i] = { file: file, sec: 0 };
       info.textContent = '✔ えらびました（' + (file.size / MB).toFixed(1) + 'MB）';
-      vid.hidden = false; vid.src = URL.createObjectURL(file);
+      vid.hidden = false; vid.src = URL.createObjectURL(file) + '#t=0.1';   // #t=0.1：iPhone でも最初の場面がサムネとして映るように（2026-10-08）
       vid.onloadedmetadata = () => {
         const sec = vid.duration;
         if (!isFinite(sec)) return;
@@ -362,7 +369,18 @@
       $('progress').textContent = '申し込みを登録しています…';
       f.upload = st.upload;
       f.videos = st.videos.map((v, i) => ({ name: v.file.name, type: v.file.type, size: v.file.size, sec: v.sec, parts: st.sent[i], desc: desc[i] }));
-      const r = await run('submitOrder', f);
+      let r;
+      try {
+        r = await run('submitOrder', f);
+      } catch (e) {
+        // 「NetworkError … HTTP 0」など、返事だけが届かないことがある（受付はできていることが多い）。受け付けたかを確かめる（2026-10-08）
+        $('progress').textContent = '受付ができたか確かめています…';
+        for (let k = 0; k < 4 && !r; k++) {
+          await new Promise(ok => setTimeout(ok, 3000));
+          try { r = await run('orderResult', st.upload); } catch (e2) { /* もう一度 */ }
+        }
+        if (!r) throw new Error('通信が切れました。受付が終わったかどうか、メールをご確認ください。受付のメールが届いていなければ、電波のよい場所で、もう一度「申し込む」を押してください（動画は送り直しません）');
+      }
       showDone(r, f.email);
     } catch (e) {
       $('progress').textContent = '';

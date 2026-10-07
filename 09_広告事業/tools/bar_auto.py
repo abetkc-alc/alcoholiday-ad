@@ -55,19 +55,49 @@ def rules():
     """広告事業.md の「台本のきまり」をそのまま Claude に渡す"""
     t = (HERE / "広告事業.md").read_text(encoding="utf-8")
     a = t.index("## 台本のきまり")
-    return t[a:t.index("\n---", a)]
+    b = (HERE / "禁止表現リスト.md").read_text(encoding="utf-8")
+    b = b[:b.index("## 自動で見つける言葉")].strip()
+    return t[a:t.index("\n---", a)] + "\n\n" + b.replace("\n## ", "\n### ").replace("# 禁止表現リスト", "## 禁止表現リスト", 1)
+
+
+def banned_words():
+    """禁止表現リスト.md の「自動で見つける言葉」（機械で探す言葉）"""
+    t = (HERE / "禁止表現リスト.md").read_text(encoding="utf-8")
+    t = t[t.index("## 自動で見つける言葉"):]
+    t = t[t.index("```") + 3:]
+    return [w.strip() for w in t[:t.index("```")].splitlines() if w.strip()]
+
+
+def find_banned(a):
+    """台本と投稿文から禁止の言葉を探す。見つかったら直すところのリストを返す"""
+    texts = [("ナレーション・字幕", " ".join(str(c.get("narr", "")) + " " + " ".join(map(str, c.get("subs", []))) for c in a.get("clips", [])))]
+    texts += [("画面の文字", " ".join(str(a.get(k, "")) for k in ("product", "price", "area", "hours")))]
+    texts += [(f"投稿文（{k}）", str(v)) for k, v in (a.get("captions") or {}).items()]
+    flat = lambda s: "".join(s.split()).lower()
+    probs = []
+    for where, s in texts:
+        hit = [w for w in banned_words() if flat(w) in flat(s)]
+        if hit:
+            probs.append(f"{where}に禁止の言葉「{'」「'.join(hit)}」がある。違う言葉に置き換える（置き換えられなければ、その部分を削る）")
+    return probs
 
 
 def ask_claude(prompt):
     """claude -p で答えをもらい、その中の JSON を取り出す"""
-    r = subprocess.run(["claude", "-p", "--output-format", "text"], input=prompt, capture_output=True,
-                       text=True, encoding="utf-8", timeout=600, cwd=str(HERE))
-    if r.returncode != 0:
-        raise RuntimeError("Claude が答えませんでした：" + (r.stderr or r.stdout)[:300])
-    m = re.search(r"\{.*\}", r.stdout, re.S)
-    if not m:
-        raise RuntimeError("Claude の答えに JSON がありません：" + r.stdout[:300])
-    return json.loads(m.group(0))
+    # 申し込みの中身が変わっていると、Claude が JSON のかわりに質問を返すことがある（2026-10-07）。
+    # 答える人はいないので、念を押してもう1回だけ頼む
+    for i in range(2):
+        r = subprocess.run(["claude", "-p", "--output-format", "text"], input=prompt, capture_output=True,
+                           text=True, encoding="utf-8", timeout=600, cwd=str(HERE))
+        if r.returncode != 0:
+            raise RuntimeError("Claude が答えませんでした：" + (r.stderr or r.stdout)[:300])
+        m = re.search(r"\{.*\}", r.stdout, re.S)
+        if m:
+            return json.loads(m.group(0))
+        prompt += ("\n\n## もう一度\n前の答えに JSON がありませんでした。これは自動の処理で、質問に答える人はいません。"
+                   "確認や質問はせず、上の決まりに従って、必ず JSON だけを返してください。"
+                   "宣伝に向かない言葉や心配な言葉は使わず、商品とお店の紹介として作ってください。")
+    raise RuntimeError("Claude の答えに JSON がありません：" + r.stdout[:300])
 
 
 def make_prompt(order, clips, feedback=""):
@@ -116,6 +146,9 @@ def make_prompt(order, clips, feedback=""):
 {music}
 
 ## 気をつけること
+- 卑猥な言葉・差別的な言葉・誹謗中傷・乱暴な言葉は一切使わない（お客さんが書いた言葉でも使わない。ナレーション・字幕・商品名・投稿文すべて）
+- 上の「禁止表現リスト」の表現と、それに近い表現は使わない。お客さんの言葉にあったら、違う言葉に置き換える
+- これは自動の処理で、質問に答える人はいない。確認や質問はせず、必ず JSON を返す。申し込みに宣伝に向かない言葉や心配な言葉があれば、それは使わず、商品とお店の紹介として作る
 - ナレーションは動画の長さに入りきるように短く（動画が4秒台なら20文字くらいまで）。説明にないことは足さない
 - ナレーションは、お客さんの説明の言葉をそのまま使う。長いときだけ、言いかえずに削って短くする。決まり文句を足さない
 - 「今夜はここへ」「まずはここへ」「今夜はここで」や、それに似た言葉は使わない
@@ -183,10 +216,11 @@ def produce(oid, d, order, clips, ask, what, keep_voice):
         spec["clips"][1]["show"] = "product"
         spec["clips"][2]["show"] = "shop"
         cap = a["captions"]
-        probs = [p for p in bar_sync.check_captions(oid, cap) if not p.startswith("注意：")]
+        bad = find_banned(a)   # 禁止表現リスト.md の言葉（2026-10-07 社長の指示）
+        probs = bad + [p for p in bar_sync.check_captions(oid, cap) if not p.startswith("注意：")]
         if probs:
             feedback = "\n## 前の答えの直すところ（必ず直す）\n- " + "\n- ".join(probs)
-            log(f"{oid} 投稿文の決まりが足りないのでつくり直し（{attempt}回目）：{' / '.join(probs)}")
+            log(f"{oid} {'禁止の言葉があるので' if bad else '投稿文の決まりが足りないので'}つくり直し（{attempt}回目）：{' / '.join(probs)}")
             continue
         # ファイルは上書きしない：動画の番号（v1, v2…）ごとに別の名前で残す
         ver = pathlib.Path(spec["out"]).stem.replace("bar-ad-", "")
