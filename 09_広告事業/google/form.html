@@ -13,7 +13,7 @@
   </div>
   <header>
     <h1>おすすめ商品の申し込み</h1>
-    <p class="lead">ALCOHOLIDAY の Instagram・TikTok・X で、<br>お店のおすすめを動画で紹介します。</p>
+    <p class="lead">ALCOHOLIDAY の SNS でおすすめ商品をご紹介します。</p>
     <ol class="flow">
       <li><b>1</b>お店の詳細を入力</li>
       <li><b>2</b>おすすめ商品の説明を入力</li>
@@ -21,7 +21,6 @@
       <li><b>4</b>メールで届いた動画を確認</li>
       <li><b>5</b>承認から<?= data.postWithin ?>時間以内に自動で投稿</li>
     </ol>
-    <div class="help">🎤 <b>「話して入力」</b>のボタンを押すと、文字を打たずに声で入力できます。<br>スマホのキーボードのマイクのボタンからも、声で入力できます。</div>
   </header>
 
   <form id="f" onsubmit="return send(event)" novalidate>
@@ -153,6 +152,7 @@
         <li>送っていただいた動画・文・お店の情報について、ほかの人や会社とのあいだで問題が起きた場合は、<b>お申し込みいただいた方の責任と費用で解決</b>していただきます。<b>ALCOHOLIDAY は一切の責任を負いません。</b></li>
         <li>紹介による集客や売上などの効果をお約束するものではありません。</li>
         <li>声の案内は AI の読み上げです。説明の文は、読みやすい長さに整えることがあります（承認のときに確認できます）。</li>
+        <li>卑猥な言葉・差別的な言葉・誹謗中傷など、広告にふさわしくない言葉は使いません。書かれていた場合は、別の言葉に置き換えるか、削ります。</li>
       </ul>
       <label class="agree"><input type="checkbox" name="agree" value="1">上の内容に同意します</label>
       <button class="submit" id="btn">申し込む</button>
@@ -237,10 +237,10 @@
     const box = document.createElement('div'); box.className = 'vbox';
     box.innerHTML = '<div class="rectime">⏱ 録画時間 <b>5秒</b> 程度</div>' +
       '<h3><em>動画' + (i + 1) + '</em><span class="t"></span></h3><p class="ex h"></p>' +
-      '<label class="filebtn">🎥 ここを押して動画をえらぶ<input type="file" accept="video/*"></label>' +
+      '<label class="filebtn"><span class="bt">🎥 ここを押して動画をえらぶ</span><input type="file" accept="video/*"></label>' +
       '<p class="msg"></p><video muted playsinline controls preload="metadata" hidden></video><div class="vinfo"></div>' +
       '<div class="field"><div class="lab">この動画の説明<span class="tag must">必ず</span></div>' +
-      '<p class="ex"><b>' + DATA.videoDescMax + '文字まで</b>。書いた言葉を、そのまま声の案内と字幕に使います（長いときは少し短くします）</p>' +
+      '<p class="ex"><b>' + DATA.videoDescMax + '文字まで</b>。書かれた言葉に基づいて、声の案内と字幕に使います</p>' +
       '<textarea maxlength="' + DATA.videoDescMax + '" data-count="' + DATA.videoDescMax + '" style="min-height:100px"></textarea></div>';
     box.querySelector('.t').textContent = v.title;
     box.querySelector('.h').textContent = v.hint;
@@ -258,7 +258,9 @@
       }
       st.videos[i] = { file: file, sec: 0 };
       info.textContent = '✔ えらびました（' + (file.size / MB).toFixed(1) + 'MB）';
-      vid.hidden = false; vid.src = URL.createObjectURL(file) + '#t=0.1';   // #t=0.1：iPhone でも最初の場面がサムネとして映るように（2026-10-08）
+      // 「#t=0.1」をつけると iPhone で動画が読めず、何も映らなかった（2026-10-08）ので、つけない
+      vid.hidden = false; vid.src = URL.createObjectURL(file); vid.load();
+      box.querySelector('.bt').textContent = '🔄 ほかの動画にえらび直す';
       vid.onloadedmetadata = () => {
         const sec = vid.duration;
         if (!isFinite(sec)) return;
@@ -274,8 +276,14 @@
         if (vid.videoWidth && Math.min(vid.videoWidth, vid.videoHeight) < 720)
           err.textContent = '画質が粗い動画です（' + vid.videoWidth + '×' + vid.videoHeight + '）。このままだと、ぼやけた広告になります。' +
             'スマホのカメラで撮ってから、「写真ライブラリ」で選び直してください（「ビデオを撮る」で撮ると粗くなります）。';
+        // iPhone は一度再生しないと最初の場面を映さないので、音なしで一瞬だけ再生して止める（2026-10-08）
+        const p = vid.play();
+        if (p) p.then(() => { vid.pause(); vid.currentTime = 0.1; }).catch(() => { vid.currentTime = 0.1; });
       };
-      vid.onerror = () => { vid.hidden = true; };   // この画面で再生できない形式でも、送ることはできる
+      vid.onerror = () => {   // この画面で再生できない形式でも、送ることはできる
+        vid.hidden = true;
+        if (st.videos[i]) info.textContent = '✔ えらびました：' + file.name + '（この画面では動画を映せませんが、送ることはできます）';
+      };
     };
     $('videos').appendChild(box);
     addCount(box.querySelector('textarea'));

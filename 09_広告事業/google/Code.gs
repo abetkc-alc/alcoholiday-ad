@@ -14,6 +14,7 @@
 
 const CONFIG = {
   OWNER_EMAIL: 'abetkc@alcoholiday.org',   // 新しい依頼・承認の知らせを受け取るメール
+  MAIL_FROM: 'info@alcoholiday.org',          // お客さんに届くメールの送り主（2026-10-08 社長の指示。Gmail の「他のアドレスから送る」に登録が必要）
   TZ: 'Asia/Tokyo',
   // テスト中は、下のメールアドレスの人だけが会員登録・ログインできる（2026-10-08 社長の指示。公開するときは false にする）
   TEST_ONLY: true,
@@ -903,5 +904,24 @@ function update_(row, fields, log) {
 }
 
 function mail_(to, subject, body) {
-  MailApp.sendEmail({ to: to, subject: subject, body: body, name: 'ALCOHOLIDAY' });
+  // 送り主は CONFIG.MAIL_FROM（2026-10-08 社長の指示）。Gmail の「他のアドレスから送る」に登録されていないときは、
+  // いままでどおりのアドレスから送り、返信先だけ MAIL_FROM にする（メールが止まらないように）
+  const from = CONFIG.MAIL_FROM;
+  try {
+    if (from && GmailApp.getAliases().indexOf(from) >= 0) {
+      GmailApp.sendEmail(to, subject, body, { from: from, name: 'ALCOHOLIDAY', replyTo: from });
+      return;
+    }
+  } catch (e) {
+    console.warn('送り主を ' + from + ' にできませんでした：' + e);
+  }
+  MailApp.sendEmail({ to: to, subject: subject, body: body, name: 'ALCOHOLIDAY', replyTo: from || CONFIG.OWNER_EMAIL });
+}
+
+/** エディタで実行して確かめる：送り主のアドレスが使えるか（はじめての実行で Gmail の許可を求められる） */
+function checkMailFrom() {
+  const list = GmailApp.getAliases();
+  console.log('送り主に使えるアドレス：' + (list.join('、') || 'なし'));
+  console.log(list.indexOf(CONFIG.MAIL_FROM) >= 0 ? 'OK：' + CONFIG.MAIL_FROM + ' から送ります'
+    : 'まだ使えません：Gmail の設定 →「アカウント」→「他のメールアドレスを追加」で ' + CONFIG.MAIL_FROM + ' を登録してください（それまでは返信先だけ ' + CONFIG.MAIL_FROM + ' になります）');
 }
