@@ -13,6 +13,7 @@
   .cap pre { white-space:pre-wrap; font-family:inherit; font-size:18px; margin:0; line-height:1.7; }
   .state { text-align:center; font-size:22px; font-weight:800; }
   .center { text-align:center; }
+  a.submit.dl { display:block; text-align:center; text-decoration:none; margin-top:16px; }
   #fix[hidden], .caps[hidden] { display:none; }
   /* 直したあと：2本から選ぶ */
   .pick2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px; margin-top:12px; }
@@ -32,7 +33,7 @@
 <? } else { ?>
   <header>
     <h1>動画のご確認</h1>
-    <p class="lead"><?= data.prev && data.canAct ? '直した動画ができました。直す前と直したあとの2本から、よいほうを選んで承認してください。' : 'できあがった動画と、SNS に載せる文をご確認ください。' ?></p>
+    <p class="lead"><?= data.prev && data.canAct ? '直した動画ができました。直す前と直したあとの2本から、よいほうを選んでください。' : 'できあがった動画と、SNS に載せる文をご確認ください。' ?></p>
   </header>
 
   <section>
@@ -41,8 +42,8 @@
       <dt>受付番号</dt><dd><?= data.id ?></dd>
       <dt>店名</dt><dd><?= data.shop ?></dd>
       <dt>おすすめ商品</dt><dd><?= data.product ?></dd>
-      <dt>投稿</dt><dd><?= data.when ?></dd>
-      <dt>承認の期限</dt><dd style="color:var(--main)"><?= data.deadline ?> まで</dd>
+      <dt>投稿文をつくった SNS</dt><dd><?= data.when ?></dd>
+      <? if (data.canAct) { ?><dt>お選びいただく期限</dt><dd style="color:var(--main)"><?= data.deadline ?> まで</dd><? } ?>
     </dl>
   </section>
 
@@ -91,6 +92,7 @@
 
   <section>
     <h2><span class="no">3</span>SNS に載せる文</h2>
+    <p class="ex">動画を決めると、この文もメールでお送りします。コピーして、そのままお使いいただけます。</p>
     <? if (data.captions.instagram) { ?><div class="cap"><h3>Instagram</h3><pre><?= data.captions.instagram ?></pre></div><? } ?>
     <? if (data.captions.tiktok) { ?><div class="cap"><h3>TikTok</h3><pre><?= data.captions.tiktok ?></pre></div><? } ?>
     <? if (data.captions.x) { ?><div class="cap"><h3>X</h3><pre><?= data.captions.x ?></pre></div><? } ?>
@@ -99,17 +101,17 @@
 
   <section id="act">
   <? if (data.canAct) { ?>
-    <h2><span class="no">4</span>承認する</h2>
+    <h2><span class="no">4</span>動画を決める</h2>
     <? if (data.prev) { ?>
-    <p>上で選んだ動画と文で投稿します。よければ<b>「承認する」</b>を押してください。<br>※ 動画の直しは1回までです。</p>
-    <button type="button" class="submit" id="okBtn" onclick="ok()">選んだ動画で承認する</button>
+    <p>上で選んだ動画でよければ<b>「この動画に決める」</b>を押してください。<br>動画のダウンロードのリンクと、SNS ごとの投稿文をメールでお送りします。<br>※ 動画の直しは1回までです。</p>
+    <button type="button" class="submit" id="okBtn" onclick="ok()">選んだ動画に決める</button>
     <? } else { ?>
-    <p>内容でよければ<b>「承認する」</b>を押してください。承認から2時間以内に、自動で投稿されます（混み合っているときは順番に投稿します）。</p>
-    <button type="button" class="submit" id="okBtn" onclick="ok()">承認する（この内容で投稿する）</button>
+    <p>内容でよければ<b>「この動画に決める」</b>を押してください。<br>動画のダウンロードのリンクと、SNS ごとの投稿文をメールでお送りします。投稿は、お店の SNS アカウントからご自身で行ってください。</p>
+    <button type="button" class="submit" id="okBtn" onclick="ok()">この動画に決める</button>
       <? if (data.canFix) { ?>
     <button type="button" class="btn sub" id="fixOpen" onclick="openFix()">直してほしいところがある（1回まで）</button>
     <div id="fix" hidden>
-      <p class="ex">動画の直しは<b>1回まで</b>です。直したあとは、直す前と直したあとの2本から選んで承認していただきます。</p>
+      <p class="ex">動画の直しは<b>1回まで</b>です。直したあとは、直す前と直したあとの2本から選んでいただきます。</p>
       <div class="field" data-mic>
         <div class="lab">直してほしいところ<span class="tag must">必ず</span></div>
         <textarea id="comment" maxlength="1000" data-count="1000" placeholder="例：商品名の漢字がちがいます／もう少し明るい雰囲気にしてほしい"></textarea>
@@ -121,7 +123,10 @@
   <? } else { ?>
     <p class="state">いまの状態：<?= data.state ?></p>
     <? if (data.state === '修正依頼') { ?><p class="center">直した動画ができたら、メールでお知らせします。</p><? } ?>
-    <? if (data.state === '予約済み' || data.state === '承認済み') { ?><p class="center">承認ありがとうございます。<?= data.when ?> に投稿されます。</p><? } ?>
+    <? if (data.download) { ?>
+    <p class="center">この動画に決まりました。下のボタンから動画を保存して、お店の SNS に投稿してください。<br>投稿文はメールでもお送りしています。</p>
+    <a class="submit dl" href="<?= data.download ?>" target="_blank">動画をダウンロード</a>
+    <? } ?>
   <? } ?>
     <div class="err" id="msg"></div>
   </section>
@@ -131,6 +136,8 @@
 <?!= include_('common') ?>
 <script>
   const ID = <?!= JSON.stringify(data.id || '') ?>, KEY = <?!= JSON.stringify(data.key || '') ?>;
+  const VIDEO_ID = <?!= JSON.stringify(data.videoId || '') ?>, PREV_ID = <?!= JSON.stringify(data.prev ? data.prev.videoId : '') ?>;
+  const DL = 'https://drive.google.com/uc?export=download&id=';
   let choice = 'new';
   document.querySelectorAll('[data-mic]').forEach(addMic);
   document.querySelectorAll('[data-count]').forEach(addCount);
@@ -156,12 +163,14 @@
     document.querySelectorAll('.caps').forEach(x => { x.hidden = x.id !== 'caps-' + choice; });
   });
 
-  // 終わったら、受け付けた画面と同じ形で知らせる
+  // 終わったら、受け付けた画面と同じ形で知らせる（動画を決めたときは、ダウンロードのボタンも出す）
   function done(text, good) {
     $('act').innerHTML = '<div class="donebox"><div class="okmark">' + (good ? '✔' : '✎') + '</div>' +
-      '<h2 class="donetitle"></h2><p class="donelead"></p></div>';
-    $('act').querySelector('.donetitle').textContent = good ? '承認を受け付けました' : '直しのご依頼を受け付けました';
+      '<h2 class="donetitle"></h2><p class="donelead"></p></div>' +
+      (good ? '<a class="submit dl" target="_blank">動画をダウンロード</a>' : '');
+    $('act').querySelector('.donetitle').textContent = good ? 'この動画に決まりました' : '直しのご依頼を受け付けました';
     $('act').querySelector('.donelead').textContent = text;
+    if (good) $('act').querySelector('.dl').href = DL + encodeURIComponent(choice === 'prev' ? PREV_ID : VIDEO_ID);
     window.scrollTo(0, document.body.scrollHeight);
   }
   function fail(e) {
@@ -171,10 +180,10 @@
   function openFix() { $('fix').hidden = false; $('fixOpen').hidden = true; $('comment').focus(); }
   async function ok() {
     const label = $('okBtn').textContent;
-    if (!confirm(document.querySelector('.choice') ? '「' + (choice === 'prev' ? '直す前' : '直したあと') + 'の動画」で投稿します。よろしいですか？' : 'この動画と文で投稿します。よろしいですか？')) return;
+    if (!confirm(document.querySelector('.choice') ? '「' + (choice === 'prev' ? '直す前' : '直したあと') + 'の動画」に決めます。よろしいですか？' : 'この動画に決めます。よろしいですか？')) return;
     $('msg').textContent = '';
     document.querySelectorAll('button').forEach(b => b.disabled = true);
-    $('okBtn').textContent = '登録しています…';
+    $('okBtn').textContent = 'お送りしています…';
     try { done(await run('approve', ID, KEY, choice), true); } catch (e) { fail(e); $('okBtn').textContent = label; }
   }
   async function ng() {

@@ -1,10 +1,11 @@
-# ALCOHOLIDAY BAR広告：新しい申し込みを自動で動画にして、お客さんに承認のお願いを送る
+# ALCOHOLIDAY BAR広告：新しい申し込みを自動で動画にして、お客さんに「動画ができました」メールを送る
 #
 #   1. 受付台帳の「受付」の申し込みを取り込む（bar_sync.py pull と同じ）
-#   2. KAYO（Claude）が台本（ナレーション・字幕）と SNS の文をつくる（claude -p）
-#   ※ 直しの依頼（「修正依頼」。1回まで）も同じように自動で直して、もう一度承認のお願いを送る（2026-10-04 社長の指示）
-#   3. 動画を組み立てる（build_bar_ad.py）
-#   4. 投稿文の決まりを確かめて、お客さんに承認のお願いメールを送る（bar_sync.py deliver と同じ）
+#   2. KAYO（Claude）が台本（ナレーション・字幕）と、えらばれた SNS ごとの投稿文をつくる（claude -p）
+#      投稿文の最後には「提供：アルコホリディ」と URL を、プログラムが必ず付ける（2026-10-10 社長の指示）
+#   ※ 直しの依頼（「修正依頼」。1回まで）も同じように自動で直して、もう一度メールを送る（2026-10-04 社長の指示）
+#   3. 動画を組み立てる（build_bar_ad.py。台帳の「プラン」が「有料」なら有料版、それ以外は無料版）
+#   4. 投稿文の決まりを確かめて、お客さんに「動画ができました」メールを送る（bar_sync.py deliver と同じ）
 #
 # 使い方（09_広告事業 フォルダで）
 #   python tools/bar_auto.py            … 新しい申し込みを全部処理する（Windows のタスク スケジューラーから数分ごとに動かす）
@@ -12,8 +13,8 @@
 #   python tools/bar_auto.py <受付番号> fix "直しの依頼の文" … その案件の直しだけをする
 #   python tools/bar_auto.py <受付番号> --dry … 動画までつくって、メールは送らない（試し）
 #
-# 2026-10-04 社長の指示：お客さんの申し込みから承認のお願いメールまでを自動にする。
-#   SNS への投稿は、これまでどおりお客さんが承認したあとだけ（承認ページの「承認する」）。
+# 2026-10-04 社長の指示：お客さんの申し込みから「動画ができました」メールまでを自動にする。
+#   2026-10-10 から SNS への投稿はしない。お客さんが確認ページで動画を決めて、ダウンロードし、自分の SNS に載せる。
 #   うまくいかなかった案件は「制作中」のまま残し、自動制作ログ.md と受付台帳の履歴に理由を書く（KAYO が手で仕上げる）
 import json
 import pathlib
@@ -30,6 +31,7 @@ TOOLS = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
 import bar_sync  # noqa: E402
 import build_bar_ad  # noqa: E402
+import fix_learn  # noqa: E402  直しから学んだこと（2026-10-10）
 
 HERE = TOOLS.parent                      # 09_広告事業
 LOG = HERE / "自動制作ログ.md"
@@ -52,12 +54,13 @@ def log(msg):
 
 
 def rules():
-    """広告事業.md の「台本のきまり」をそのまま Claude に渡す"""
+    """広告事業.md の「台本のきまり」をそのまま Claude に渡す（＋直しから学んだこと.md の学び。2026-10-10 社長の指示）"""
     t = (HERE / "広告事業.md").read_text(encoding="utf-8")
     a = t.index("## 台本のきまり")
     b = (HERE / "禁止表現リスト.md").read_text(encoding="utf-8")
     b = b[:b.index("## 自動で見つける言葉")].strip()
-    return t[a:t.index("\n---", a)] + "\n\n" + b.replace("\n## ", "\n### ").replace("# 禁止表現リスト", "## 禁止表現リスト", 1)
+    return (t[a:t.index("\n---", a)] + "\n\n" + b.replace("\n## ", "\n### ").replace("# 禁止表現リスト", "## 禁止表現リスト", 1)
+            + fix_learn.lessons_for_prompt())
 
 
 def banned_words():
@@ -104,7 +107,9 @@ def make_prompt(order, clips, feedback=""):
     vids = json.loads(order.get("動画の説明") or "[]")
     lines = [f"動画{v['no']}（{v['title']}・長さ {c['dur']:.1f}秒）：お客さんの説明「{v['desc']}」" for v, c in zip(vids, clips)]
     music = music_list()
+    plats = bar_sync.platforms_of(order)
     return f"""あなたは ALCOHOLIDAY の KAYO（scripts 部）です。BAR のおすすめ商品を紹介する縦型動画の台本と SNS の投稿文をつくります。
+動画と投稿文は、お店が自分の SNS アカウントに載せます（お店の立場で書く）。
 ツールは使わず、下の決まりに従って、最後に JSON だけを返してください（説明の文は不要）。
 
 {rules()}
@@ -121,9 +126,8 @@ def make_prompt(order, clips, feedback=""):
 - 商品の説明：{order.get('商品の説明', '')}
 - 価格：{order.get('価格', '')}
 - 数量限定：{order.get('数量限定', '')}
-- 投稿する SNS：{order.get('SNS') or 'instagram,tiktok,x'}
+- 投稿文をつくる SNS：{','.join(plats)}
 - ご要望：{order.get('要望', '')}
-- お客さんが書いた SNS の文：{order.get('お客さんの投稿文', '')}
 {chr(10).join('- ' + x for x in lines)}
 
 ## 返す JSON の形
@@ -139,7 +143,7 @@ def make_prompt(order, clips, feedback=""):
   "area": "画面に出す場所（例：東京都豊島区・要町駅から徒歩3分）",
   "hours": "画面に出す営業時間（短く整える。例：18時〜翌2時（日曜定休））",
   "music": "背景の音楽のファイル名（ご要望と店の雰囲気に合う札の曲を、下の「背景の音楽」から1つ）",
-  "captions": {{"instagram": "…", "tiktok": "…", "x": "…"}}
+  "captions": {{{', '.join(f'"{p}": "…"' for p in plats)}}}
 }}
 
 ## 背景の音楽（ファイル名：札・感じ）
@@ -153,7 +157,10 @@ def make_prompt(order, clips, feedback=""):
 - ナレーションは、お客さんの説明の言葉をそのまま使う。長いときだけ、言いかえずに削って短くする。決まり文句を足さない
 - 「今夜はここへ」「まずはここへ」「今夜はここで」や、それに似た言葉は使わない
 - 投稿文の住所・営業時間・電話番号は、上の「この申し込み」の文字を**そのまま**入れる（自動で確かめるため。言い換えない）
-- 3つの投稿文に「#PR」「提供：{order['店名']}」「お酒は20歳になってから。飲酒運転は法律で禁止されています。」を必ず入れる
+- 投稿文は「投稿文をつくる SNS」の分だけつくる（{'・'.join(bar_sync.PLATFORM_NAMES[p] for p in plats)}）
+- 投稿文の本文は「商品の説明」をもとに書く。説明にないことは足さない
+- どの投稿文にも「#PR」「お酒は20歳になってから。飲酒運転は法律で禁止されています。」を必ず入れる
+- 「提供：アルコホリディ」と URL は、プログラムが投稿文の最後に付けるので、書かない（X は、その分を残して本文を230までにする）
 - 数量限定が「はい」なら、投稿文にも「数量限定」とわかる一言を入れる
 {feedback}"""
 
@@ -211,11 +218,14 @@ def produce(oid, d, order, clips, ask, what, keep_voice):
                        "narr": x["narr"], "subs": x["subs"]} for i, (c, x) in enumerate(zip(clips, a["clips"]))],
             "product": a["product"], "price": a["price"], "shop": order["店名"], "area": a["area"], "hours": a["hours"],
             "music": music.as_posix(), "music_ss": 0, "limited": order.get("数量限定") == "はい",
-            "date": datetime.now().strftime("%Y-%m-%d"),   # 動画1の右上に出す日付（投稿は承認から2時間以内なので、つくった日）
+            "date": datetime.now().strftime("%Y-%m-%d"),   # 動画1の右上に出す日付（つくった日）
+            "plan": "paid" if order.get("プラン") == "有料" else "free",   # 無料版／有料版（2026-10-10 社長の指示）
         }
         spec["clips"][1]["show"] = "product"
         spec["clips"][2]["show"] = "shop"
-        cap = a["captions"]
+        # えらばれた SNS の分だけにし、最後に「提供：アルコホリディ」と URL を付ける
+        cap = {p: bar_sync.add_credit(a["captions"][p]) for p in bar_sync.platforms_of(order) if (a.get("captions") or {}).get(p)}
+        a["captions"] = cap
         bad = find_banned(a)   # 禁止表現リスト.md の言葉（2026-10-07 社長の指示）
         probs = bad + [p for p in bar_sync.check_captions(oid, cap) if not p.startswith("注意：")]
         if probs:
@@ -240,8 +250,8 @@ def produce(oid, d, order, clips, ask, what, keep_voice):
             log(f"{oid} 試し（--dry）：{what}の動画 {video.name} をつくった。メールは送っていない")
             return
         bar_sync.deliver(oid, str(video), str(cap_path))
-        bar_sync.call("update", id=oid, fields={}, log=f"自動制作：{what}の動画 {video.name} を届け、承認のお願いを送った")
-        log(f"{oid} {order['店名']}：{what}の動画 {video.name}（声：{bar_sync.GUIDE_NAMES[voice]}）を届け、承認のお願いを送った"
+        bar_sync.call("update", id=oid, fields={}, log=f"自動制作：{what}の動画 {video.name} を届け、「動画ができました」メールを送った")
+        log(f"{oid} {order['店名']}：{what}の動画 {video.name}（{'有料版' if spec['plan'] == 'paid' else '無料版'}・声：{bar_sync.GUIDE_NAMES[voice]}）を届け、「動画ができました」メールを送った"
             + (f"　直したところ：{a.get('changes')}" if a.get("changes") else ""))
         return
     raise RuntimeError("3回つくり直してもうまくいきませんでした")
@@ -281,7 +291,8 @@ def fix_prompt(order, clips, spec, cap, comment, feedback=""):
         "starts": [c.get("start", 0) for c in spec["clips"]],
         "voice": spec.get("voice"), "product": spec.get("product"), "price": spec.get("price"),
         "area": spec.get("area"), "hours": spec.get("hours"), "music": pathlib.Path(spec.get("music", "")).name,
-        "captions": cap,
+        # 「提供：アルコホリディ」と URL はプログラムが付け直すので、外して渡す
+        "captions": {k: bar_sync.add_credit(v).replace("\n\n" + bar_sync.CREDIT, "") for k, v in cap.items()},
     }
     lens = "、".join(f"動画{i}は{c['dur']:.1f}秒" for i, c in enumerate(clips, 1))
     return f"""あなたは ALCOHOLIDAY の KAYO（scripts 部）です。お客さんから、動画の直しの依頼が届きました。
@@ -301,7 +312,7 @@ def fix_prompt(order, clips, spec, cap, comment, feedback=""):
 - voice：声（A=ローズ（明るい女性）B=ラフィ（大人の女性）C=アイラ（落ち着いた女性）D=アルビン（男性））
 - product・price・area・hours：画面に出す商品名・価格・場所・営業時間
 - music：背景の音楽（下の一覧から）
-- captions：SNS の投稿文（決まりは下のとおり）
+- captions：SNS の投稿文（決まりは下のとおり。「提供：アルコホリディ」と URL はプログラムが最後に付けるので、書かない）
 - お店の動画そのものの差し替え・撮り直しはできない。できない依頼は、できる範囲でいちばん近い直し方にする
 
 ## 返す JSON に足すもの
@@ -335,8 +346,8 @@ def write_script_note(path, spec, cap, changes=""):
     path.write_text(
         f"# 台本（自動制作 {datetime.now():%Y-%m-%d %H:%M}）\n\n声：{bar_sync.GUIDE_NAMES[spec['voice']]}　音楽：{pathlib.Path(spec['music']).name}\n\n"
         + (f"直したところ：{changes}\n\n" if changes else "") +
-        f"| 動画 | ナレーション | 字幕 |\n|---|---|---|\n{rows}\n\n"
-        f"## 投稿文\n\n### Instagram\n\n{cap['instagram']}\n\n### TikTok\n\n{cap['tiktok']}\n\n### X\n\n{cap['x']}\n",
+        f"| 動画 | ナレーション | 字幕 |\n|---|---|---|\n{rows}\n\n## 投稿文\n"
+        + "".join(f"\n### {bar_sync.PLATFORM_NAMES.get(k, k)}\n\n{v}\n" for k, v in cap.items()),
         encoding="utf-8")
 
 

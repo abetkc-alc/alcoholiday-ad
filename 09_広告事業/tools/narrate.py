@@ -14,6 +14,9 @@ import wave
 
 import imageio_ffmpeg
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import envfile  # noqa: E402  .env（APIキーなど）を読む
+
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
 NAMES = {"A": "ローズ", "B": "ラフィ", "C": "アイラ", "D": "アルビン"}
 
@@ -39,8 +42,18 @@ EDGE_VOICES = {
 }
 
 
+def all_readings():
+    """決まった読み方 ＋ お客さんの直しから学んだ読み方（直しから学んだこと.md の「読み方の辞書」）。長い言葉から先に置きかえる"""
+    try:
+        import fix_learn
+        learned = fix_learn.readings()
+    except Exception:   # noqa: BLE001  辞書が読めなくても、読み上げは止めない
+        learned = {}
+    return sorted({**learned, **READINGS}.items(), key=lambda kv: -len(kv[0]))
+
+
 def env(name):
-    v = os.environ.get(name)
+    v = envfile.get(name) or os.environ.get(name)   # まず .env、なければ環境変数
     if not v and sys.platform == "win32":
         import winreg
         try:
@@ -72,7 +85,7 @@ def synth(key, text, out):
     key = key.upper()
     if key not in NAMES:
         raise SystemExit("声は A / B / C / D のどれか")
-    for k, v in READINGS.items():
+    for k, v in all_readings():
         text = text.replace(k, v)
     out = pathlib.Path(out)
     raw = out.with_suffix(".raw" + (".wav" if engine() == "google" else ".mp3"))

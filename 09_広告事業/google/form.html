@@ -12,14 +12,13 @@
     <span class="who"><span><b id="mname"></b> 様</span><a href="#" class="pill gray" id="logout">ログアウト</a></span>
   </div>
   <header>
-    <h1>おすすめ商品の申し込み</h1>
-    <p class="lead">ALCOHOLIDAY の SNS でおすすめ商品をご紹介します。</p>
+    <h1>ショート動画作成の申し込み</h1>
+    <p class="lead">お店の SNS に載せる、おすすめ商品のショート動画をおつくりします。</p>
     <ol class="flow">
       <li><b>1</b>お店の詳細を入力</li>
       <li><b>2</b>おすすめ商品の説明を入力</li>
       <li><b>3</b>動画をアップロード</li>
       <li><b>4</b>メールで届いた動画を確認</li>
-      <li><b>5</b>承認から<?= data.postWithin ?>時間以内に自動で投稿（混み合っているときは、順番に投稿するため、もう少し時間がかかることがあります）</li>
     </ol>
   </header>
 
@@ -111,16 +110,11 @@
 
     <section>
       <h2><span class="no">4</span>SNS に載せる文</h2>
-      <p>動画といっしょに Instagram・TikTok・X に載せる文です。<b>書かなくても大丈夫です</b>（空なら ALCOHOLIDAY が書きます）。</p>
+      <p>動画といっしょに SNS に載せる文は、<b>2 の「おすすめの商品」の説明をもとに、自動でつくります</b>。入力はいりません。</p>
       <ul class="tips">
-        <li>書いた文は <b>Instagram</b> にそのまま載せます。TikTok と X には、短くまとめて載せます</li>
-        <li>最初に入力した<b>お店の住所・営業時間・電話番号</b>は必ず載せます。</li>
-        <li>「#PR」「提供：店名」「お酒は20歳になってから」などの決まった文も、自動で付けます</li>
+        <li>最初に入力した<b>お店の住所・営業時間・電話番号</b>は必ず入れます</li>
+        <li>「#PR」「お酒は20歳になってから」などの決まった文も、自動で付けます</li>
       </ul>
-      <div class="field" data-mic>
-        <div class="lab">SNS に載せる文<span class="tag opt">なくてもよい</span></div>
-        <textarea placeholder="例：秋だけの白桃のベリーニができました。とろける甘さを、ぜひ一度。" name="caption" maxlength="1500" data-count="1500"></textarea>
-      </div>
     </section>
 
     <section>
@@ -134,10 +128,10 @@
     </section>
 
     <section>
-      <h2><span class="no">6</span>投稿する SNS</h2>
-      <p>動画を載せる SNS に印をつけてください（いくつでも）。<br>動画を<b>承認していただいてから<?= data.postWithin ?>時間以内</b>に、えらんだ SNS へ自動で投稿します。</p>
+      <h2><span class="no">6</span>動画を載せる SNS</h2>
+      <p>お店で動画を載せる SNS に印をつけてください（いくつでも）。<br>えらんだ SNS ごとに、<b>そのまま使える投稿文</b>をつくって、動画といっしょにメールでお送りします。</p>
       <ul class="tips">
-        <li>同じ SNS への投稿は<?= data.postGap ?>時間以上あけているため、混み合っているときは順番に投稿します（投稿の時刻は、承認のあとメールでお知らせします）</li>
+        <li>投稿は、お店の SNS アカウントから<b>ご自身で</b>行ってください（ALCOHOLIDAY のアカウントには載せません）</li>
       </ul>
       <div class="snslist" id="snslist"></div>
     </section>
@@ -145,13 +139,14 @@
     <section>
       <h2><span class="no">7</span>確認して申し込む</h2>
       <ul class="notes">
-        <li>動画は、お客様に<b>承認していただいてから</b>投稿します。承認がない場合は投稿しません。</li>
-        <li>動画の<b>直しは1回まで</b>です。直したあとは、直す前と直したあとの2本から選んで承認していただきます。</li>
-        <li>載せる文には、広告であることを示す「#PR」と、お酒の注意書き（20歳未満の飲酒・飲酒運転の禁止）を入れます。</li>
+        <li>できあがった動画は、メールのページから<b>ダウンロード</b>していただきます。SNS への投稿は、お店で行っていただきます。</li>
+        <li>動画の<b>直しは1回まで</b>です。直したあとは、直す前と直したあとの2本から選んでいただきます。</li>
+        <li>お送りする投稿文には、広告であることを示す「#PR」と、お酒の注意書き（20歳未満の飲酒・飲酒運転の禁止）を入れます。投稿するときも消さずにお使いください。</li>
+        <li>投稿した内容と、投稿のあとに起きたことについては、<b>投稿したお店の責任</b>となります。</li>
         <li>送っていただく動画に映っている<b>場所・人・商品・音楽・看板やロゴなど</b>は、撮影と SNS への掲載について、<b>お申し込みいただいた方が、すべて了承を得ているもの</b>とします。</li>
         <li>送っていただいた動画・文・お店の情報について、ほかの人や会社とのあいだで問題が起きた場合は、<b>お申し込みいただいた方の責任と費用で解決</b>していただきます。<b>ALCOHOLIDAY は一切の責任を負いません。</b></li>
         <li>紹介による集客や売上などの効果をお約束するものではありません。</li>
-        <li>声の案内は AI の読み上げです。説明の文は、読みやすい長さに整えることがあります（承認のときに確認できます）。</li>
+        <li>声の案内は AI の読み上げです。説明の文は、読みやすい長さに整えることがあります（できあがった動画で確認できます）。</li>
         <li>卑猥な言葉・差別的な言葉・誹謗中傷など、広告にふさわしくない言葉は使いません。書かれていた場合は、別の言葉に置き換えるか、削ります。</li>
       </ul>
       <label class="agree"><input type="checkbox" name="agree" value="1">上の内容に同意します</label>
@@ -325,7 +320,7 @@
       '  <div class="okmark">✔</div>' +
       '  <h2 class="donetitle">お申し込みを受け付けました</h2>' +
       '  <p class="donelead">ありがとうございます。下の内容で受け付けました。</p>' +
-      '  <dl class="summary"><dt>受付番号</dt><dd class="id"></dd><dt>投稿する SNS</dt><dd class="when"></dd><dt>確認のメールの送り先</dt><dd class="mail"></dd></dl>' +
+      '  <dl class="summary"><dt>受付番号</dt><dd class="id"></dd><dt>投稿文をつくる SNS</dt><dd class="when"></dd><dt>確認のメールの送り先</dt><dd class="mail"></dd></dl>' +
       '  <div class="note"></div>' +
       '</section>' +
       '<section>' +
@@ -333,10 +328,10 @@
       '  <ol class="flow">' +
       '    <li><b>1</b>ALCOHOLIDAY が動画をつくります</li>' +
       '    <li><b>2</b>動画ができたら、メールでお知らせします</li>' +
-      '    <li><b>3</b>メールのページで動画を見て「承認する」を押してください（受付から' + DATA.approveDays + '日以内）</li>' +
-      '    <li><b>4</b>承認から' + DATA.postWithin + '時間以内に、えらんだ SNS へ自動で投稿します（混み合っているときは順番に投稿します）</li>' +
+      '    <li><b>3</b>メールのページで動画を見て、ダウンロードしてください（受付から' + DATA.approveDays + '日以内）</li>' +
+      '    <li><b>4</b>メールでお送りする SNS ごとの投稿文を使って、お店の SNS に投稿してください</li>' +
       '  </ol>' +
-      '  <div class="help">確認のメールが届かないときは、<b>迷惑メール</b>のフォルダもご覧ください。<br>承認がない場合は投稿しません。</div>' +
+      '  <div class="help">確認のメールが届かないときは、<b>迷惑メール</b>のフォルダもご覧ください。</div>' +
       '</section>' +
       '<p class="thanks">ALCOHOLIDAY（アルコホリディ）</p>';
     // 受付番号などは文字として入れる（記号がそのまま表示されるように）
@@ -368,7 +363,7 @@
     if (!String(f.desc || '').trim()) miss.push('2 の「商品の説明」を入れてください');
     st.videos.forEach((v, i) => { if (!v) miss.push('3 の「動画' + (i + 1) + '（' + DATA.videos[i].title + '）」をえらんでください'); });
     desc.forEach((d, i) => { if (!d) miss.push('3 の「動画' + (i + 1) + 'の説明」を入れてください'); });
-    if (!f.platforms.length) miss.push('6 の「投稿する SNS」を1つ以上えらんでください');
+    if (!f.platforms.length) miss.push('6 の「動画を載せる SNS」を1つ以上えらんでください');
     if (!f.agree) miss.push('7 の「同意します」に印をつけてください');
     if (miss.length) { $('err').textContent = 'まだ入っていないところがあります：\n・' + miss.join('\n・'); return false; }
     $('btn').disabled = true; $('btn').textContent = '送っています…';

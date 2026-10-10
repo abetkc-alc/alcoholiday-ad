@@ -1,15 +1,14 @@
 # ALCOHOLIDAY BAR広告：Google（受付台帳）とパソコン（KAYO）の受け渡し
 #
 # 使い方（09_広告事業 フォルダで）
-#   python tools/bar_sync.py list [状態]            … 依頼の一覧（状態：受付／制作中／承認待ち／修正依頼／予約済み など）
+#   python tools/bar_sync.py list [状態]            … 依頼の一覧（状態：受付／制作中／承認待ち／修正依頼／お渡し済み など）
 #   python tools/bar_sync.py pull                   … 「受付」の依頼を 案件/<受付番号>/ に取り込み（動画3本は 素材/video1〜3）、状態を「制作中」にする
 #   python tools/bar_sync.py local <依頼ファイル.json> … お試し版の受付ページで保存した依頼を 案件/ に取り込む（Google を通さない）
 #   python tools/bar_sync.py fixes                  … 「修正依頼」の一覧とお客さんのコメント
 #   python tools/bar_sync.py check <受付番号> <投稿文.json>  … 投稿文の決まり（#PR・提供・注意書き・住所・営業時間・電話・X の長さ）を確かめるだけ
 #   python tools/bar_sync.py deliver <受付番号> <動画.mp4> <投稿文.json>
-#                                                   … 動画と投稿文を届け、お客さんに承認のお願いメールを送る（社長の確認後に使う）
+#                                                   … 動画と投稿文を届け、お客さんに「動画ができました」メールを送る
 #   python tools/bar_sync.py voice <A|B|C|D> <見本.mp3> … 受付ページの「▶ 声を聞く」で流す声の見本を登録する（09_広告事業/声見本/）
-#   python tools/bar_sync.py schedule <受付番号>     … Upload-Post への予約をやり直す（予約エラーのとき）
 #   python tools/bar_sync.py set <受付番号> <状態>    … 状態を手で変える（例：キャンセル）
 #   python tools/bar_sync.py info                   … 受付ページと受付台帳の場所
 #
@@ -17,7 +16,8 @@
 #   BAR_API_URL … Apps Script のウェブアプリの URL（https://script.google.com/macros/s/…/exec）
 #   BAR_API_KEY … setup() を実行したときに出た API_KEY
 #
-# 決まり：ファイルは消さない・上書きしない。投稿は必ずお客さんの承認のあと（承認はお客さんが承認ページで押す）
+# 決まり：ファイルは消さない・上書きしない。
+# 2026-10-10 社長の指示：ALCOHOLIDAY のアカウントには投稿しない。お客さんが動画をダウンロードして、自分の SNS に投稿する
 import base64
 import imageio_ffmpeg
 import tempfile
@@ -30,6 +30,9 @@ import time
 
 import requests
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import envfile  # noqa: E402  .env（APIキーなど）を読む
+
 HERE = pathlib.Path(__file__).resolve().parent.parent        # 09_広告事業
 CASES = HERE / "案件"
 GUIDE_NAMES = {"A": "ローズ", "B": "ラフィ", "C": "アイラ", "D": "アルビン"}
@@ -37,7 +40,7 @@ EXT = {"video/quicktime": ".mov", "video/mp4": ".mp4", "video/webm": ".webm", "v
 
 
 def env(name):
-    v = os.environ.get(name)
+    v = envfile.get(name) or os.environ.get(name)   # まず .env、なければ環境変数
     if not v and sys.platform == "win32":
         import winreg   # 環境変数を設定したあと、開き直していない画面でも読めるように
         try:
@@ -74,7 +77,7 @@ def show(rows):
     if not rows:
         print("（該当なし）")
     for r in rows:
-        print(f"{r['id']}  [{r['状態']}]  {r.get('投稿日時') or '投稿は承認後'}  {r.get('SNS') or ''}  {r['店名']}（{r['都道府県']}）  {r['商品名']}  声:{GUIDE_NAMES.get(r['案内役'], 'おまかせ')}")
+        print(f"{r['id']}  [{r['状態']}]  {r.get('プラン') or '無料'}  {r.get('SNS') or ''}  {r['店名']}（{r['都道府県']}）  {r['商品名']}  声:{GUIDE_NAMES.get(r['案内役'], 'おまかせ')}")
 
 
 def unique(path):
@@ -165,7 +168,7 @@ def order_note(r):
     return f"""---
 受付番号: {r['id']}
 状態: 制作中
-投稿する SNS: {r.get('SNS') or 'instagram,tiktok,x'}
+投稿文をつくる SNS: {r.get('SNS') or 'instagram,tiktok,x'}
 tags: [広告事業, BAR広告]
 ---
 
@@ -181,7 +184,8 @@ tags: [広告事業, BAR広告]
 | 担当者 | {r['担当者']}（{r['メール']}／{r['電話']}） |
 | おすすめ商品 | {r['商品名']}（{r['価格']}） |
 | 数量限定 | {r.get('数量限定') or 'いいえ'}（はい なら 制作.json に "limited": true） |
-| 投稿する SNS | {r.get('SNS') or 'instagram,tiktok,x'}（承認から2時間以内に投稿。時刻は承認のときに決まる） |
+| 投稿文をつくる SNS | {r.get('SNS') or 'instagram,tiktok,x'}（投稿はお客さんが自分のアカウントで行う） |
+| プラン | {r.get('プラン') or '無料'}（無料＝上下に透かしのロゴ＋締め画像／有料＝最後に小さくロゴ） |
 | ナレーションの声 | {r['案内役']}（{GUIDE_NAMES.get(r['案内役'], 'おまかせ')}） |
 
 ## 商品の説明（お客さんの文章）
@@ -191,10 +195,6 @@ tags: [広告事業, BAR広告]
 ## お店で撮った動画と説明（お客さんの文章）
 
 {videos_table(r)}
-
-## SNS に載せる文（お客さんが書いた文。空なら KAYO が書く）
-
-{captions_text(r)}
 
 ## ご要望
 
@@ -217,30 +217,39 @@ def videos_table(r):
     return "\n".join(rows)
 
 
-def captions_text(r):
-    t = str(r.get("お客さんの投稿文") or "").strip()
-    return t if t else "（空。KAYO が書く）"
-
-
 NOTICE = "お酒は20歳になってから。飲酒運転は法律で禁止されています。"
+# 投稿文の最後に必ず付ける一文（2026-10-10 社長の指示。お客さんが自分の SNS に載せるときも、ALCOHOLIDAY の名前が出るように）
+SITE_URL = "https://www.alcoholiday.org/"
+CREDIT = "提供：アルコホリディ\n" + SITE_URL
+PLATFORM_NAMES = {"instagram": "Instagram", "tiktok": "TikTok", "x": "X"}
+
+
+def add_credit(text):
+    """投稿文の最後に「提供：アルコホリディ」と URL を付ける（すでにあれば外してから、最後に1回だけ付ける）"""
+    t = str(text).replace(CREDIT, "").replace(SITE_URL, "")
+    t = "\n".join(ln for ln in t.splitlines() if ln.strip() != "提供：アルコホリディ").rstrip()
+    return t + "\n\n" + CREDIT
+
+
+def platforms_of(r):
+    """投稿文をつくる SNS（申し込みでえらばれたもの。古い申し込みで空なら3つとも）"""
+    got = [p.strip() for p in str(r.get("SNS") or "").replace("、", ",").split(",") if p.strip() in PLATFORM_NAMES]
+    return got or list(PLATFORM_NAMES)
 
 
 def x_weight(text):
-    """X の文字数の数え方（日本語などは2、英数字は1。合計280まで）"""
-    return sum(1 if ord(ch) < 0x1100 else 2 for ch in text)
+    """X の文字数の数え方（日本語などは2、英数字は1。URL は長さにかかわらず23。合計280まで）"""
+    return sum(1 if ord(ch) < 0x1100 else 2 for ch in str(text).replace(SITE_URL, "")) + 23 * str(text).count(SITE_URL)
 
 
 def check_captions(oid, cap):
     """投稿文の決まりを確かめる。問題のリストを返す（空なら OK）"""
-    probs = []
-    names = {"instagram": "Instagram", "tiktok": "TikTok", "x": "X"}
-    for k, name in names.items():
-        if not cap.get(k):
-            probs.append(f"{name} の投稿文がありません")
-    if probs:
-        return probs
     order = CASES / oid / "order.json"
     r = json.loads(order.read_text(encoding="utf-8")) if order.exists() else {}
+    names = {k: PLATFORM_NAMES[k] for k in platforms_of(r)}
+    probs = [f"{name} の投稿文がありません" for k, name in names.items() if not cap.get(k)]
+    if probs:
+        return probs
     # 空白をなくし、「～」「〜」「~」や全角・半角のちがいは同じとみなす
     norm = str.maketrans({"～": "〜", "~": "〜", "：": ":", "（": "(", "）": ")", "－": "-", "ー": "-", "‐": "-"})
     flat = lambda t: "".join(str(t).split()).translate(norm)
@@ -249,8 +258,8 @@ def check_captions(oid, cap):
         t = cap[k]
         if "#PR" not in t:
             probs.append(f"{name}：「#PR」がない（広告の表示）")
-        if "提供：" not in t:
-            probs.append(f"{name}：「提供：店名」がない")
+        if not t.rstrip().endswith(CREDIT):
+            probs.append(f"{name}：最後に「提供：アルコホリディ」と {SITE_URL} がない")
         if NOTICE not in t:
             probs.append(f"{name}：お酒の注意書きがない")
         if r.get("住所") and flat(r["住所"]) not in flat(t):
@@ -261,9 +270,8 @@ def check_captions(oid, cap):
             probs.append(f"{name}：電話番号（{r['電話']}）がない")
     if not order.exists():
         probs.append(f"注意：{order} がないので、住所・営業時間・電話は確かめていません")
-    w = x_weight(cap["x"])
-    if w > 280:
-        probs.append(f"X が長すぎます（{w}／280。日本語は1文字2と数える）")
+    if "x" in names and x_weight(cap["x"]) > 280:
+        probs.append(f"X が長すぎます（{x_weight(cap['x'])}／280。日本語は1文字2と数える）")
     return probs
 
 
@@ -284,8 +292,8 @@ def deliver(oid, video, captions):
     res = call("deliver", id=oid, name=video.name, captions=cap,
                video=base64.b64encode(video.read_bytes()).decode(),
                preview=base64.b64encode(prev.read_bytes()).decode())
-    print("届けました。お客さんに承認のお願いメールを送りました")
-    print("承認ページ：", res["reviewUrl"])
+    print("届けました。お客さんに「動画ができました」メールを送りました")
+    print("確認ページ：", res["reviewUrl"])
 
 
 def voice(key, mp3):
@@ -324,8 +332,6 @@ def main():
         deliver(a[1], a[2], a[3])
     elif cmd == "voice" and len(a) == 3:
         voice(a[1], a[2])
-    elif cmd == "schedule" and len(a) == 2:
-        print(call("schedule", id=a[1]))
     elif cmd == "set" and len(a) == 3:
         r = call("update", id=a[1], fields={"状態": a[2]}, log=f"KAYO が状態を「{a[2]}」に変更")
         show([r])

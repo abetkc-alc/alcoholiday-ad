@@ -3,7 +3,10 @@
 #     ① 動画1（お店の雰囲気）＋ナレーション＋字幕
 #     ② 動画2（おすすめ商品）＋ナレーション＋字幕＋商品名・価格
 #     ③ 動画3（自由）＋ナレーション＋字幕＋店名・場所・営業時間・お酒の注意書き
-#     ④ ALCOHOLIDAY の締め画像＋ナレーション「お酒との時間をもっと楽しく」（必ず入れる）
+#     ④ ALCOHOLIDAY の締め画像＋ナレーション「お酒との時間をもっと楽しく」（無料版だけ）
+#   ・無料版と有料版（2026-10-10 社長の指示。制作.json の "plan"：free／paid。書いていなければ無料版）
+#       無料版：①〜③のあいだ、画面の上下に ALCOHOLIDAY のロゴを透かしで出す（商品名・店名は上の透かしの分だけ下げる）＋④の締め
+#       有料版：透かしと④の締めはなし。最後の2.5秒だけ、右下に小さく「created by」と ALCOHOLIDAY のロゴ
 #   ・ナレーションは案内役（A＝ローズ／B＝ラフィ／C＝アイラ）の声で AI が読む（tools/narrate.py）
 #   ・各動画の長さは「ナレーションの長さ＋少しの間」。足りないときは止める（静止・ループ・逆再生で伸ばさない）
 #   ・お客さんの動画の音は使わない（音楽＋ナレーション）。左上に「PR」を出し続ける
@@ -28,6 +31,11 @@ SHARED = pathlib.Path(r"C:\Users\abetk\Documents\Codex\2026-09-19\chatgpt-alcoho
 # 締め画像は BAR広告専用（アマゾンの案内を外し「紹介したお店の詳細はキャプションから。」を大きく・赤枠と赤文字で目立たせたもの）。
 # 元の ending-title.jpg は ALCOHOLIDAY 自身の動画用なので変えない
 BRAND = pathlib.Path(__file__).resolve().parent.parent / "素材" / "ending-bar-v4.jpg"   # v4＝赤い文字を枠の上下まん中にそろえた
+LOGO = pathlib.Path(__file__).resolve().parent.parent / "素材" / "ブランドロゴ.png"   # 黒文字・背景なし（元：Desktop/ALCOHOLIDAY/画像/商品画像/ブランドロゴ.png）。白くして使う
+WM_W, WM_ALPHA = 240, 0.55          # 無料版の透かし：幅と濃さ
+WM_TOP, WM_BOTTOM = 165, 1680       # 透かしの上の位置（PR と日付の下）と下の位置（字幕の下・注意書きの上）
+FREE_SHIFT = 80                     # 無料版は上の透かしの分、商品名・店名を下げる
+CREDIT_SEC = 2.5                    # 有料版の「created by」を出す長さ（最後の何秒か）
 NARR_END = SHARED / "ending-assets" / "お酒との時間をもっと楽しく.wav"
 NARR_END_LEN = 4.17
 BRAND_DUR = 4.4
@@ -118,6 +126,41 @@ def pr_badge(path):
     im.save(path)
 
 
+def white_logo(width, alpha):
+    """ロゴを白くして、指定の幅と濃さにする"""
+    lg = Image.open(LOGO).convert("RGBA")
+    im = Image.new("RGBA", lg.size, (255, 255, 255, 0))
+    im.putalpha(lg.getchannel("A").point(lambda v: int(v * alpha)))
+    return im.resize((width, round(lg.height * width / lg.width)), Image.LANCZOS)
+
+
+def paste_logo(im, logo, x, y, shadow=90):
+    """明るい映像の上でも見えるように、うすい影をつけて置く"""
+    sh = Image.new("RGBA", im.size, (0, 0, 0, 0))
+    sh.paste(Image.new("RGBA", logo.size, (0, 0, 0, shadow)), (x + 2, y + 3), logo)
+    im.alpha_composite(sh.filter(ImageFilter.GaussianBlur(4)))
+    im.alpha_composite(logo, (x, y))
+
+
+def watermark(im):
+    """無料版：画面の上下のまん中に、ALCOHOLIDAY のロゴを透かしで置く"""
+    lg = white_logo(WM_W, WM_ALPHA)
+    for y in (WM_TOP, WM_BOTTOM):
+        paste_logo(im, lg, (W - lg.width) // 2, y, shadow=60)
+
+
+def credit_png(path):
+    """有料版：最後に右下へ小さく「created by」と ALCOHOLIDAY のロゴ"""
+    im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    lg = white_logo(190, 0.9)
+    x, y = W - 48 - lg.width, WM_BOTTOM + 20
+    d = ImageDraw.Draw(im)
+    f = font(24)
+    d.text((x + 4, y - 30), "created by", font=f, fill=(255, 255, 255, 230), stroke_width=2, stroke_fill=(20, 20, 20, 160))
+    paste_logo(im, lg, x, y)
+    im.save(path)
+
+
 WEEK = "月火水木金土日"
 
 
@@ -153,11 +196,11 @@ def bottom_shade(im, start=1380, alpha=150):
     im.paste(Image.new("RGBA", (W, H), (10, 8, 6, 255)), (0, 0), grad.resize((W, H)))
 
 
-def product_overlay(product, price, path, limited=False):
+def product_overlay(product, price, path, limited=False, top=210):
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    top_shade(im)
+    top_shade(im, depth=640 + top - 210)
     d = ImageDraw.Draw(im)
-    y = 210
+    y = top
     d.line((440, y, 640, y), fill=GOLD, width=3)
     # 商品名が長いときは、2行に収まるまで文字を小さくする（64 → 56 → 50）
     f = next((font(sz, heavy=True) for sz in (64, 56, 50) if len(split_lines(d, product, font(sz, heavy=True))) <= 2), font(50, heavy=True))
@@ -170,11 +213,11 @@ def product_overlay(product, price, path, limited=False):
     im.save(path)
 
 
-def shop_overlay(shop, area, hours, path):
+def shop_overlay(shop, area, hours, path, top=210):
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    top_shade(im, depth=700)
+    top_shade(im, depth=700 + top - 210)
     d = ImageDraw.Draw(im)
-    y = 210
+    y = top
     d.line((440, y, 640, y), fill=GOLD, width=3)
     y = text_center(d, y + 26, shop, font(68, heavy=True), (255, 255, 255, 255), stroke=2)
     for t in (area, hours):
@@ -231,7 +274,10 @@ def main():
     if out.exists():
         raise SystemExit(f"すでにあります（上書きしません）: {out}")
     clips = S["clips"]
-    for p in [rel(c["file"]) for c in clips] + [rel(S["music"]), BRAND, NARR_END]:
+    paid = S.get("plan", "free") == "paid"
+    if S.get("plan", "free") not in ("free", "paid"):
+        raise SystemExit(f"plan は free か paid です: {S.get('plan')}")
+    for p in [rel(c["file"]) for c in clips] + [rel(S["music"]), LOGO] + ([] if paid else [BRAND, NARR_END]):
         if not p.exists():
             raise SystemExit(f"素材が見つかりません: {p}")
     if BRAND_DUR < NARR_END_LEN + 0.1:
@@ -258,19 +304,27 @@ def main():
               f"{'・横' if info['h'] / info['w'] < 1.3 else ''}）")
         t += dur
     body = t
-    total = body + BRAND_DUR
+    total = body + (0 if paid else BRAND_DUR)
 
     # 2) 文字の画像
     pr = work / "pr.png"
     pr_badge(pr)
+    if not paid:   # 無料版：PR といっしょに、上下の透かしを動画①〜③のあいだずっと出す
+        im = Image.open(pr).convert("RGBA")
+        watermark(im)
+        im.save(pr)
+    credit = work / "credit.png"
+    if paid:
+        credit_png(credit)
+    top = 210 + (0 if paid else FREE_SHIFT)
     overlays, subs = [], []
     for i, p in enumerate(plan, 1):
         ov = work / f"overlay-{i}.png"
         show = p["c"].get("show")
         if show == "product":
-            product_overlay(S["product"], S.get("price", ""), ov, S.get("limited", False))
+            product_overlay(S["product"], S.get("price", ""), ov, S.get("limited", False), top=top)
         elif show == "shop":
-            shop_overlay(S["shop"], S.get("area", ""), S.get("hours", ""), ov)
+            shop_overlay(S["shop"], S.get("area", ""), S.get("hours", ""), ov, top=top)
         else:
             plain_overlay(ov)
         if i == 1 and S.get("date"):
@@ -288,9 +342,13 @@ def main():
             s0 = e0
 
     # 3) ffmpeg で組み立て
-    #   入力：0〜2 動画／3〜5 文字（動画ごと）／6 PR／7 締め画像／8 締めナレーション／9 曲／10〜12 声／13〜 字幕
+    #   入力：0〜2 動画／3〜5 文字（動画ごと）／6 PR（無料版は透かしつき）／7 締め画像（有料版は「created by」）
+    #         ／8 締めナレーション（無料版だけ）／曲／声3つ／字幕
     n = len(plan)
-    I_OV, I_PR, I_BRAND, I_NEND, I_MUSIC, I_VOICE, I_SUB = n, 2 * n, 2 * n + 1, 2 * n + 2, 2 * n + 3, 2 * n + 4, 3 * n + 4
+    I_OV, I_PR, I_BRAND = n, 2 * n, 2 * n + 1
+    I_NEND = None if paid else 2 * n + 2
+    I_MUSIC = 2 * n + (2 if paid else 3)
+    I_VOICE, I_SUB = I_MUSIC + 1, I_MUSIC + 1 + n
     fc = []
     for i, p in enumerate(plan):
         fc += video_filter(i, p["info"], p["dur"], f"c{i}")
@@ -302,29 +360,40 @@ def main():
         fc.append(f"[{I_SUB + k}:v]format=rgba,fade=t=in:st={s}:d=0.12:alpha=1,fade=t=out:st={e - 0.12}:d=0.12:alpha=1[s{k}]")
         fc.append(f"[{last}][s{k}]overlay=0:0:enable='between(t,{s},{e})'[m{k + 1}]")
         last = f"m{k + 1}"
-    fc += [
-        f"[{last}][{I_PR}:v]overlay=0:0:shortest=1,trim=duration={body},setpts=PTS-STARTPTS[vm]",
-        f"[{I_BRAND}:v]scale={W}:{H}:in_range=jpeg:out_range=tv,fps=30,format=yuv420p,setsar=1,trim=duration={BRAND_DUR},setpts=PTS-STARTPTS[vb]",
-        "[vm][vb]concat=n=2:v=1:a=0,format=yuv420p[outv]",
-    ]
+    fc.append(f"[{last}][{I_PR}:v]overlay=0:0:shortest=1,trim=duration={body},setpts=PTS-STARTPTS[vm]")
+    if paid:   # 最後の CREDIT_SEC 秒だけ、右下に小さく「created by」
+        c0 = round(body - CREDIT_SEC, 2)
+        fc += [
+            f"[{I_BRAND}:v]format=rgba,fade=t=in:st={c0}:d=0.4:alpha=1[cr]",
+            f"[vm][cr]overlay=0:0:enable='gte(t,{c0})',format=yuv420p[outv]",
+        ]
+    else:
+        fc += [
+            f"[{I_BRAND}:v]scale={W}:{H}:in_range=jpeg:out_range=tv,fps=30,format=yuv420p,setsar=1,trim=duration={BRAND_DUR},setpts=PTS-STARTPTS[vb]",
+            "[vm][vb]concat=n=2:v=1:a=0,format=yuv420p[outv]",
+        ]
     for i, p in enumerate(plan):
         ms = int((p["t0"] + LEAD) * 1000)
         fc.append(f"[{I_VOICE + i}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume={VOICE_VOL},adelay=delays={ms}:all=1[nv{i}]")
     fc += [
         f"[{I_MUSIC}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:{body},asetpts=PTS-STARTPTS,"
         f"volume={S.get('music_vol', MUSIC_VOL)},afade=t=in:st=0:d=0.3,afade=t=out:st={body - 1.0}:d=1.0[bgm]",
-        "[bgm]" + "".join(f"[nv{i}]" for i in range(n)) + f"amix=inputs={n + 1}:duration=first:normalize=0,atrim=0:{body}[mixbody]",
-        f"[{I_NEND}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:{BRAND_DUR},asetpts=PTS-STARTPTS,volume=1.6,apad=whole_dur={BRAND_DUR}[narr]",
-        "[mixbody][narr]concat=n=2:v=0:a=1[outa]",
+        "[bgm]" + "".join(f"[nv{i}]" for i in range(n)) + f"amix=inputs={n + 1}:duration=first:normalize=0,atrim=0:{body}"
+        + ("[outa]" if paid else "[mixbody]"),
     ]
+    if not paid:
+        fc += [
+            f"[{I_NEND}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:{BRAND_DUR},asetpts=PTS-STARTPTS,volume=1.6,apad=whole_dur={BRAND_DUR}[narr]",
+            "[mixbody][narr]concat=n=2:v=0:a=1[outa]",
+        ]
     img = lambda p, d: ["-loop", "1", "-framerate", "30", "-t", str(d), "-i", str(p)]
     cmd = [FFMPEG, "-hide_banner", "-loglevel", "error", "-y"]
     for p in plan:
         cmd += ["-ss", str(p["start"]), "-t", str(p["dur"] + 0.2), "-i", str(rel(p["c"]["file"]))]
     for p, ov in zip(plan, overlays):
         cmd += img(ov, p["dur"])
-    cmd += img(pr, body) + img(BRAND, BRAND_DUR)
-    cmd += ["-i", str(NARR_END), "-ss", str(S.get("music_ss", 0)), "-t", str(body + 0.5), "-i", str(rel(S["music"]))]
+    cmd += img(pr, body) + (img(credit, body) if paid else img(BRAND, BRAND_DUR) + ["-i", str(NARR_END)])
+    cmd += ["-ss", str(S.get("music_ss", 0)), "-t", str(body + 0.5), "-i", str(rel(S["music"]))]
     for p in plan:
         cmd += ["-i", str(p["wav"])]
     for pth, _, _ in subs:
@@ -337,8 +406,9 @@ def main():
     # 映像はもう縦にしてあるので、印だけを「回転なし」にして保存し直す（画質は変わらない）
     subprocess.run([FFMPEG, "-hide_banner", "-loglevel", "error", "-y", "-display_rotation", "0",
                     "-i", str(work / "assembled.mp4"), "-c", "copy", "-movflags", "+faststart", str(out)], check=True)
-    print(f"DONE {out}  {total:.2f}秒（" + " + ".join(f"動画{i + 1} {p['dur']}" for i, p in enumerate(plan)) + f" + 締め {BRAND_DUR}）"
-          f"・声：{narrate.NAMES.get(voice.upper(), voice)}（{narrate.engine()}）")
+    print(f"DONE {out}  {'有料版' if paid else '無料版'} {total:.2f}秒（" + " + ".join(f"動画{i + 1} {p['dur']}" for i, p in enumerate(plan))
+          + ("）" if paid else f" + 締め {BRAND_DUR}）")
+          + f"・声：{narrate.NAMES.get(voice.upper(), voice)}（{narrate.engine()}）")
 
 
 if __name__ == "__main__":

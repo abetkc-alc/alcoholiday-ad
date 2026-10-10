@@ -1,5 +1,17 @@
 node_modules/
+
+# 秘密の設定（APIキーなど）— 絶対に送らない。見本の .env.example だけは送る
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+client_secret*.json
+token*.json
+secrets/
 
 # 画像・動画・音声（重い・音楽は規約で配布禁止）
 *.png
@@ -25,3 +37,6 @@ check/
 __pycache__/
 *.pyc
 .obsidian/workspace*.json
+
+# 自動リンクの動作記録（毎回書き足されるログ）
+08_AI部署/data/自動リンクの記録.txt
