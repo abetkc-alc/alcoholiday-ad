@@ -26,7 +26,7 @@ const CONFIG = {
   // AWS（Amplify）に置いた受付ページの住所（2026-10-11）。例：'https://ad.alcoholiday.org/'
   //   空のあいだは今までどおり（メールのリンクは Google のページ・ホームページ）。入れると、メールのリンク（会員登録・
   //   パスワード再設定・動画の確認ページ）がこの住所になる。切り替えは、AWS の受付ページで試してから
-  WEB_URL: '',
+  WEB_URL: 'https://ad.alcoholiday.org/',   // 2026-10-11 切り替え（社長の指示）
   MAKE_MINUTES: 15,          // 受付から動画確認のメールまでの目安（分）。受付のメールに書く（2026-10-09。いつもは8〜12分）
   APPROVE_DAYS: 1,           // 受付から何日以内に動画を決めてもらうか（過ぎたら期限切れ・お渡ししない。2026-10-10 社長の指示で 7→1）
   VIDEOS: [                  // お客さんに撮ってもらう動画（各5秒くらい）。この順につなぐ
@@ -715,6 +715,7 @@ function checkReview_(id, k) {
 //   ・ダウンロードしなかった依頼は「期限切れ」にして、お客さんに知らせる。ダウンロード済みは「公開終了」にする
 function hourlyCheck() {
   const now = new Date();
+  remindOwner_(now);
   rows_().forEach((rec, i) => {
     const row = i + 2;
     if (now < approveDeadline_(rec) || (rec['状態'] !== '承認待ち' && rec['状態'] !== DONE_STATE)) return;
@@ -728,6 +729,26 @@ function hourlyCheck() {
       rec['店名'] + ' ' + dear_(rec) + '\n\n期限（' + jaTime_(approveDeadline_(rec)) + '）までに動画のダウンロードがなかったため、この動画のお渡しは終了しました。\n' +
       'あらためてご希望の場合は、このメールにご返信ください。\n\nALCOHOLIDAY（アルコホリディ）');
     mail_(CONFIG.OWNER_EMAIL, '【BAR広告】期限切れ ' + rec.id + ' ' + rec['店名'], 'ダウンロードされないまま期限を過ぎました。リンクは止めました。');
+  });
+}
+
+/* 社長へのリマインド（2026-10-11 社長の指示）。日が来たら、社長のメールに1回だけ送る（送ったらスクリプトのプロパティに印を残す） */
+const OWNER_REMINDERS = [
+  { key: 'REMIND_AWS_FREE_2027', at: '2027-04-04',
+    subject: '【リマインド】AWS の無料プランは 2027年4月11日 で終わります',
+    body: 'AWS（受付ページ https://ad.alcoholiday.org/ を置いている Amplify）の無料プランは、2027年4月11日 で終わります（あと1週間）。\n' +
+      'そのままにすると、受付ページが止まります。続けて使うには、AWS の管理画面の「プランをアップグレード」から有料プランに切り替えてください（今の使い方なら月に数十円〜数百円ほどの見込み）。\n\n' +
+      'Claude Code に「KAYO、AWS の無料プランの切り替えを手伝って」と話しかけてください。\n' +
+      '記録：09_広告事業/AWS 受付ページの設置記録.md' },
+];
+
+function remindOwner_(now) {
+  const props = PropertiesService.getScriptProperties();
+  const today = Utilities.formatDate(now, CONFIG.TZ, 'yyyy-MM-dd');
+  OWNER_REMINDERS.forEach(r => {
+    if (today < r.at || props.getProperty(r.key)) return;
+    mail_(CONFIG.OWNER_EMAIL, r.subject, r.body);
+    props.setProperty(r.key, fmt_(now));
   });
 }
 
