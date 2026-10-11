@@ -18,13 +18,13 @@
       <li><b>1</b>お店の詳細を入力</li>
       <li><b>2</b>おすすめ商品の説明を入力</li>
       <li><b>3</b>動画をアップロード</li>
-      <li><b>4</b>メールで届いた動画を確認</li>
+      <li><b>4</b>メールで届いた動画をダウンロード</li>
     </ol>
   </header>
 
   <form id="f" onsubmit="return send(event)" novalidate>
     <section>
-      <p class="step">全部で7つです</p>
+      <p class="step">全部で8つです</p>
       <h2><span class="no">1</span>お店のこと</h2>
       <p class="ex">会員登録のときの内容を入れてあります。変わったところがあれば直してください。</p>
       <div class="field" data-mic>
@@ -102,7 +102,7 @@
       <ul class="tips">
         <li>スマホは<b>縦向き</b>で、明るい場所で撮ってください</li>
         <li>動画の音は使いません（音楽と声の案内を入れます）</li>
-        <li>人・商品・場所などが映るときは、掲載の了承をとってください（7 の確認事項をお読みください）</li>
+        <li>人・商品・場所などが映るときは、掲載の了承をとってください（8 の確認事項をお読みください）</li>
         <li>1本 <b><?= data.maxVideoSec ?>秒まで・<?= data.maxVideoMb ?>MB まで</b>（5秒くらいがおすすめです）。長い動画・大きい動画は送れません。送るのに少し時間がかかります（Wi-Fi がおすすめです）</li>
       </ul>
       <div id="videos"></div>
@@ -128,8 +128,20 @@
     </section>
 
     <section>
-      <h2><span class="no">6</span>動画を載せる SNS</h2>
-      <p>お店で動画を載せる SNS に印をつけてください（いくつでも）。<br>えらんだ SNS ごとに、<b>そのまま使える投稿文</b>をつくって、動画といっしょにメールでお送りします。</p>
+      <h2><span class="no">6</span>動画のプラン</h2>
+      <p>どちらかをえらんでください。</p>
+      <div class="plans">
+        <label class="plan"><input type="radio" name="plan" value="無料" checked>
+          <span><b>無料版</b>　0円<br><small>動画の上と下に ALCOHOLIDAY のロゴがうすく入り、最後に ALCOHOLIDAY の締めの画面と声（約4秒）が入ります。</small></span></label>
+        <label class="plan"><input type="radio" name="plan" value="有料">
+          <span><b>有料版</b>　500円<br><small>ロゴの透かしや締めの画面は入りません。<b>広告は、最後に小さく「Designed by ALCOHOLIDAY」が入るだけです。</b>最後の場面は、おすすめ商品の動画に商品名・値段と「詳細はキャプションから」を載せます。</small></span></label>
+      </div>
+      <p class="ex">※ 有料版のお支払いの方法は、ただいま準備中です。</p>
+    </section>
+
+    <section>
+      <h2><span class="no">7</span>動画を載せる SNS</h2>
+      <p>お店で動画を載せる SNS に印をつけてください（いくつでも）。<br>えらんだ SNS ごとに、<b>そのまま使える投稿文</b>をつくります。投稿文は、動画の確認ページでコピーできます。</p>
       <ul class="tips">
         <li>投稿は、お店の SNS アカウントから<b>ご自身で</b>行ってください（ALCOHOLIDAY のアカウントには載せません）</li>
       </ul>
@@ -137,7 +149,7 @@
     </section>
 
     <section>
-      <h2><span class="no">7</span>確認して申し込む</h2>
+      <h2><span class="no">8</span>確認して申し込む</h2>
       <ul class="notes">
         <li>できあがった動画は、メールのページから<b>ダウンロード</b>していただきます。SNS への投稿は、お店で行っていただきます。</li>
         <li>動画の<b>直しは1回まで</b>です。直したあとは、直す前と直したあとの2本から選んでいただきます。</li>
@@ -151,7 +163,7 @@
       </ul>
       <label class="agree"><input type="checkbox" name="agree" value="1">上の内容に同意します</label>
       <button class="submit" id="btn">申し込む</button>
-      <p class="sendnote" id="sendnote" hidden>電波の状況にもよりますが、<b>3分ほどで送信できます</b>。<br>終わるまで、この画面を閉じずにお待ちください。</p>
+      <p class="sendnote" id="sendnote" hidden><b>アップロードの時間は約3分</b>です。電波や混み具合によって変わります。<br>終わるまで、この画面を閉じずにお待ちください。</p>
       <div class="progress" id="progress"></div>
       <div class="err" id="err"></div>
     </section>
@@ -323,7 +335,7 @@
       '  <div class="okmark">✔</div>' +
       '  <h2 class="donetitle">お申し込みを受け付けました</h2>' +
       '  <p class="donelead">ありがとうございます。下の内容で受け付けました。</p>' +
-      '  <dl class="summary"><dt>受付番号</dt><dd class="id"></dd><dt>投稿文をつくる SNS</dt><dd class="when"></dd><dt>確認のメールの送り先</dt><dd class="mail"></dd></dl>' +
+      '  <dl class="summary"><dt>受付番号</dt><dd class="id"></dd><dt>プラン</dt><dd class="plan"></dd><dt>投稿文をつくる SNS</dt><dd class="when"></dd><dt>確認のメールの送り先</dt><dd class="mail"></dd></dl>' +
       '  <div class="note"></div>' +
       '</section>' +
       '<section>' +
@@ -332,7 +344,7 @@
       '    <li><b>1</b>ALCOHOLIDAY が動画をつくります</li>' +
       '    <li><b>2</b>動画ができたら、メールでお知らせします</li>' +
       '    <li><b>3</b>メールのページで動画を見て、ダウンロードしてください（受付から' + DATA.approveDays + '日以内）</li>' +
-      '    <li><b>4</b>メールでお送りする SNS ごとの投稿文を使って、お店の SNS に投稿してください</li>' +
+      '    <li><b>4</b>確認ページでコピーできる SNS ごとの投稿文を使って、お店の SNS に投稿してください</li>' +
       '  </ol>' +
       '  <div class="help">確認のメールが届かないときは、<b>迷惑メール</b>のフォルダもご覧ください。</div>' +
       '</section>' +
@@ -340,6 +352,7 @@
     // 受付番号などは文字として入れる（記号がそのまま表示されるように）
     document.querySelector('.summary .id').textContent = r.id;
     document.querySelector('.summary .when').textContent = r.when;
+    document.querySelector('.summary .plan').textContent = (r.plan || '無料') + '版';
     document.querySelector('.summary .mail').textContent = email;
     if (r.note) document.querySelector('.donebox .note').innerHTML = r.note;   // お試し版だけが使う案内
     window.scrollTo(0, 0);
@@ -366,11 +379,11 @@
     if (!String(f.desc || '').trim()) miss.push('2 の「商品の説明」を入れてください');
     st.videos.forEach((v, i) => { if (!v) miss.push('3 の「動画' + (i + 1) + '（' + DATA.videos[i].title + '）」をえらんでください'); });
     desc.forEach((d, i) => { if (!d) miss.push('3 の「動画' + (i + 1) + 'の説明」を入れてください'); });
-    if (!f.platforms.length) miss.push('6 の「動画を載せる SNS」を1つ以上えらんでください');
-    if (!f.agree) miss.push('7 の「同意します」に印をつけてください');
+    if (!f.platforms.length) miss.push('7 の「動画を載せる SNS」を1つ以上えらんでください');
+    if (!f.agree) miss.push('8 の「同意します」に印をつけてください');
     if (miss.length) { $('err').textContent = 'まだ入っていないところがあります：\n・' + miss.join('\n・'); return false; }
     $('btn').disabled = true; $('btn').textContent = '送っています…';
-    $('btn').classList.add('sending'); $('sendnote').hidden = false;   // 点滅と「3分ほど」の案内（2026-10-10）
+    $('btn').classList.add('sending'); $('sendnote').hidden = false;   // 点滅と「約3分」の案内（2026-10-10・文は 2026-10-11）
     try {
       await sendVideos();
       $('progress').textContent = '申し込みを登録しています…';

@@ -21,6 +21,7 @@
   /* 動画の下のダウンロードのボタン（2026-10-10 社長の指示：決める前でもダウンロードできる） */
   .thanks-inline { text-align:center; color:#2e7d32; font-weight:800; font-size:18px; margin:10px 0 0; }
   .dlbtn[disabled] { opacity:.5; cursor:wait; }
+  .dlbtn.saving { opacity:1; cursor:wait; animation:blink 1.2s ease-in-out infinite; }   /* 「保存中…」の点滅（2026-10-11） */
   .dlbtn { display:block; width:100%; font-family:inherit; cursor:pointer; max-width:360px; margin:14px auto 0; padding:14px; text-align:center; text-decoration:none; font-size:19px; font-weight:800;
     border:3px solid var(--main); border-radius:999px; color:var(--main); background:#fff; }
   #fix[hidden], .caps[hidden] { display:none; }
@@ -252,15 +253,20 @@
     btn.addEventListener('click', ev => {
       ev.stopPropagation();   // 2本から選ぶ枠の「選ぶ」は動かさない
       const which = btn.dataset.which || 'new', file = files[which];
-      if (!file) return;
+      if (!file || btn.classList.contains('saving')) return;
       $('msg').textContent = '';
+      // 押したら「保存中…」にしてボタンを点滅させ、終わったら元に戻す（2026-10-11 社長の指示）
+      const label = btn.textContent;
+      btn.classList.add('saving'); btn.textContent = '保存中…';
+      const end = () => { btn.classList.remove('saving'); btn.textContent = label; };
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        navigator.share({ files: [file] }).then(() => thanks(btn, which)).catch(e => {
+        navigator.share({ files: [file] }).then(() => { end(); thanks(btn, which); }).catch(e => {
+          end();
           if (e && e.name === 'AbortError') return;   // 共有の画面を閉じただけ
           saveAsFile(file); thanks(btn, which);
         });
       } else {
-        saveAsFile(file); thanks(btn, which);
+        saveAsFile(file); setTimeout(end, 1500); thanks(btn, which);
       }
     });
   });

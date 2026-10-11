@@ -102,6 +102,12 @@
   .slot.on { background:var(--main); color:#fff; }
   .chosen { margin-top:14px; font-weight:800; font-size:22px; color:var(--main); }
   .snslist { display:grid; gap:10px; margin-top:12px; }
+  /* 動画のプラン（無料版・有料版。2026-10-11） */
+  .plans { display:grid; gap:10px; margin-top:12px; }
+  .plan { display:flex; gap:14px; align-items:flex-start; font-size:21px; line-height:1.6; padding:14px 16px; background:#fff; border-radius:20px; cursor:pointer; border:3px solid transparent; }
+  .plan:has(input:checked) { border-color:var(--main); }
+  .plan input { width:30px; height:30px; margin-top:4px; accent-color:var(--main); flex:none; }
+  .plan small { font-size:18px; color:var(--text); }
 
   /* 確認・申し込む */
   .notes { padding-left:24px; margin:8px 0 14px; }

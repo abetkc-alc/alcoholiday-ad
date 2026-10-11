@@ -27,7 +27,7 @@ const CONFIG = {
   //   空のあいだは今までどおり（メールのリンクは Google のページ・ホームページ）。入れると、メールのリンク（会員登録・
   //   パスワード再設定・動画の確認ページ）がこの住所になる。切り替えは、AWS の受付ページで試してから
   WEB_URL: 'https://ad.alcoholiday.org/',   // 2026-10-11 切り替え（社長の指示）
-  MAKE_MINUTES: 15,          // 受付から動画確認のメールまでの目安（分）。受付のメールに書く（2026-10-09。いつもは8〜12分）
+  MAKE_MINUTES: 20,          // 受付から動画確認のメールまでの目安（分）。受付のメールに書く（2026-10-09。2026-10-11 社長の指示で 15→20）
   APPROVE_DAYS: 1,           // 受付から何日以内に動画を決めてもらうか（過ぎたら期限切れ・お渡ししない。2026-10-10 社長の指示で 7→1）
   VIDEOS: [                  // お客さんに撮ってもらう動画（各5秒くらい）。この順につなぐ
     { key: 1, title: 'お店の雰囲気', hint: '入口・看板・カウンター・店内など', example: '例：恵比寿駅から歩いて3分。木のカウンターが落ち着く小さなお店です' },
@@ -499,7 +499,7 @@ function submitOrder(f) {
       '案内役': guide ? guide.key : 'おまかせ', '要望': clip_(f.note, 600),
       // 投稿文は、商品の説明をもとに KAYO が自動でつくる（2026-10-10 から申し込みページに入力欄はない）
       '素材動画': folder.getId(), '動画の説明': JSON.stringify(videoInfo), '承認キー': key,
-      'プラン': '無料',   // お支払いの仕組みができるまでは、受付は無料版
+      'プラン': CONFIG.PLANS.indexOf(f.plan) >= 0 ? f.plan : '無料',   // 申し込みページでえらぶ（2026-10-11〜。お支払いの仕組みはまだない）
       '履歴': fmt_(now) + ' 受付',
     };
     const sh = sheet_();
@@ -516,7 +516,7 @@ function submitOrder(f) {
     mail_(rec['メール'], '【ALCOHOLIDAY】ショート動画のお申し込みを受け付けました（' + id + '）',
       rec['店名'] + '\n' + dear_(rec) + '\n\n' +
       'お申し込みありがとうございます。以下の内容で受け付けました。\n\n' +
-      '受付番号：' + id + '\n投稿文をつくる SNS：' + snsText + '\nおすすめ商品：' + rec['商品名'] + '\n\n' +
+      '受付番号：' + id + '\nプラン：' + rec['プラン'] + '版\n投稿文をつくる SNS：' + snsText + '\nおすすめ商品：' + rec['商品名'] + '\n\n' +
       '■ このあとの流れ\n' +
       '1. ALCOHOLIDAY が動画をつくります\n' +
       '2. 動画ができたら、確認用ページのリンクをメールでお送りします（受付から約' + CONFIG.MAKE_MINUTES + '分後。混み合っているときは、遅れることがあります）\n' +
@@ -529,7 +529,7 @@ function submitOrder(f) {
       '商品：' + rec['商品名'] + '\n投稿文：' + snsText + '\nプラン：' + rec['プラン'] + '\n声：' + guideName_(rec['案内役']) + '\n\n' +
       'Claude Code に「KAYO、BAR広告の新しい依頼を確認して」と話しかけてください。\n' +
       '受付台帳：' + SpreadsheetApp.openById(prop_('SHEET_ID')).getUrl());
-    const res = { id: id, when: snsText };   // 例：Instagram・TikTok
+    const res = { id: id, when: snsText, plan: rec['プラン'] };   // when の例：Instagram・TikTok
     if (f.upload) CacheService.getScriptCache().put('order-' + f.upload, JSON.stringify(res), 21600);   // 6時間おぼえておく
     return res;
   } finally {
