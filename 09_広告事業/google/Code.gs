@@ -4,7 +4,8 @@
  * できること
  *   0. トップページ（お客さん用）：サービスの紹介・会員登録・ログイン（メール＋パスワード）
  *   1. 受付ページ（会員用）：店・おすすめ商品・お店で撮った動画3本とその説明・動画を載せる SNS・ナレーションの声を入力してもらう
- *   2. 確認ページ（お客さん用）：完成した動画を見て「この動画に決める」か「直してほしい」を押してもらう
+ *   2. 確認ページ（お客さん用）：完成した動画を見て、ダウンロードするか「直してほしい」を押してもらう
+ *      保存のボタンで、ページの中からそのままスマホのカメラロールへ保存してもらう（お客さんへのお礼・投稿文のメールは送らない）。ページは受付から24時間で使えなくする
  *   3. 決まったら、動画のダウンロードのリンクと、えらばれた SNS ごとの投稿文をメールで送る
  *      （2026-10-10 社長の指示：ALCOHOLIDAY のアカウントには投稿しない。お客さんが自分の SNS に投稿する。Upload-Post の自動投稿はやめた）
  *   4. KAYO（パソコン側の bar_sync.py）との受け渡し口（API）
@@ -22,8 +23,12 @@ const CONFIG = {
   // 受付サイトを埋め込んだホームページのページ（2026-10-08）。メールのトップページへのリンクはここにする
   //   （Google のページを直接開くと「Google Apps Script のユーザーによって作成…」のお知らせが出るため）
   SITE_URL: 'https://www.alcoholiday.org/%E7%BE%8E%E5%91%B3%E3%81%97%E3%81%84%E3%82%82%E3%81%AE',
+  // AWS（Amplify）に置いた受付ページの住所（2026-10-11）。例：'https://ad.alcoholiday.org/'
+  //   空のあいだは今までどおり（メールのリンクは Google のページ・ホームページ）。入れると、メールのリンク（会員登録・
+  //   パスワード再設定・動画の確認ページ）がこの住所になる。切り替えは、AWS の受付ページで試してから
+  WEB_URL: '',
   MAKE_MINUTES: 15,          // 受付から動画確認のメールまでの目安（分）。受付のメールに書く（2026-10-09。いつもは8〜12分）
-  APPROVE_DAYS: 7,           // 受付から何日以内に動画を決めてもらうか（過ぎたら期限切れ・お渡ししない）
+  APPROVE_DAYS: 1,           // 受付から何日以内に動画を決めてもらうか（過ぎたら期限切れ・お渡ししない。2026-10-10 社長の指示で 7→1）
   VIDEOS: [                  // お客さんに撮ってもらう動画（各5秒くらい）。この順につなぐ
     { key: 1, title: 'お店の雰囲気', hint: '入口・看板・カウンター・店内など', example: '例：恵比寿駅から歩いて3分。木のカウンターが落ち着く小さなお店です' },
     { key: 2, title: 'おすすめ商品', hint: 'いちばん売りたいもの。つくるところ・注ぐところ・グラスのアップなど', example: '例：岡山の白桃を丸ごと使ったベリーニ。秋だけの限定です' },
@@ -48,6 +53,9 @@ const CONFIG = {
   ],
   PLATFORMS: ['instagram', 'tiktok', 'x'],
   PLATFORM_NAMES: { instagram: 'Instagram', tiktok: 'TikTok', x: 'X' },
+  // お客さんに送るメールの最後（署名の下）に必ず付ける（2026-10-10 社長の指示）
+  MAIL_LINKS: 'ALCOHOLIDAY のサイト：https://www.alcoholiday.org/\n' +
+    'Amazon のお店：https://www.amazon.co.jp/stores/ALCOHOLIDAY/page/F79A1788-B8AA-4248-973D-17D360788C0C',
   PLANS: ['無料', '有料'],   // 無料＝動画の上下に透かしのロゴ＋最後に締め画像と声／有料＝最後に小さくロゴ（2026-10-10 社長の指示。お支払いの仕組みはまだ）
 };
 
@@ -105,7 +113,16 @@ function setup() {
 /* ────────────────────────────── ページ ────────────────────────────── */
 
 function doGet(e) {
-  const p = (e && e.parameter) || {};
+  return pageTemplate_((e && e.parameter) || {}).evaluate()
+    .setTitle(PAGE_TITLE)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+const PAGE_TITLE = 'ALCOHOLIDAY ショート動画作成';
+
+/** 開くページを決めて、ひな形にデータを入れる（Google のページ・AWS の受付ページで共通） */
+function pageTemplate_(p) {
   let t;
   if (p.p === 'review') {
     t = HtmlService.createTemplateFromFile('review');
@@ -121,16 +138,34 @@ function doGet(e) {
       t.data = formData_(m, p.s);
     } else {
       t = HtmlService.createTemplateFromFile('top');
-      t.data = topData_('', '', 'ログインの期限が切れました。もう一度ログインしてください。');
+      t.data = topData_('', '', p.auto ? '' : 'ログインの期限が切れました。もう一度ログインしてください。');
     }
   } else {
     t = HtmlService.createTemplateFromFile('top');
     t.data = topData_(p.p === 'reset' ? 'reset' : '', p.k || '', '');
   }
-  return t.evaluate()
-    .setTitle('ALCOHOLIDAY BAR広告')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  return t;
+}
+
+/* ───── AWS（Amplify）に置いた受付ページからの呼び出し（2026-10-11） ─────
+   受付ページ（web/index.html）は、ページの中身を GAS から受け取って表示し、ボタンの動きも GAS を呼んで行う。
+   呼べるのは、Google のページで google.script.run から呼べるものと同じ関数だけ（PUBLIC_FNS） */
+const PUBLIC_FNS = ['registerMember', 'login', 'formPage', 'logout', 'requestReset', 'resetPassword', 'orderResult',
+  'startUpload', 'uploadChunk', 'submitOrder', 'reviewVideo', 'videoFile', 'downloaded', 'requestChange'];
+
+/** 受付ページで表示する HTML（AWS の受付ページだと分かる印・画面の幅の設定・題名を足す） */
+function webHtml_(html) {
+  const head = '<meta name="viewport" content="width=device-width, initial-scale=1"><title>' + PAGE_TITLE + '</title>' +
+    '<script>window.ALC_WEB = ' + JSON.stringify({ api: webAppUrl_() }) + ';</script>';
+  return String(html).replace('<head>', '<head>' + head);
+}
+
+function publicApi_(req) {
+  if (req.action === 'page') return webHtml_(pageTemplate_(req.params || {}).evaluate().getContent());
+  const fn = String(req.fn || '');
+  if (PUBLIC_FNS.indexOf(fn) < 0) throw new Error('知らない呼び出し: ' + fn);
+  const res = globalThis[fn].apply(null, Array.isArray(req.args) ? req.args : []);
+  return fn === 'formPage' ? webHtml_(res) : res;
 }
 
 /** ページの中に別の HTML ファイル（css・common）を入れる */
@@ -152,7 +187,7 @@ function formData_(m, session) {
   Object.keys(PROFILE).forEach(k => { member[k] = m.rec[PROFILE[k]]; });
   member.email = m.rec['メール'];
   return {
-    session: session, member: member, topUrl: webAppUrl_(),
+    session: session, member: member, topUrl: pageUrl_(),
     platforms: CONFIG.PLATFORMS.map(p => ({ key: p, name: CONFIG.PLATFORM_NAMES[p] })),
     guides: (s => CONFIG.GUIDES.map(g => Object.assign({ sample: s[g.key] || '' }, g)))(voiceSamples()),   // 声の見本（フォルダを1回だけ見る）
     videos: CONFIG.VIDEOS,
@@ -167,7 +202,10 @@ function formData_(m, session) {
 }
 
 /** メールに書くトップページの URL（ホームページに埋め込んだページ） */
-function siteUrl_() { return CONFIG.SITE_URL || webAppUrl_(); }
+function siteUrl_() { return CONFIG.WEB_URL || CONFIG.SITE_URL || webAppUrl_(); }
+
+/** お客さんに見せるページの住所（AWS の受付ページがあればそちら。なければ Google のページ） */
+function pageUrl_() { return CONFIG.WEB_URL || webAppUrl_(); }
 
 function webAppUrl_() {
   return PropertiesService.getScriptProperties().getProperty('WEB_APP_URL') || ScriptApp.getService().getUrl();
@@ -305,7 +343,7 @@ function requestReset(email) {
     mupdate_(m.row, { '再設定キー': key, '再設定期限': fmt_(new Date(Date.now() + CONFIG.RESET_HOURS * 3600000)) }, '再設定のメールを送った');
     mail_(email, '【ALCOHOLIDAY】パスワードの再設定',
       m.rec['店名'] + '\n' + dear_(m.rec) + '\n\n下のリンクを開いて、新しいパスワードを決めてください（' + CONFIG.RESET_HOURS + '時間だけ使えます）。\n\n' +
-      webAppUrl_() + '?p=reset&k=' + key + '\n\n※ お心当たりのない場合は、このメールは捨ててください。パスワードは変わりません。\n\nALCOHOLIDAY（アルコホリディ）');
+      pageUrl_() + '?p=reset&k=' + key + '\n\n※ お心当たりのない場合は、このメールは捨ててください。パスワードは変わりません。\n\nALCOHOLIDAY（アルコホリディ）');
   }
   return 'ご登録のメールアドレスであれば、再設定のメールをお送りしました。\nメールのリンクを開いて、新しいパスワードを決めてください。\n届かないときは、迷惑メールのフォルダもご覧ください。';
 }
@@ -339,7 +377,7 @@ function newSession_(row) {
   return token;
 }
 
-function formUrl_(token) { return webAppUrl_() + '?p=form&s=' + token; }
+function formUrl_(token) { return pageUrl_() + '?p=form&s=' + token; }
 
 /** パスワードをそのまま残さないための変換（ソルトを足して 1000 回くり返す） */
 function hash_(password, salt) {
@@ -482,8 +520,8 @@ function submitOrder(f) {
       '■ このあとの流れ\n' +
       '1. ALCOHOLIDAY が動画をつくります\n' +
       '2. 動画ができたら、確認用ページのリンクをメールでお送りします（受付から約' + CONFIG.MAKE_MINUTES + '分後。混み合っているときは、遅れることがあります）\n' +
-      '3. 動画を見て「この動画に決める」を押してください（受付から' + CONFIG.APPROVE_DAYS + '日以内）\n' +
-      '4. 動画のダウンロードのリンクと、' + snsText + ' ごとの投稿文をメールでお送りします\n' +
+      '3. 確認ページで動画を見て、ダウンロードしてください（受付から24時間以内）\n' +
+      '4. ' + snsText + ' ごとの投稿文は、確認ページでコピーできます\n' +
       '5. お店の SNS アカウントから、ご自身で投稿してください\n\n' +
       'ALCOHOLIDAY（アルコホリディ）');
     mail_(CONFIG.OWNER_EMAIL, '【BAR広告】新しい依頼 ' + id + ' ' + rec['店名'],
@@ -500,7 +538,8 @@ function submitOrder(f) {
 }
 
 function newId_(now) {
-  const base = 'BAR-' + Utilities.formatDate(now, CONFIG.TZ, 'yyyyMMdd') + '-';
+  // 受付番号は ALC-日付-連番（2026-10-10 社長の指示で BAR- から変更。前の案件は BAR- のまま）
+  const base = 'ALC-' + Utilities.formatDate(now, CONFIG.TZ, 'yyyyMMdd') + '-';
   const used = rows_().filter(r => String(r.id).indexOf(base) === 0).length;
   return base + ('0' + (used + 1)).slice(-2);
 }
@@ -550,7 +589,8 @@ function uploadFolder_(token) {
 
 /* ────────────────────────────── 確認（動画を決める） ────────────────────────────── */
 
-const DONE_STATE = 'お渡し済み';   // お客さんが「この動画に決める」を押したあと（ダウンロードできる）
+const DONE_STATE = 'お渡し済み';   // お客さんが確認ページで動画をダウンロードしたあと（2026-10-10 社長の指示。「この動画に決める」ボタンはやめた）
+const END_STATE = '公開終了';      // お渡し済みのあと、期限（受付から24時間）が来て、ページとダウンロードのリンクを止めた
 
 /** 動画をダウンロードするリンク（deliver のときに「リンクを知っている人は見られる」にしてある） */
 function downloadUrl_(fileId) { return 'https://drive.google.com/uc?export=download&id=' + fileId; }
@@ -565,13 +605,17 @@ function reviewData_(id, k) {
   const r = findRow_(id);
   if (!r || !k || r.rec['承認キー'] !== k) return { error: 'ページが見つかりません。メールのリンクをもう一度開いてください。' };
   const rec = r.rec;
+  // 確認ページは期限（受付から24時間）を過ぎたら見られなくする（2026-10-10 社長の指示。動画のファイルは消さない）
+  if (pageClosed_(rec)) return { error: 'このページの公開期間（' + jaTime_(approveDeadline_(rec)) + ' まで）は終わりました。ご用の方は、メールにご返信ください。' };
   const captions = parseCaptions_(rec['投稿文']);
   return {
     id: rec.id, key: k, state: rec['状態'], shop: rec['店名'], product: rec['商品名'],
     when: snsLabel_(snsOf_(rec)), plan: rec['プラン'] || '無料',
-    download: rec['状態'] === DONE_STATE && rec['動画'] ? downloadUrl_(rec['動画']) : '',
+    // 動画をダウンロードできるのは、お客さんが見ている動画があるときだけ（直しを待っているあいだは出さない）。直したあとは2本とも
+    download: rec['動画'] && canDownload_(rec) ? downloadUrl_(rec['動画']) : '',
+    prevDownload: rec['前の動画'] && canDownload_(rec) ? downloadUrl_(rec['前の動画']) : '',
     videoId: rec['動画'], captions: captions, comment: rec['お客さんのコメント'],
-    deadline: fmt_(approveDeadline_(rec)), canAct: rec['状態'] === '承認待ち' && new Date() < approveDeadline_(rec),
+    deadline: jaTime_(approveDeadline_(rec)), canAct: rec['状態'] === '承認待ち' && new Date() < approveDeadline_(rec),
     canFix: fixCount_(rec) < CONFIG.MAX_FIX,
     prev: rec['前の動画'] ? { videoId: rec['前の動画'], captions: parseCaptions_(rec['前の投稿文']) } : null,
   };
@@ -586,35 +630,48 @@ function fixCount_(rec) {
   return (String(rec['履歴'] || '').match(/お客さんが修正を依頼/g) || []).length;
 }
 
-// 動画を決める期限：受付から APPROVE_DAYS 日
+// ダウンロードの期限（確認ページとリンクが使える期限）：受付から APPROVE_DAYS 日（24時間）
 function approveDeadline_(rec) {
   return new Date(new Date(String(rec['受付日時']).replace(' ', 'T') + ':00+09:00').getTime() + CONFIG.APPROVE_DAYS * 86400000);
 }
 
-/** 確認ページの「この動画に決める」：ダウンロードのリンクと、SNS ごとの投稿文をメールで送る */
-function approve(id, k, choice) {
-  const r = checkReview_(id, k);
-  if (choice === 'prev' && r.rec['前の動画']) {
+// 確認ページを閉じたか（受付から24時間。2026-10-10 社長の指示）
+function pageClosed_(rec) { return new Date() >= approveDeadline_(rec); }
+
+function canDownload_(rec) { return (rec['状態'] === '承認待ち' || rec['状態'] === DONE_STATE) && !pageClosed_(rec); }
+
+/** 確認ページの「カメラロールに保存」：本番の動画をページに渡す（2026-10-10 社長の指示：別のページを開かず、その場で保存する）
+ *  which：new＝いまの動画／prev＝直す前の動画 */
+function videoFile(id, k, which) {
+  const r = findRow_(id);
+  if (!r || !k || r.rec['承認キー'] !== k) throw new Error('ページが見つかりません');
+  if (!canDownload_(r.rec)) throw new Error(pageClosed_(r.rec) ? 'このページの公開期間は終わりました' : 'いまは保存できません（' + r.rec['状態'] + '）');
+  const vid = which === 'prev' ? r.rec['前の動画'] : r.rec['動画'];
+  if (!vid) throw new Error('動画が見つかりません');
+  const file = DriveApp.getFileById(vid);
+  if (file.getSize() > 35 * 1024 * 1024) throw new Error('動画が大きすぎて、このページでは保存できません。ALCOHOLIDAY へご連絡ください');
+  return Utilities.base64Encode(file.getBlob().getBytes());
+}
+
+/** 確認ページで動画が保存されたとき（2026-10-10 社長の指示）
+ *  はじめの1回だけ「お渡し済み」にする。お客さんへのお礼・投稿文のメールは送らない（2026-10-10 社長の指示で取りやめ）。社長には知らせる
+ *  which：new＝いまの動画／prev＝直す前の動画（直したあとに、直す前のほうを保存したとき） */
+function downloaded(id, k, which) {
+  const r = findRow_(id);
+  if (!r || !k || r.rec['承認キー'] !== k) throw new Error('ページが見つかりません');
+  if (pageClosed_(r.rec)) throw new Error('このページの公開期間は終わりました');
+  const until = jaTime_(approveDeadline_(r.rec));
+  if (r.rec['状態'] === DONE_STATE) return { until: until, first: false };
+  if (r.rec['状態'] !== '承認待ち') throw new Error('いまは保存できません（' + r.rec['状態'] + '）');
+  if (which === 'prev' && r.rec['前の動画']) {   // 保存したほうを、お渡しした動画として台帳に残す
     update_(r.row, { '動画': r.rec['前の動画'], '投稿文': r.rec['前の投稿文'], '前の動画': r.rec['動画'], '前の投稿文': r.rec['投稿文'] },
-      'お客さんが「直す前」の動画を選んだ');
+      'お客さんが「直す前」の動画を保存した');
   }
-  update_(r.row, { '状態': DONE_STATE, '承認日時': fmt_(new Date()) }, 'お客さんが動画を決めた（ダウンロードのメールを送った）');
+  update_(r.row, { '状態': DONE_STATE, '承認日時': fmt_(new Date()) }, 'お客さんが動画を保存した');
   const rec = findRow_(id).rec;
-  const url = downloadUrl_(rec['動画']);
-  const page = webAppUrl_() + '?p=review&id=' + encodeURIComponent(rec.id) + '&k=' + rec['承認キー'];
-  mail_(rec['メール'], '【ALCOHOLIDAY】動画のダウンロードと投稿文のお知らせ（' + id + '）',
-    rec['店名'] + ' ' + dear_(rec) + '\n\n' +
-    'おすすめ商品「' + rec['商品名'] + '」の動画をお選びいただき、ありがとうございます。\n' +
-    '下のリンクから動画をダウンロードして、お店の SNS アカウントから投稿してください。\n\n' +
-    '■ 動画のダウンロード\n' + url + '\n' +
-    '（スマホで開けないときは、こちらのページの「動画をダウンロード」ボタンからどうぞ：' + page + '）\n\n' +
-    '■ SNS ごとの投稿文（そのままコピーしてお使いください）\n\n' + captionsText_(rec) + '\n\n' +
-    '※ 「#PR」と、お酒の注意書き（20歳未満の飲酒・飲酒運転の禁止）は、消さずにお使いください。\n' +
-    '※ 投稿した内容と、投稿のあとに起きたことについては、投稿したお店の責任となります。\n\n' +
-    'ALCOHOLIDAY（アルコホリディ）');
-  mail_(CONFIG.OWNER_EMAIL, '【BAR広告】動画が決まりました ' + id + ' ' + rec['店名'],
-    rec['店名'] + ' が動画を決めました。ダウンロードのリンクと投稿文（' + snsLabel_(snsOf_(rec)) + '）をメールで送りました。\nプラン：' + (rec['プラン'] || '無料'));
-  return 'ありがとうございます。動画のダウンロードのリンクと、SNS ごとの投稿文をメールでお送りしました。下の「動画をダウンロード」からも保存できます。';
+  mail_(CONFIG.OWNER_EMAIL, '【BAR広告】動画が保存されました ' + id + ' ' + rec['店名'],
+    rec['店名'] + ' が確認ページで動画を保存しました（お客さんへのメールはなし）。\nプラン：' + (rec['プラン'] || '無料') + '\n確認ページは ' + until + ' で止めます。');
+  return { until: until, first: true };
 }
 
 /** 確認ページの「直してほしい」 */
@@ -624,6 +681,7 @@ function reviewVideo(id, k, which) {
   const r = findRow_(id);
   const vid = which === 'prev' ? r && r.rec['前の動画'] : r && r.rec['動画'];
   if (!r || !k || r.rec['承認キー'] !== k || !vid) throw new Error('動画が見つかりません');
+  if (pageClosed_(r.rec)) throw new Error('このページの公開期間は終わりました');
   const main = DriveApp.getFileById(vid);
   let file = main;
   const it = DriveApp.getFolderById(r.rec['素材動画']).getFilesByName('確認用_' + main.getName());
@@ -635,7 +693,7 @@ function reviewVideo(id, k, which) {
 function requestChange(id, k, comment) {
   if (!comment || !String(comment).trim()) throw new Error('直してほしいところを書いてください');
   const r = checkReview_(id, k);
-  if (fixCount_(r.rec) >= CONFIG.MAX_FIX) throw new Error('動画の直しは1回までです。2本のうち、よいほうを選んで「この動画に決める」を押してください');
+  if (fixCount_(r.rec) >= CONFIG.MAX_FIX) throw new Error('動画の直しは1回までです。2本のうち、よいほうをダウンロードしてください');
   update_(r.row, { '状態': '修正依頼', 'お客さんのコメント': clip_(comment, 1000) }, 'お客さんが修正を依頼');
   mail_(CONFIG.OWNER_EMAIL, '【BAR広告】修正の依頼 ' + id + ' ' + r.rec['店名'],
     'お客さんから修正の依頼が届きました。\n\n' + comment + '\n\nClaude Code に「KAYO、BAR広告の修正依頼を確認して」と話しかけてください。');
@@ -645,25 +703,38 @@ function requestChange(id, k, comment) {
 function checkReview_(id, k) {
   const r = findRow_(id);
   if (!r || r.rec['承認キー'] !== k) throw new Error('ページが見つかりません');
-  if (r.rec['状態'] !== '承認待ち') throw new Error('この動画はいま決められる状態ではありません（' + r.rec['状態'] + '）');
-  if (new Date() >= approveDeadline_(r.rec)) throw new Error('動画を決める期限を過ぎました。ALCOHOLIDAY へご連絡ください');
+  if (r.rec['状態'] !== '承認待ち') throw new Error('この動画はいま直しをお願いできる状態ではありません（' + r.rec['状態'] + '）');
+  if (new Date() >= approveDeadline_(r.rec)) throw new Error('期限を過ぎました。ALCOHOLIDAY へご連絡ください');
   return r;
 }
 
 /* ────────────────────────────── 1時間ごとの見回り ────────────────────────────── */
 
-// 2026-10-10 から自動投稿（Upload-Post）はしない。見回りは「動画を決める期限が過ぎたもの」を期限切れにするだけ
+// 2026-10-10 から自動投稿（Upload-Post）はしない。見回りは、期限（受付から24時間）が来た依頼の後かたづけだけ
+//   ・ダウンロードのリンクを止める（動画のファイルの共有を「自分だけ」に戻す。ファイルは消さない）
+//   ・ダウンロードしなかった依頼は「期限切れ」にして、お客さんに知らせる。ダウンロード済みは「公開終了」にする
 function hourlyCheck() {
   const now = new Date();
   rows_().forEach((rec, i) => {
     const row = i + 2;
-    if (rec['状態'] === '承認待ち' && now >= approveDeadline_(rec)) {
-      update_(row, { '状態': '期限切れ' }, '動画を決める期限が過ぎた（お渡ししない）');
-      mail_(rec['メール'], '【ALCOHOLIDAY】動画をお選びいただく期限が過ぎました（' + rec.id + '）',
-        rec['店名'] + ' ' + dear_(rec) + '\n\n期限（' + fmt_(approveDeadline_(rec)) + '）までに動画をお選びいただけなかったため、この動画のお渡しは終了しました。\n' +
-        'あらためてご希望の場合は、このメールにご返信ください。\n\nALCOHOLIDAY（アルコホリディ）');
-      mail_(CONFIG.OWNER_EMAIL, '【BAR広告】期限切れ ' + rec.id + ' ' + rec['店名'], '動画が決まらないまま期限を過ぎました。お渡しはしていません。');
+    if (now < approveDeadline_(rec) || (rec['状態'] !== '承認待ち' && rec['状態'] !== DONE_STATE)) return;
+    stopSharing_(rec);
+    if (rec['状態'] === DONE_STATE) {
+      update_(row, { '状態': END_STATE }, '期限が来たので、確認ページとダウンロードのリンクを止めた');
+      return;
     }
+    update_(row, { '状態': '期限切れ' }, '期限までにダウンロードされなかった（リンクを止めた）');
+    mail_(rec['メール'], '【ALCOHOLIDAY】動画のお渡しの期限が過ぎました（' + rec.id + '）',
+      rec['店名'] + ' ' + dear_(rec) + '\n\n期限（' + jaTime_(approveDeadline_(rec)) + '）までに動画のダウンロードがなかったため、この動画のお渡しは終了しました。\n' +
+      'あらためてご希望の場合は、このメールにご返信ください。\n\nALCOHOLIDAY（アルコホリディ）');
+    mail_(CONFIG.OWNER_EMAIL, '【BAR広告】期限切れ ' + rec.id + ' ' + rec['店名'], 'ダウンロードされないまま期限を過ぎました。リンクは止めました。');
+  });
+}
+
+/** 動画のダウンロードのリンクを止める（共有を「自分だけ」に戻す。ファイルは消さない） */
+function stopSharing_(rec) {
+  [rec['動画'], rec['前の動画']].filter(Boolean).forEach(id => {
+    try { DriveApp.getFileById(id).setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE); } catch (err) { console.warn('共有を止められませんでした：' + id + ' ' + err); }
   });
 }
 
@@ -673,8 +744,12 @@ function doPost(e) {
   let out;
   try {
     const req = JSON.parse(e.postData.contents);
-    if (!req.key || req.key !== prop_('API_KEY')) throw new Error('キーが違います');
-    out = { ok: true, result: api_(req) };
+    if (req.action === 'page' || req.action === 'call') {   // AWS の受付ページから（お客さん）
+      out = { ok: true, result: publicApi_(req) };
+    } else {                                               // KAYO（パソコン）から：キーが必要
+      if (!req.key || req.key !== prop_('API_KEY')) throw new Error('キーが違います');
+      out = { ok: true, result: api_(req) };
+    }
   } catch (err) {
     out = { ok: false, error: err.message };
   }
@@ -715,7 +790,7 @@ function api_(req) {
       const folderId = r.rec['素材動画'];
       const blob = Utilities.newBlob(Utilities.base64Decode(req.video), 'video/mp4', req.name || (req.id + '.mp4'));
       const file = DriveApp.getFolderById(folderId).createFile(blob);
-      // 動画を決めたあと、お客さんがメールのリンクからダウンロードできるように「リンクを知っている人は見られる」にする
+      // お客さんが確認ページとメールのリンクからダウンロードできるように「リンクを知っている人は見られる」にする（受付から24時間で止める）
       try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (err) { /* 共有できない設定のとき */ }
       if (req.preview) {   // 確認ページで再生する確認用の小さい動画（同じ名前の古いものは名前を変えて残す）
         const folder = DriveApp.getFolderById(folderId);
@@ -727,13 +802,15 @@ function api_(req) {
       update_(r.row, Object.assign({ '動画': file.getId(), '投稿文': JSON.stringify(req.captions || {}), '状態': '承認待ち' }, keep),
         '動画を届けた（' + file.getName() + '）');
       const rec = findRow_(req.id).rec;
-      const url = webAppUrl_() + '?p=review&id=' + encodeURIComponent(rec.id) + '&k=' + rec['承認キー'];
+      const url = pageUrl_() + '?p=review&id=' + encodeURIComponent(rec.id) + '&k=' + rec['承認キー'];
       mail_(rec['メール'], '【ALCOHOLIDAY】動画ができました。ご確認ください（' + rec.id + '）',
         rec['店名'] + ' ' + dear_(rec) + '\n\nおすすめ商品「' + rec['商品名'] + '」の動画ができました。\n' +
-        '下のページで動画と投稿文を見て、「この動画に決める」か「直してほしい」を押してください。\n\n' + url + '\n\n' +
-        '投稿文をつくった SNS：' + snsLabel_(snsOf_(rec)) + '\nお選びいただく期限：' + fmt_(approveDeadline_(rec)) + '\n' +
-        '※ 「この動画に決める」を押すと、動画のダウンロードのリンクと、SNS ごとの投稿文をメールでお送りします。\n' +
-        '※ 期限までにお選びいただけない場合、動画のお渡しは終了します。\n\nALCOHOLIDAY（アルコホリディ）');
+        '下のページで動画と投稿文を見て、よければ「カメラロールに保存」を押して、スマホに保存してください。\n' +
+        '直してほしいところがあれば、同じページの「直してほしいところがある」からお知らせください（1回まで）。\n\n' + url + '\n\n' +
+        '投稿文をつくった SNS：' + snsLabel_(snsOf_(rec)) + '\nダウンロードの期限：' + jaTime_(approveDeadline_(rec)) + '\n' +
+        '※ SNS ごとの投稿文は、同じページの「コピーする」ボタンでコピーできます。\n' +
+        '※ ' + jaTime_(approveDeadline_(rec)) + ' までにダウンロードいただけない場合、動画のお渡しは終了します。' +
+        'このページとダウンロードのリンクも ' + jaTime_(approveDeadline_(rec)) + ' で使えなくなります。\n\nALCOHOLIDAY（アルコホリディ）');
       return { videoId: file.getId(), reviewUrl: url };
     }
     case 'voice': {     // 声の見本を置く（A / B / C / D の mp3）
@@ -764,6 +841,8 @@ function voiceFolder_() {
   return it.hasNext() ? it.next() : root.createFolder('声見本');
 }
 function fmt_(d) { return Utilities.formatDate(d, CONFIG.TZ, 'yyyy-MM-dd HH:mm'); }
+// お客さんに見せる日時（例：10月11日 11:50）。台帳には fmt_ の形で残す
+function jaTime_(d) { return Utilities.formatDate(d, CONFIG.TZ, 'M月d日 H:mm'); }
 function clip_(s, n) { return String(s || '').trim().slice(0, n); }
 
 function rows_() {
@@ -811,6 +890,7 @@ function mail_(to, subject, body) {
   // 送り主は CONFIG.MAIL_FROM（2026-10-08 社長の指示）。Gmail の「他のアドレスから送る」に登録されていないときは、
   // いままでどおりのアドレスから送り、返信先だけ MAIL_FROM にする（メールが止まらないように）
   const from = CONFIG.MAIL_FROM;
+  if (to !== CONFIG.OWNER_EMAIL) body += '\n\n――――――――――\n' + CONFIG.MAIL_LINKS;   // お客さんあてだけ、サイトと Amazon の URL を付ける
   try {
     if (from && GmailApp.getAliases().indexOf(from) >= 0) {
       GmailApp.sendEmail(to, subject, body, { from: from, name: 'ALCOHOLIDAY', replyTo: from });

@@ -151,10 +151,12 @@
       </ul>
       <label class="agree"><input type="checkbox" name="agree" value="1">上の内容に同意します</label>
       <button class="submit" id="btn">申し込む</button>
+      <p class="sendnote" id="sendnote" hidden>電波の状況にもよりますが、<b>3分ほどで送信できます</b>。<br>終わるまで、この画面を閉じずにお待ちください。</p>
       <div class="progress" id="progress"></div>
       <div class="err" id="err"></div>
     </section>
   </form>
+  <p class="foot">ALCOHOLIDAY（アルコホリディ）　お酒との時間をもっと楽しく<br><a href="https://www.alcoholiday.org/" target="_blank">https://www.alcoholiday.org/</a></p>
 </div>
 
 <?!= include_('common') ?>
@@ -177,6 +179,7 @@
   // ホームページ（alcoholiday.org）に埋め込んだときも外へ移らないように、その場でログアウトする（2026-10-08）
   $('logout').onclick = async ev => {
     ev.preventDefault();
+    clearSession();
     try { await run('logout', DATA.session); } catch (e) { goTo($('logout').href); return; }
     document.body.innerHTML = '<div style="padding:40px 16px;font-size:20px;line-height:1.8;text-align:center">ログアウトしました。<br>もう一度使うときは、このページを開き直してください。</div>';
     window.scrollTo(0, 0);
@@ -333,7 +336,7 @@
       '  </ol>' +
       '  <div class="help">確認のメールが届かないときは、<b>迷惑メール</b>のフォルダもご覧ください。</div>' +
       '</section>' +
-      '<p class="thanks">ALCOHOLIDAY（アルコホリディ）</p>';
+      '<p class="foot">ALCOHOLIDAY（アルコホリディ）　お酒との時間をもっと楽しく<br><a href="https://www.alcoholiday.org/" target="_blank">https://www.alcoholiday.org/</a></p>';
     // 受付番号などは文字として入れる（記号がそのまま表示されるように）
     document.querySelector('.summary .id').textContent = r.id;
     document.querySelector('.summary .when').textContent = r.when;
@@ -367,6 +370,7 @@
     if (!f.agree) miss.push('7 の「同意します」に印をつけてください');
     if (miss.length) { $('err').textContent = 'まだ入っていないところがあります：\n・' + miss.join('\n・'); return false; }
     $('btn').disabled = true; $('btn').textContent = '送っています…';
+    $('btn').classList.add('sending'); $('sendnote').hidden = false;   // 点滅と「3分ほど」の案内（2026-10-10）
     try {
       await sendVideos();
       $('progress').textContent = '申し込みを登録しています…';
@@ -389,6 +393,7 @@
       $('progress').textContent = '';
       $('err').textContent = errText(e);
       $('btn').disabled = false; $('btn').textContent = '申し込む';
+      $('btn').classList.remove('sending'); $('sendnote').hidden = true;
     }
     return false;
   }

@@ -33,7 +33,7 @@ NO_BLOCK = {"CLAUDE", "自動制作ログ", "禁止表現リスト", "広告事�
 STATUS = {"new": "受付", "dispatched": "各部署へ指示済み", "working": "制作中", "review": "確認待ち",
           "video_requested": "動画づくり依頼", "finish_requested": "仕上げ依頼", "done": "完成", "posted": "投稿済み"}
 GOODS = {"wine": "ワイン", "whisky": "ウイスキー", "beer": "ビール", "sake": "日本酒", "sparkling": "スパークリング"}
-CASE_ID = re.compile(r"(?:BAR|TEST)-\d{8}-\d{2,4}")
+CASE_ID = re.compile(r"(?:ALC|BAR|TEST)-\d{8}-\d{2,4}")   # 受付番号（2026-10-10 から ALC-。前の案件は BAR-）
 JOB_ID = re.compile(r"(?<![\d-])20\d\d-\d\d-\d\d-\d\d(?![\d-])")
 DATE = re.compile(r"^20\d\d-\d\d-\d\d$")
 

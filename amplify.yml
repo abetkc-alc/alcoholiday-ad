@@ -1,0 +1,18 @@
+# AWS Amplify：受付ページ（09_広告事業/web/）を置くときの決まり（2026-10-11）
+#   ・置くのは index.html と config.js だけ（ノートやプログラムなど、ほかのファイルは公開しない）
+#   ・config.js は、Amplify の「環境変数」ALC_API（GAS のウェブアプリの URL）から、置くときに自動でつくる（GitHub には送らない）
+version: 1
+frontend:
+  phases:
+    build:
+      commands:
+        - test -n "$ALC_API" || (echo "Amplify の環境変数 ALC_API がありません" && exit 1)
+        - mkdir -p dist
+        - cp "09_広告事業/web/index.html" dist/index.html
+        - echo "window.ALC_API = '${ALC_API}';" > dist/config.js
+  artifacts:
+    baseDirectory: dist
+    files:
+      - '**/*'
+  cache:
+    paths: []

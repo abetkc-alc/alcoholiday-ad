@@ -30,11 +30,11 @@ import narrate  # noqa: E402
 SHARED = pathlib.Path(r"C:\Users\abetk\Documents\Codex\2026-09-19\chatgpt-alcoholiday-sns-alcoholiday-instagram-x\outputs")
 # 締め画像は BAR広告専用（アマゾンの案内を外し「紹介したお店の詳細はキャプションから。」を大きく・赤枠と赤文字で目立たせたもの）。
 # 元の ending-title.jpg は ALCOHOLIDAY 自身の動画用なので変えない
-BRAND = pathlib.Path(__file__).resolve().parent.parent / "素材" / "ending-bar-v4.jpg"   # v4＝赤い文字を枠の上下まん中にそろえた
+BRAND = pathlib.Path(__file__).resolve().parent.parent / "素材" / "ending-bar-v5.jpg"   # v5＝「紹介したお店・商品の詳細はキャプションから。」（2026-10-10 社長の指示。v4 は「お店の詳細」）
 LOGO = pathlib.Path(__file__).resolve().parent.parent / "素材" / "ブランドロゴ.png"   # 黒文字・背景なし（元：Desktop/ALCOHOLIDAY/画像/商品画像/ブランドロゴ.png）。白くして使う
-WM_W, WM_ALPHA = 240, 0.55          # 無料版の透かし：幅と濃さ
-WM_TOP, WM_BOTTOM = 165, 1680       # 透かしの上の位置（PR と日付の下）と下の位置（字幕の下・注意書きの上）
-FREE_SHIFT = 80                     # 無料版は上の透かしの分、商品名・店名を下げる
+WM_W, WM_ALPHA = 380, 0.55          # 無料版の透かし：幅と濃さ（2026-10-10 社長の指示で 240→380 に大きく）
+WM_TOP, WM_BOTTOM = 165, 1638       # 透かしの上の位置（PR と日付の下）と下の位置（字幕の下・注意書きの上）
+FREE_SHIFT = 140                    # 無料版は上の透かしの分、商品名・店名を下げる
 CREDIT_SEC = 2.5                    # 有料版の「created by」を出す長さ（最後の何秒か）
 NARR_END = SHARED / "ending-assets" / "お酒との時間をもっと楽しく.wav"
 NARR_END_LEN = 4.17
@@ -153,7 +153,7 @@ def credit_png(path):
     """有料版：最後に右下へ小さく「created by」と ALCOHOLIDAY のロゴ"""
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     lg = white_logo(190, 0.9)
-    x, y = W - 48 - lg.width, WM_BOTTOM + 20
+    x, y = W - 48 - lg.width, 1700
     d = ImageDraw.Draw(im)
     f = font(24)
     d.text((x + 4, y - 30), "created by", font=f, fill=(255, 255, 255, 230), stroke_width=2, stroke_fill=(20, 20, 20, 160))

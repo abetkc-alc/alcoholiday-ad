@@ -8,8 +8,16 @@
   }
 
   // Google 側の関数を呼ぶ（終わるまで待てる形）
-  var run = (fn, ...args) => new Promise((ok, ng) =>
-    google.script.run.withSuccessHandler(ok).withFailureHandler(ng)[fn](...args));
+  //   Google のページの中で開いたとき：google.script.run で呼ぶ（今までどおり）
+  //   AWS に置いた受付ページ（window.ALC_WEB がある）で開いたとき：インターネット経由で GAS の入口（doPost の call）を呼ぶ（2026-10-11）
+  var run = (fn, ...args) => (window.google && google.script && google.script.run)
+    ? new Promise((ok, ng) => google.script.run.withSuccessHandler(ok).withFailureHandler(ng)[fn](...args))
+    : fetch(window.ALC_WEB.api, { method: 'POST', body: JSON.stringify({ action: 'call', fn: fn, args: args }) })
+        .then(r => r.json())
+        .then(j => j.ok ? j.result : Promise.reject(new Error(j.error)));
+  // AWS の受付ページでは、ログインの合言葉をこの端末におぼえておく（ページを開き直してもログインしたまま）
+  var saveSession = s => { if (window.ALC_WEB) try { localStorage.setItem('alc_session', s); } catch (e) { /* おぼえられない設定のとき */ } };
+  var clearSession = () => { if (window.ALC_WEB) try { localStorage.removeItem('alc_session'); } catch (e) { /* 同上 */ } };
   var errText = e => String((e && e.message) || e).replace(/^Error:\s*/, '');
 
   // 別のページへ移る（Google のページは枠の中なので、外側ごと移る）

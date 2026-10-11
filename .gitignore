@@ -40,3 +40,7 @@ __pycache__/
 
 # 自動リンクの動作記録（毎回書き足されるログ）
 08_AI部署/data/自動リンクの記録.txt
+
+# AWS の受付ページ：config.js は Amplify が置くときにつくる（パソコンで試すときは tools/web_config.py でつくる）
+09_広告事業/web/config.js
+dist/

@@ -7,15 +7,8 @@
 </head>
 <body>
 <div class="wrap wide" id="app">
-  <!-- 上の帯：左にロゴ、右に丸いボタン（Pinterest ふう） -->
-  <div class="topbar">
-    <a href="#" data-open="p-home" aria-label="はじめの画面へ"><?!= data.logo ?></a>
-    <div class="pills">
-      <button type="button" class="pill red" data-open="p-login">ログイン</button>
-      <button type="button" class="pill gray" data-open="p-register">会員登録</button>
-    </div>
-  </div>
-
+  <!-- 上の帯（ロゴ・ログイン・会員登録）は 2026-10-10 社長の指示で外した（ホームページに埋め込むとロゴが2つ並ぶため・上に詰める）。
+       はじめの画面にもどるボタンは、ログインと会員登録の画面にある -->
   <div class="info" id="topmsg"></div>
 
   <!-- はじめの画面 -->
@@ -38,7 +31,7 @@
       <div class="features" id="features">
         <div class="feat"><img alt=""><div><b>動画を3本撮るだけ</b><span>1本5秒くらい。お店の雰囲気・おすすめの商品・自由の3本です。</span></div></div>
         <div class="feat"><img alt=""><div><b>声の案内と字幕で仕上げ</b><span>3本をつなぎ、声の案内と字幕を入れた1本の紹介動画にします。</span></div></div>
-        <div class="feat"><img alt=""><div><b>見て決めてからダウンロード</b><span>できあがった動画はメールでお届けします。直しも1回までできます。</span></div></div>
+        <div class="feat"><img alt=""><div><b>見てからダウンロード</b><span>できあがった動画はメールでお知らせします。直しも1回までできます。</span></div></div>
         <div class="feat"><img alt=""><div><b>SNS ごとの投稿文つき</b><span>Instagram・TikTok・X から、載せる SNS をえらべます。投稿文もお送りします。</span></div></div>
       </div>
     </div>
@@ -177,7 +170,7 @@
     <a class="btn" id="go-link" href="#" target="_top">申し込みのページへ進む</a>
   </section>
 
-  <p class="foot">ALCOHOLIDAY（アルコホリディ）　お酒との時間をもっと楽しく</p>
+  <p class="foot">ALCOHOLIDAY（アルコホリディ）　お酒との時間をもっと楽しく<br><a href="https://www.alcoholiday.org/" target="_blank">https://www.alcoholiday.org/</a></p>
 </div>
 
 <?!= include_('photos') ?>
@@ -199,6 +192,7 @@
   document.querySelectorAll('[data-mic]').forEach(addMic);
   fillPrefs($('r-pref'));
 
+  clearSession();   // トップページが出た＝ログインしていない（AWS の受付ページで、おぼえていた古い合言葉を消す）
   if (DATA.mode === 'reset') show('p-reset');
   if (DATA.msg) $('topmsg').textContent = DATA.msg;
   else if (DATA.testOnly) $('topmsg').textContent = 'ただいま準備中です（テスト中）。公開まで、もうしばらくお待ちください。';
@@ -209,6 +203,7 @@
     document.querySelectorAll('button:disabled').forEach(b => { b.textContent = '申し込みのページを開いています…'; });
     $('go-title').textContent = title;
     $('go-link').href = r.url;
+    saveSession(r.session);
     try {
       const html = await run('formPage', r.session);
       document.open(); document.write(html); document.close();

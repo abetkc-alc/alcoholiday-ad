@@ -8,6 +8,7 @@ import asyncio
 import base64
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import wave
@@ -80,14 +81,43 @@ def duration(wav_path):
         return w.getnframes() / w.getframerate()
 
 
+PAUSE = 0.4   # 文の中にスペースがあるとき、そこで置く「一拍」の長さ（秒）。2026-10-10 社長の指示
+
+
 def synth(key, text, out):
-    """text を案内役 key の声で読み上げて out（.wav）に保存。秒数を返す"""
+    """text を案内役 key の声で読み上げて out（.wav）に保存。秒数を返す
+    文の中にスペース（半角・全角）があれば、そこで区切って読み、あいだに一拍（PAUSE 秒）おく（2026-10-10 社長の指示）
+    ただし英語の言葉どうしのあいだのスペース（「Single Malt」など。前も後ろも英字か数字）では区切らない"""
     key = key.upper()
     if key not in NAMES:
         raise SystemExit("声は A / B / C / D のどれか")
-    for k, v in all_readings():
-        text = text.replace(k, v)
     out = pathlib.Path(out)
+    # 読み方の直し（BAR→バー など）の前に区切る（英語どうしかどうかを、お客さんが書いたままの文字で見るため）
+    parts = [p for p in re.split(r"(?<![A-Za-z0-9])\s+|\s+(?![A-Za-z0-9])", text.strip()) if p]
+    for k, v in all_readings():
+        parts = [p.replace(k, v) for p in parts]
+    text = " ".join(parts)
+    if len(parts) <= 1:
+        synth_one(key, text.strip(), out)
+        return duration(out)
+    # 区切りごとに読み上げて、一拍の無音をはさんでつなぐ（どれも 48kHz・ステレオ・16bit）
+    frames, params = [], None
+    for i, part in enumerate(parts):
+        piece = out.with_name(f"{out.stem}.part{i + 1}.wav")
+        synth_one(key, part, piece)
+        with wave.open(str(piece)) as w:
+            params = params or w.getparams()
+            if i:
+                frames.append(b"\0" * int(PAUSE * w.getframerate()) * w.getsampwidth() * w.getnchannels())
+            frames.append(w.readframes(w.getnframes()))
+    with wave.open(str(out), "wb") as w:
+        w.setparams(params)
+        w.writeframes(b"".join(frames))
+    return duration(out)
+
+
+def synth_one(key, text, out):
+    """区切りのない1つの文を読み上げて out（.wav）に保存する"""
     raw = out.with_suffix(".raw" + (".wav" if engine() == "google" else ".mp3"))
     if engine() == "google":
         import requests
@@ -105,7 +135,6 @@ def synth(key, text, out):
         v = EDGE_VOICES[key]
         asyncio.run(edge_tts.Communicate(text, v["voice"], rate=v["rate"], pitch=v["pitch"]).save(str(raw)))
     to_wav(raw, out)
-    return duration(out)
 
 
 if __name__ == "__main__":

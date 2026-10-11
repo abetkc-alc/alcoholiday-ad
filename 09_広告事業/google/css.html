@@ -5,6 +5,10 @@
   :root { --bg:#ffffff; --card:#f6f6f3; --white:#ffffff; --text:#111111; --sub:#5f5f5f; --line:#cdcdcd;
           --main:#e60023; --main2:#ad081b; --gray:#e9e9e9; --gray2:#d6d6d6; --soft:#fff0f2; --red:#e60023; --ok:#0a7c3d; }
   * { box-sizing:border-box; }
+  /* スクロールバーを見えなくする（2026-10-10 社長の指示：ホームページに埋め込むと、外と中で2つ出て携帯で操作しにくいため）。
+     見えないだけで、指でなぞれば動く */
+  html, body, * { scrollbar-width:none; -ms-overflow-style:none; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar, *::-webkit-scrollbar { display:none; width:0; height:0; }
   body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic","Meiryo",sans-serif; font-size:20px; line-height:1.6; }
   .wrap { max-width:760px; margin:0 auto; padding:0 16px 100px; }
   .wrap.wide { max-width:1160px; }
@@ -107,6 +111,11 @@
   .submit, .btn { display:block; width:100%; text-align:center; text-decoration:none; padding:20px; font-size:24px; font-weight:800; background:var(--main); color:#fff; border:0; border-radius:40px; cursor:pointer; margin-top:18px; font-family:inherit; }
   .submit:hover, .btn:hover { background:var(--main2); }
   .submit[disabled], .btn[disabled] { opacity:.55; cursor:wait; }
+  /* 送っているあいだ、ボタンの「送っています…」を点滅させる（2026-10-10） */
+  .submit.sending { opacity:1; animation:blink 1.2s ease-in-out infinite; }
+  @keyframes blink { 50% { opacity:.4; } }
+  .sendnote { margin-top:12px; padding:14px 16px; border-radius:20px; background:#fff4d6; font-size:19px; line-height:1.7; text-align:center; }
+  .sendnote[hidden] { display:none; }
   .btn.sub { background:var(--gray); color:var(--text); }
   .btn.sub:hover { background:var(--gray2); }
   .btn small { display:block; font-size:16px; font-weight:700; opacity:.9; }
@@ -155,5 +164,6 @@
   .linkbtn { background:none; border:0; color:var(--text); text-decoration:underline; font-size:19px; font-weight:700; cursor:pointer; padding:8px 0; font-family:inherit; }
   .info { background:var(--card); border-radius:20px; padding:14px 18px; margin-top:14px; white-space:pre-wrap; }
   .info:empty { display:none; }
-  .foot { text-align:center; color:var(--sub); font-size:16px; margin-top:30px; }
+  .foot { text-align:center; color:var(--sub); font-size:16px; margin-top:30px; line-height:1.8; }
+  .foot a { color:inherit; }
 </style>

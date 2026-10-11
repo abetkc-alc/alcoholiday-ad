@@ -11,9 +11,18 @@
   .cap { background:#fff; border-radius:20px; padding:14px 18px; margin:0 0 14px; }
   .cap h3 { margin:0 0 6px; font-size:20px; }
   .cap pre { white-space:pre-wrap; font-family:inherit; font-size:18px; margin:0; line-height:1.7; }
+  /* 投稿文のコピーのボタン（2026-10-10） */
+  .cap .copy { display:block; width:100%; margin-top:12px; padding:14px; font-size:19px; font-weight:800; border:0; border-radius:999px;
+    background:var(--main); color:#fff; cursor:pointer; }
+  .cap .copy.done { background:#2e7d32; }
   .state { text-align:center; font-size:22px; font-weight:800; }
   .center { text-align:center; }
   a.submit.dl { display:block; text-align:center; text-decoration:none; margin-top:16px; }
+  /* 動画の下のダウンロードのボタン（2026-10-10 社長の指示：決める前でもダウンロードできる） */
+  .thanks-inline { text-align:center; color:#2e7d32; font-weight:800; font-size:18px; margin:10px 0 0; }
+  .dlbtn[disabled] { opacity:.5; cursor:wait; }
+  .dlbtn { display:block; width:100%; font-family:inherit; cursor:pointer; max-width:360px; margin:14px auto 0; padding:14px; text-align:center; text-decoration:none; font-size:19px; font-weight:800;
+    border:3px solid var(--main); border-radius:999px; color:var(--main); background:#fff; }
   #fix[hidden], .caps[hidden] { display:none; }
   /* 直したあと：2本から選ぶ */
   .pick2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px; margin-top:12px; }
@@ -33,7 +42,7 @@
 <? } else { ?>
   <header>
     <h1>動画のご確認</h1>
-    <p class="lead"><?= data.prev && data.canAct ? '直した動画ができました。直す前と直したあとの2本から、よいほうを選んでください。' : 'できあがった動画と、SNS に載せる文をご確認ください。' ?></p>
+    <p class="lead"><?= data.prev && data.canAct ? '直した動画ができました。直す前と直したあとの2本から、よいほうを保存してください。' : 'できあがった動画と、SNS に載せる文をご確認ください。よければ動画をスマホに保存してください。' ?></p>
   </header>
 
   <section>
@@ -43,7 +52,7 @@
       <dt>店名</dt><dd><?= data.shop ?></dd>
       <dt>おすすめ商品</dt><dd><?= data.product ?></dd>
       <dt>投稿文をつくった SNS</dt><dd><?= data.when ?></dd>
-      <? if (data.canAct) { ?><dt>お選びいただく期限</dt><dd style="color:var(--main)"><?= data.deadline ?> まで</dd><? } ?>
+      <dt>このページの期限</dt><dd style="color:var(--main)"><?= data.deadline ?> まで</dd>
     </dl>
   </section>
 
@@ -51,17 +60,19 @@
   <!-- 直したあと：「直す前」と「直したあと」の2本から選ぶ（直しは1回まで） -->
   <section>
     <h2><span class="no">2</span>動画を選ぶ</h2>
-    <p class="ex">▶ を押すと再生されます。音も確かめて、よいほうを押して選んでください。</p>
+    <p class="ex">▶ を押すと再生されます。音も確かめて、よいほうの「カメラロールに保存」を押してください。</p>
     <div class="pick2">
       <div class="choice on" data-choice="new">
         <div class="head"><span class="ck"></span>直したあとの動画</div>
         <video class="video" id="vid-new" controls playsinline preload="metadata"></video>
         <p class="vmsg" id="vmsg-new">動画を読み込んでいます…</p>
+        <? if (data.download) { ?><button type="button" class="dlbtn" data-which="new" disabled>保存の準備をしています…</button><? } ?>
       </div>
       <div class="choice" data-choice="prev">
         <div class="head"><span class="ck"></span>直す前の動画</div>
         <video class="video" id="vid-prev" controls playsinline preload="metadata"></video>
         <p class="vmsg" id="vmsg-prev">動画を読み込んでいます…</p>
+        <? if (data.prevDownload) { ?><button type="button" class="dlbtn" data-which="prev" disabled>保存の準備をしています…</button><? } ?>
       </div>
     </div>
   </section>
@@ -86,13 +97,15 @@
     <p class="ex" id="vmsg-new">動画を読み込んでいます…（10秒ほどかかることがあります）</p>
     <!-- 動画はページの中に直接読み込む（スマホで Google ドライブの画面だとログインを求められることがあるため） -->
     <video class="video" id="vid-new" controls playsinline preload="metadata"></video>
+    <? if (data.download) { ?><button type="button" class="dlbtn" data-which="new" disabled>保存の準備をしています…</button>
+    <p class="ex center">押すと出てくる画面で「<b>ビデオを保存</b>」を選ぶと、カメラロールに入ります。</p><? } ?>
     <a class="open" href="https://drive.google.com/file/d/<?= data.videoId ?>/view" target="_blank">それでも再生できないときはこちら（Google ドライブで開く）</a>
   </section>
   <? } ?>
 
   <section>
     <h2><span class="no">3</span>SNS に載せる文</h2>
-    <p class="ex">動画を決めると、この文もメールでお送りします。コピーして、そのままお使いいただけます。</p>
+    <p class="ex">「コピーする」ボタンでコピーして、そのままお使いいただけます。</p>
     <? if (data.captions.instagram) { ?><div class="cap"><h3>Instagram</h3><pre><?= data.captions.instagram ?></pre></div><? } ?>
     <? if (data.captions.tiktok) { ?><div class="cap"><h3>TikTok</h3><pre><?= data.captions.tiktok ?></pre></div><? } ?>
     <? if (data.captions.x) { ?><div class="cap"><h3>X</h3><pre><?= data.captions.x ?></pre></div><? } ?>
@@ -100,44 +113,38 @@
 <? } ?>
 
   <section id="act">
-  <? if (data.canAct) { ?>
-    <h2><span class="no">4</span>動画を決める</h2>
-    <? if (data.prev) { ?>
-    <p>上で選んだ動画でよければ<b>「この動画に決める」</b>を押してください。<br>動画のダウンロードのリンクと、SNS ごとの投稿文をメールでお送りします。<br>※ 動画の直しは1回までです。</p>
-    <button type="button" class="submit" id="okBtn" onclick="ok()">選んだ動画に決める</button>
-    <? } else { ?>
-    <p>内容でよければ<b>「この動画に決める」</b>を押してください。<br>動画のダウンロードのリンクと、SNS ごとの投稿文をメールでお送りします。投稿は、お店の SNS アカウントからご自身で行ってください。</p>
-    <button type="button" class="submit" id="okBtn" onclick="ok()">この動画に決める</button>
-      <? if (data.canFix) { ?>
+  <? if (data.state === 'お渡し済み') { ?>
+    <!-- ダウンロードのあと（2026-10-10 社長の指示：「この動画に決める」ボタンはやめ、ダウンロードした時点でお礼を出す） -->
+    <div class="donebox"><div class="okmark">✔</div><h2 class="donetitle">ご利用ありがとうございました</h2>
+      <p class="donelead">このページは <b><?= data.deadline ?> まで</b>使えます。<br>それを過ぎると見られなくなりますので、投稿文もお早めにコピーしてください。</p></div>
+  <? } else if (data.canAct) { ?>
+    <h2><span class="no">4</span><?= data.canFix ? '直してほしいところがあるとき' : '保存について' ?></h2>
+    <? if (data.canFix) { ?>
+    <p>動画でよければ、上の<b>「カメラロールに保存」</b>を押して、スマホに保存してください。<br>直してほしいところがあれば、下のボタンからお知らせください。</p>
     <button type="button" class="btn sub" id="fixOpen" onclick="openFix()">直してほしいところがある（1回まで）</button>
     <div id="fix" hidden>
-      <p class="ex">動画の直しは<b>1回まで</b>です。直したあとは、直す前と直したあとの2本から選んでいただきます。</p>
+      <p class="ex">動画の直しは<b>1回まで</b>です。直したあとは、直す前と直したあとの2本から、よいほうを保存していただきます。</p>
       <div class="field" data-mic>
         <div class="lab">直してほしいところ<span class="tag must">必ず</span></div>
         <textarea id="comment" maxlength="1000" data-count="1000" placeholder="例：商品名の漢字がちがいます／もう少し明るい雰囲気にしてほしい"></textarea>
       </div>
       <button type="button" class="submit" id="ngBtn" onclick="ng()">この内容で直しをお願いする</button>
     </div>
-      <? } ?>
+    <? } else { ?>
+    <p>動画の直しは1回までです。上の2本のうち、よいほうの<b>「カメラロールに保存」</b>を押して、スマホに保存してください。</p>
     <? } ?>
   <? } else { ?>
     <p class="state">いまの状態：<?= data.state ?></p>
     <? if (data.state === '修正依頼') { ?><p class="center">直した動画ができたら、メールでお知らせします。</p><? } ?>
-    <? if (data.download) { ?>
-    <p class="center">この動画に決まりました。下のボタンから動画を保存して、お店の SNS に投稿してください。<br>投稿文はメールでもお送りしています。</p>
-    <a class="submit dl" href="<?= data.download ?>" target="_blank">動画をダウンロード</a>
-    <? } ?>
   <? } ?>
     <div class="err" id="msg"></div>
   </section>
 <? } ?>
-  <p class="foot">ALCOHOLIDAY（アルコホリディ）　お酒との時間をもっと楽しく</p>
+  <p class="foot">ALCOHOLIDAY（アルコホリディ）　お酒との時間をもっと楽しく<br><a href="https://www.alcoholiday.org/" target="_blank">https://www.alcoholiday.org/</a></p>
 </div>
 <?!= include_('common') ?>
 <script>
   const ID = <?!= JSON.stringify(data.id || '') ?>, KEY = <?!= JSON.stringify(data.key || '') ?>;
-  const VIDEO_ID = <?!= JSON.stringify(data.videoId || '') ?>, PREV_ID = <?!= JSON.stringify(data.prev ? data.prev.videoId : '') ?>;
-  const DL = 'https://drive.google.com/uc?export=download&id=';
   let choice = 'new';
   document.querySelectorAll('[data-mic]').forEach(addMic);
   document.querySelectorAll('[data-count]').forEach(addCount);
@@ -156,6 +163,37 @@
   loadVideo('new');
   loadVideo('prev');
 
+  // 投稿文の枠ごとに「コピーする」ボタンを付ける（2026-10-10 社長の指示）
+  //   Google のページの中ではコピーの機能が止められていることがあるので、そのときは昔ながらのやり方でコピーする
+  function copyText(text) {
+    const old = () => {
+      const t = document.createElement('textarea');
+      t.value = text; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select(); t.setSelectionRange(0, text.length);
+      const ok = document.execCommand('copy'); t.remove();
+      return ok ? Promise.resolve() : Promise.reject(new Error('copy'));
+    };
+    return navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text).catch(old) : old();
+  }
+  document.querySelectorAll('.cap').forEach(c => {
+    const name = c.querySelector('h3').textContent, pre = c.querySelector('pre');
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'copy'; b.textContent = '📋 ' + name + ' の文をコピーする';
+    b.onclick = ev => {
+      ev.stopPropagation();
+      copyText(pre.textContent).then(() => {
+        b.textContent = '✔ コピーしました（' + name + ' に貼りつけてください）'; b.classList.add('done');
+        setTimeout(() => { b.textContent = '📋 ' + name + ' の文をコピーする'; b.classList.remove('done'); }, 3000);
+      }).catch(() => {
+        // どうしてもコピーできないときは、文を選んだ状態にして、長押しでコピーしてもらう
+        const r = document.createRange(); r.selectNodeContents(pre);
+        const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        b.textContent = '文を選びました。長押しして「コピー」を押してください';
+      });
+    };
+    c.appendChild(b);
+  });
+
   // 2本から選ぶ
   document.querySelectorAll('.choice').forEach(c => c.onclick = () => {
     choice = c.dataset.choice;
@@ -163,29 +201,72 @@
     document.querySelectorAll('.caps').forEach(x => { x.hidden = x.id !== 'caps-' + choice; });
   });
 
-  // 終わったら、受け付けた画面と同じ形で知らせる（動画を決めたときは、ダウンロードのボタンも出す）
-  function done(text, good) {
-    $('act').innerHTML = '<div class="donebox"><div class="okmark">' + (good ? '✔' : '✎') + '</div>' +
-      '<h2 class="donetitle"></h2><p class="donelead"></p></div>' +
-      (good ? '<a class="submit dl" target="_blank">動画をダウンロード</a>' : '');
-    $('act').querySelector('.donetitle').textContent = good ? 'この動画に決まりました' : '直しのご依頼を受け付けました';
+  // 終わったら、受け付けた画面と同じ形で知らせる
+  function done(title, text, mark) {
+    $('act').innerHTML = '<div class="donebox"><div class="okmark"></div><h2 class="donetitle"></h2><p class="donelead"></p></div>';
+    $('act').querySelector('.okmark').textContent = mark;
+    $('act').querySelector('.donetitle').textContent = title;
     $('act').querySelector('.donelead').textContent = text;
-    if (good) $('act').querySelector('.dl').href = DL + encodeURIComponent(choice === 'prev' ? PREV_ID : VIDEO_ID);
-    window.scrollTo(0, document.body.scrollHeight);
   }
   function fail(e) {
     $('msg').textContent = errText(e);
     document.querySelectorAll('button').forEach(b => b.disabled = false);
   }
   function openFix() { $('fix').hidden = false; $('fixOpen').hidden = true; $('comment').focus(); }
-  async function ok() {
-    const label = $('okBtn').textContent;
-    if (!confirm(document.querySelector('.choice') ? '「' + (choice === 'prev' ? '直す前' : '直したあと') + 'の動画」に決めます。よろしいですか？' : 'この動画に決めます。よろしいですか？')) return;
-    $('msg').textContent = '';
-    document.querySelectorAll('button').forEach(b => b.disabled = true);
-    $('okBtn').textContent = 'お送りしています…';
-    try { done(await run('approve', ID, KEY, choice), true); } catch (e) { fail(e); $('okBtn').textContent = label; }
+
+  // 「カメラロールに保存」（2026-10-10 社長の指示：別のページを開かず、その場でスマホに保存する）
+  //   ページを開いたら本番の動画を先に受け取っておき、押したときにスマホの「共有」の画面を出す（「ビデオを保存」でカメラロールへ）
+  //   共有の画面が使えないとき（パソコンなど）は、そのままファイルとして保存する
+  //   保存できたら ALCOHOLIDAY に知らせ、ページに「ご利用ありがとうございました」と期限を出す（お客さんへのメールは送らない）
+  const files = {};
+  function b64ToFile(b64, name) {
+    const bin = atob(b64), buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return new File([buf], name, { type: 'video/mp4' });
   }
+  async function prepare(btn) {
+    const which = btn.dataset.which || 'new';
+    try {
+      files[which] = b64ToFile(await run('videoFile', ID, KEY, which), 'ALCOHOLIDAY-' + ID + (which === 'prev' ? '-2' : '') + '.mp4');
+      btn.disabled = false; btn.textContent = '📥 カメラロールに保存';
+    } catch (e) {
+      btn.textContent = '保存の準備ができませんでした（ページを開き直してください）';
+    }
+  }
+  function saveAsFile(file) {   // 共有の画面が使えないとき：ファイルとして保存する
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file); a.download = file.name;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function thanks(btn, which) {
+    run('downloaded', ID, KEY, which).then(r => {
+      done('ご利用ありがとうございました', 'このページは ' + r.until + ' まで使えます。それを過ぎると見られなくなりますので、投稿文もお早めにコピーしてください。', '✔');
+      if (!btn.nextElementSibling || !btn.nextElementSibling.classList.contains('thanks-inline')) {   // 押したボタンのすぐ下にもお礼を出す
+        const p = document.createElement('p'); p.className = 'thanks-inline';
+        p.textContent = '✔ ご利用ありがとうございました（このページは ' + r.until + ' まで）';
+        btn.after(p);
+      }
+    }).catch(e => { $('msg').textContent = errText(e); });
+  }
+  document.querySelectorAll('.dlbtn').forEach(btn => {
+    btn.addEventListener('click', ev => {
+      ev.stopPropagation();   // 2本から選ぶ枠の「選ぶ」は動かさない
+      const which = btn.dataset.which || 'new', file = files[which];
+      if (!file) return;
+      $('msg').textContent = '';
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file] }).then(() => thanks(btn, which)).catch(e => {
+          if (e && e.name === 'AbortError') return;   // 共有の画面を閉じただけ
+          saveAsFile(file); thanks(btn, which);
+        });
+      } else {
+        saveAsFile(file); thanks(btn, which);
+      }
+    });
+  });
+  // 動画の再生の準備のあとに、保存の準備をする（同時に受け取ると重くなるため、1本ずつ）
+  (async () => { for (const b of document.querySelectorAll('.dlbtn')) await prepare(b); })();
+
   async function ng() {
     stopMic();
     const c = $('comment').value;

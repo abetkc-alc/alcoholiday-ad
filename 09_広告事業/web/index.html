@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALCOHOLIDAY ショート動画作成</title>
+<!-- AWS（Amplify）に置く受付ページの入口（2026-10-11）
+     ページの中身（トップ・申し込み・動画の確認）は GAS（09_広告事業/google/）から受け取って、そのまま表示する。
+     ボタンの動きも GAS を呼ぶ（common.html の run）。だから、ページを直すときは google/ のファイルだけ直せばよい。
+     GAS の住所は config.js（Amplify が置くときに、設定の ALC_API から自動でつくる。GitHub には送らない） -->
+<script src="config.js"></script>
+<style>
+  body { margin:0; background:#fff; color:#111; font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic","Meiryo",sans-serif; }
+  .load { padding:80px 16px; text-align:center; font-size:20px; line-height:1.8; color:#5f5f5f; }
+</style>
+</head>
+<body>
+<div class="load" id="msg">読み込んでいます…</div>
+<script>
+  (async () => {
+    const params = Object.fromEntries(new URLSearchParams(location.search));
+    let saved = '';
+    try { saved = localStorage.getItem('alc_session') || ''; } catch (e) { /* おぼえられない設定のとき */ }
+    if (!params.p && saved) Object.assign(params, { p: 'form', s: saved, auto: '1' });   // ログインしたままなら、申し込みのページを開く
+    if (params.p === 'form' && params.s) try { localStorage.setItem('alc_session', params.s); } catch (e) { /* 同上 */ }
+    try {
+      const r = await fetch(window.ALC_API, { method: 'POST', body: JSON.stringify({ action: 'page', params: params }) });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error);
+      // ログインの合言葉が入った住所（?p=form&s=…）は、画面の住所の欄から消す（人に見られたり、共有されたりしないように）
+      if (params.s && history.replaceState) history.replaceState(null, '', location.pathname);
+      document.open(); document.write(j.result); document.close();
+      window.scrollTo(0, 0);
+    } catch (e) {
+      document.getElementById('msg').textContent = '読み込めませんでした。電波のよい場所で、ページを開き直してください。';
+    }
+  })();
+</script>
+</body>
+</html>
