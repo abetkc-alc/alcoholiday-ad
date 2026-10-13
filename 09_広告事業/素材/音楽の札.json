@@ -68,5 +68,41 @@
     "感じ": "テンポが速く、楽しく弾けた感じ",
     "use": true
   },
-  "_出どころ": "8曲とも OpenTracks（https://opentracks.com/ ・旧 DOVA-SYNDROME）。商用・広告の BGM に使ってよく、作者名の表示は不要（https://opentracks.com/help/articles/license/ 2026-10-04 確認）。音源ファイルをお客さんに渡すのは禁止"
+  "BAND_SOUND.mp3": {
+    "札": [
+      "バンドサウンド",
+      "元気",
+      "明るい"
+    ],
+    "感じ": "バンドサウンド（しゃろう「野良猫は宇宙を目指した」）。申し込みページの「バンドサウンド」",
+    "use": true
+  },
+  "BOSANOVA.mp3": {
+    "札": [
+      "ボサノバ",
+      "おしゃれ",
+      "ゆったり"
+    ],
+    "感じ": "ボサノバ（約30秒）。申し込みページの「ボサノバ」",
+    "use": true
+  },
+  "JAZZ.mp3": {
+    "札": [
+      "ジャズ",
+      "大人",
+      "BAR"
+    ],
+    "感じ": "ジャズ（約2分50秒）。申し込みページの「ジャズ」",
+    "use": true
+  },
+  "pop.mp3": {
+    "札": [
+      "ポップ",
+      "明るい",
+      "楽しい"
+    ],
+    "感じ": "ポップ（しゃろう「週末京都現実逃避」と同じ曲）。申し込みページの「ポップ」",
+    "use": true
+  },
+  "_出どころ": "8曲とも OpenTracks（https://opentracks.com/ ・旧 DOVA-SYNDROME）。商用・広告の BGM に使ってよく、作者名の表示は不要（https://opentracks.com/help/articles/license/ 2026-10-04 確認）。音源ファイルをお客さんに渡すのは禁止。2026-10-11 社長が申し込みページで選べる4曲（BAND_SOUND・BOSANOVA・JAZZ・pop）を足した。BAND_SOUND と pop はしゃろうさんの曲（OpenTracks）。2026-10-11 社長に確認：曲はすべて OpenTracks からダウンロードしたもの"
 }

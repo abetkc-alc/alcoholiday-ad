@@ -210,7 +210,7 @@ const STATUS = [
   ["done", "完成"],
   ["posted", "投稿済み"],
 ];
-const STATUS_NAME = Object.fromEntries(STATUS);
+const STATUS_NAME = { ...Object.fromEntries(STATUS), dropped: "没" };
 const DEPTS = [
   ["design",  "design",  "部屋に飾った写真"],
   ["scripts", "scripts", "構成・画面の文字・投稿文"],
@@ -491,7 +491,7 @@ function orderHtml(o) {
 
 function render() {
   const orders = [...board.orders].sort((a, b) => String(b.id).localeCompare(String(a.id)));
-  const shown = orders.filter((o) =>
+  const shown = orders.filter((o) => o.status !== "dropped").filter((o) =>
     filter === "all" ? true : filter === "done" ? ["done", "posted"].includes(o.status) : !["done", "posted"].includes(o.status));
   $("orders").innerHTML = shown.length ? shown.map(orderHtml).join("")
     : `<div class="box" style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px;color:var(--ink-soft)">ここに表示する指示はありません。</div>`;

@@ -17,6 +17,7 @@
 #   2026-10-10 から SNS への投稿はしない。お客さんが確認ページで動画を決めて、ダウンロードし、自分の SNS に載せる。
 #   うまくいかなかった案件は「制作中」のまま残し、自動制作ログ.md と受付台帳の履歴に理由を書く（KAYO が手で仕上げる）
 import json
+import os
 import pathlib
 import re
 import subprocess
@@ -37,6 +38,8 @@ HERE = TOOLS.parent                      # 09_広告事業
 LOG = HERE / "自動制作ログ.md"
 LOCK = HERE / "案件" / ".自動制作中"
 MUSIC_DIR = pathlib.Path(r"C:\Users\abetk\Desktop\ALCOHOLIDAY\音声\backmusic")
+# 申し込みページでお客さんがえらぶ音楽（2026-10-11 社長の指示）。"" は音楽なし
+MUSIC_CHOICES = {"バンドサウンド": "BAND_SOUND.mp3", "ボサノバ": "BOSANOVA.mp3", "ジャズ": "JAZZ.mp3", "ポップ": "pop.mp3", "音楽なし": ""}
 MUSIC_TAGS = HERE / "素材" / "音楽の札.json"   # 曲ごとの雰囲気の札（KAYO は曲を聞けないので、この札で選ぶ）
 DEFAULT_VOICE = "A"
 DRY = "--dry" in sys.argv          # 試し：動画までつくって、メールは送らない
@@ -71,15 +74,29 @@ def banned_words():
     return [w.strip() for w in t[:t.index("```")].splitlines() if w.strip()]
 
 
+def allowed_words():
+    """禁止表現リスト.md の「機械で探すときに外す言葉」（タリスカーの中のリスカなど。2026-10-14）"""
+    t = (HERE / "禁止表現リスト.md").read_text(encoding="utf-8")
+    if "## 機械で探すときに外す言葉" not in t:
+        return []
+    t = t[t.index("## 機械で探すときに外す言葉"):]
+    t = t[t.index("```") + 3:]
+    return [w.strip() for w in t[:t.index("```")].splitlines() if w.strip()]
+
+
 def find_banned(a):
     """台本と投稿文から禁止の言葉を探す。見つかったら直すところのリストを返す"""
     texts = [("ナレーション・字幕", " ".join(str(c.get("narr", "")) + " " + " ".join(map(str, c.get("subs", []))) for c in a.get("clips", [])))]
     texts += [("画面の文字", " ".join(str(a.get(k, "")) for k in ("product", "price", "area", "hours")))]
     texts += [(f"投稿文（{k}）", str(v)) for k, v in (a.get("captions") or {}).items()]
     flat = lambda s: "".join(s.split()).lower()
+    ok = [flat(w) for w in allowed_words()]
     probs = []
     for where, s in texts:
-        hit = [w for w in banned_words() if flat(w) in flat(s)]
+        s = flat(s)
+        for w in ok:
+            s = s.replace(w, "／")
+        hit = [w for w in banned_words() if flat(w) in s]
         if hit:
             probs.append(f"{where}に禁止の言葉「{'」「'.join(hit)}」がある。違う言葉に置き換える（置き換えられなければ、その部分を削る）")
     return probs
@@ -127,7 +144,6 @@ def make_prompt(order, clips, feedback=""):
 - 価格：{order.get('価格', '')}
 - 数量限定：{order.get('数量限定', '')}
 - 投稿文をつくる SNS：{','.join(plats)}
-- ご要望：{order.get('要望', '')}
 {chr(10).join('- ' + x for x in lines)}
 
 ## 返す JSON の形
@@ -142,7 +158,7 @@ def make_prompt(order, clips, feedback=""):
   "price": "画面に出す価格（例：600円（税込））",
   "area": "画面に出す場所（例：東京都豊島区・要町駅から徒歩3分）",
   "hours": "画面に出す営業時間（短く整える。例：18時〜翌2時（日曜定休））",
-  "music": "背景の音楽のファイル名（ご要望と店の雰囲気に合う札の曲を、下の「背景の音楽」から1つ）",
+  "music": "背景の音楽のファイル名（お客さんがえらんだ曲を使うので、\"\" でよい。えらんでいない申し込みだけ、店の雰囲気に合う札の曲を下の「背景の音楽」から1つ）",
   "captions": {{{', '.join(f'"{p}": "…"' for p in plats)}}}
 }}
 
@@ -157,6 +173,7 @@ def make_prompt(order, clips, feedback=""):
 - ナレーションは、お客さんの説明の言葉をそのまま使う。長いときだけ、言いかえずに削って短くする。決まり文句を足さない
 - お客さんの説明にスペース（半角・全角）があれば、ナレーション（narr）でも同じところにスペースを残す（読み上げでそこに一拍おくため）。スペースのないところに足さない
 - 「今夜はここへ」「まずはここへ」「今夜はここで」や、それに似た言葉は使わない
+- **言い回しは、原則としてすべて明るく**する（ナレーション・字幕・投稿文。前向きで楽しい感じに。2026-10-11 社長の指示）
 - 投稿文の住所・営業時間・電話番号は、上の「この申し込み」の文字を**そのまま**入れる（自動で確かめるため。言い換えない）
 - 投稿文は「投稿文をつくる SNS」の分だけつくる（{'・'.join(bar_sync.PLATFORM_NAMES[p] for p in plats)}）
 - 投稿文の本文は「商品の説明」をもとに書く。説明にないことは足さない
@@ -208,9 +225,16 @@ def produce(oid, d, order, clips, ask, what, keep_voice):
             a["changes"] = "／".join(map(str, a["changes"]))
         mine = order.get("案内役") if order.get("案内役") in bar_sync.GUIDE_NAMES else None
         voice = (mine if keep_voice and mine else None) or (a.get("voice") if a.get("voice") in bar_sync.GUIDE_NAMES else None) or mine or DEFAULT_VOICE
-        music = MUSIC_DIR / a.get("music", "")
-        if not music.is_file() or a.get("music", "") not in music_list():
-            music = MUSIC_DIR / "かろやかな心で.mp3"
+        # 音楽：新しい申し込みはお客さんがえらんだ曲（2026-10-11〜）。直しは Claude の答え（"" は音楽なし）
+        chosen = MUSIC_CHOICES.get(order.get("音楽"))   # None＝えらんでいない（前の申し込み）
+        name = a.get("music", "") or ""
+        if keep_voice and chosen is not None:
+            name = chosen
+        elif name in ("", "なし", "音楽なし") and not keep_voice:
+            name = ""
+        elif not (MUSIC_DIR / name).is_file() or name not in music_list():
+            name = chosen if chosen is not None else "かろやかな心で.mp3"
+        music = (MUSIC_DIR / name).as_posix() if name else ""
         starts = a.get("starts") or []
         spec = {
             "out": next_out(d), "voice": voice,
@@ -218,7 +242,7 @@ def produce(oid, d, order, clips, ask, what, keep_voice):
                        "start": clamp_start(starts[i] if i < len(starts) else None, c["dur"]),
                        "narr": x["narr"], "subs": x["subs"]} for i, (c, x) in enumerate(zip(clips, a["clips"]))],
             "product": a["product"], "price": a["price"], "shop": order["店名"], "area": a["area"], "hours": a["hours"],
-            "music": music.as_posix(), "music_ss": 0, "limited": order.get("数量限定") == "はい",
+            "music": music, "music_ss": 0, "limited": order.get("数量限定") == "はい",
             "date": datetime.now().strftime("%Y-%m-%d"),   # 動画1の右上に出す日付（つくった日）
             "plan": "paid" if order.get("プラン") == "有料" else "free",   # 無料版／有料版（2026-10-10 社長の指示）
         }
@@ -238,8 +262,10 @@ def produce(oid, d, order, clips, ask, what, keep_voice):
         spec_path, cap_path = d / f"制作-{ver}.json", d / f"投稿文-{ver}.json"
         spec_path.write_text(json.dumps(spec, ensure_ascii=False, indent=2), encoding="utf-8")
         cap_path.write_text(json.dumps(cap, ensure_ascii=False, indent=2), encoding="utf-8")
+        # エラーの文が文字化けすると Claude が直し方をわからないので、utf-8 で出させる（2026-10-14）
         r = subprocess.run([sys.executable, str(TOOLS / "build_bar_ad.py"), str(spec_path)],
-                           capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(HERE))
+                           capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(HERE),
+                           env={**os.environ, "PYTHONIOENCODING": "utf-8"})
         if r.returncode != 0:
             msg = (r.stderr or r.stdout).strip().splitlines()[-1:] or ["?"]
             feedback = f"\n## 前の答えの直すところ（必ず直す）\n- 動画を組み立てられませんでした：{msg[0]}。ナレーションをもっと短くしてください"
@@ -298,6 +324,7 @@ def fix_prompt(order, clips, spec, cap, comment, feedback=""):
     lens = "、".join(f"動画{i}は{c['dur']:.1f}秒" for i, c in enumerate(clips, 1))
     return f"""あなたは ALCOHOLIDAY の KAYO（scripts 部）です。お客さんから、動画の直しの依頼が届きました。
 ツールは使わず、依頼に合わせて今の内容を直し、最後に JSON だけを返してください（説明の文は不要）。
+言い回しは、原則としてすべて明るくします（前向きで楽しい感じに）。
 
 ## お客さんの直しの依頼
 {comment}
@@ -312,7 +339,7 @@ def fix_prompt(order, clips, spec, cap, comment, feedback=""):
 - starts：動画1〜3の使い始め（秒）。{lens}。使い始めから4.5秒ぶん使う
 - voice：声（A=ローズ（明るい女性）B=ラフィ（大人の女性）C=アイラ（落ち着いた女性）D=アルビン（男性））
 - product・price・area・hours：画面に出す商品名・価格・場所・営業時間
-- music：背景の音楽（下の一覧から）
+- music：背景の音楽（下の一覧から。音楽なしにするときは ""）
 - captions：SNS の投稿文（決まりは下のとおり。「提供：アルコホリディ」と URL はプログラムが最後に付けるので、書かない）
 - お店の動画そのものの差し替え・撮り直しはできない。できない依頼は、できる範囲でいちばん近い直し方にする
 
@@ -345,7 +372,7 @@ def make_fix(oid, comment):
 def write_script_note(path, spec, cap, changes=""):
     rows = "\n".join(f"| {i} | {c['narr']} | {' / '.join(c['subs'])} |" for i, c in enumerate(spec["clips"], 1))
     path.write_text(
-        f"# 台本（自動制作 {datetime.now():%Y-%m-%d %H:%M}）\n\n声：{bar_sync.GUIDE_NAMES[spec['voice']]}　音楽：{pathlib.Path(spec['music']).name}\n\n"
+        f"# 台本（自動制作 {datetime.now():%Y-%m-%d %H:%M}）\n\n声：{bar_sync.GUIDE_NAMES[spec['voice']]}　音楽：{pathlib.Path(spec['music']).name if spec.get('music') else 'なし'}\n\n"
         + (f"直したところ：{changes}\n\n" if changes else "") +
         f"| 動画 | ナレーション | 字幕 |\n|---|---|---|\n{rows}\n\n## 投稿文\n"
         + "".join(f"\n### {bar_sync.PLATFORM_NAMES.get(k, k)}\n\n{v}\n" for k, v in cap.items()),

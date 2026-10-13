@@ -119,7 +119,7 @@ ai-alcoholiday ─ 管理者 KAYO（Claude Code）
 
 - `products`：選ばれた商品の一覧（複数あり）。`wine`／`whisky`／`beer`／`sake`／`sparkling`。古い指示は `product`（1つだけ）の場合がある
 - 商品が複数のときは、商品ごとに design・scripts・editing の成果物をつくり、`title` に商品名を入れて区別する（例：「ワイン 案A」）
-- `status`：`new`（受付）→ `dispatched`（各部署へ指示済み）→ `working`（制作中）→ `review`（確認待ち）→ `video_requested`（動画づくり依頼）→ `working` → `review` → `finish_requested`（仕上げ依頼）→ `done`（完成）→ `posted`（投稿済み）
+- `status`：`new`（受付）→ `dispatched`（各部署へ指示済み）→ `working`（制作中）→ `review`（確認待ち）→ `video_requested`（動画づくり依頼）→ `working` → `review` → `finish_requested`（仕上げ依頼）→ `done`（完成）→ `posted`（投稿済み）。社長が「没」にした指示は `dropped`（管理ページに出さない。ファイルと記録は消さずに残す。2026-10-11〜）
 - ファイルの場所は `08_AI部署` から見た位置で書く（管理ページがそこから画像・動画を読む）
 - `log` には、だれが何をしたかを1行ずつ足していく
 - design の成果物は「部屋の案」1つにつき1件。`files` にアングル違いの写真を angle1 から順に全部入れる

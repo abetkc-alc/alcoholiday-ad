@@ -12,6 +12,7 @@
 #   ・ナレーションは案内役（A＝ローズ／B＝ラフィ／C＝アイラ）の声で AI が読む（tools/narrate.py）
 #   ・各動画の長さは「ナレーションの長さ＋少しの間」。足りないときは止める（静止・ループ・逆再生で伸ばさない）
 #   ・お客さんの動画の音は使わない（音楽＋ナレーション）。左上に「PR」を出し続ける
+#   ・音楽は、制作.json の "music" が空なら入れない（申し込みページの「音楽なし」。2026-10-11）
 #   ・動画1のあいだ、右上に投稿日（制作.json の "date"：2026-10-05 の形）を出す
 #   ・横向きの動画は、ぼかした同じ映像を背景にして、切らずに真ん中に置く。iPhone の HDR 動画は色を直す
 #
@@ -314,7 +315,7 @@ def main():
     paid = S.get("plan", "free") == "paid"
     if S.get("plan", "free") not in ("free", "paid"):
         raise SystemExit(f"plan は free か paid です: {S.get('plan')}")
-    for p in [rel(c["file"]) for c in clips] + [rel(S["music"]), LOGO] + ([] if paid else [BRAND, NARR_END]):
+    for p in [rel(c["file"]) for c in clips] + ([rel(S["music"])] if S.get("music") else []) + [LOGO] + ([] if paid else [BRAND, NARR_END]):
         if not p.exists():
             raise SystemExit(f"素材が見つかりません: {p}")
     if BRAND_DUR < NARR_END_LEN + 0.1:
@@ -440,7 +441,10 @@ def main():
     for p, ov in zip(plan, overlays):
         cmd += img(ov, p["dur"])
     cmd += img(pr, vlen) + (img(endcard, vlen) if paid else img(BRAND, BRAND_DUR) + ["-i", str(NARR_END)])
-    cmd += ["-ss", str(S.get("music_ss", 0)), "-t", str(vlen + 0.5), "-i", str(rel(S["music"]))]
+    if S.get("music"):
+        cmd += ["-ss", str(S.get("music_ss", 0)), "-t", str(vlen + 0.5), "-i", str(rel(S["music"]))]
+    else:   # 音楽なし：無音を音楽のかわりに入れる
+        cmd += ["-f", "lavfi", "-t", str(vlen + 0.5), "-i", "anullsrc=r=48000:cl=stereo"]
     for p in plan:
         cmd += ["-i", str(p["wav"])]
     for pth, _, _ in subs:

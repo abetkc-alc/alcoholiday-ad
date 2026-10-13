@@ -51,6 +51,8 @@ const CONFIG = {
     { key: 'C', name: 'アイラ', desc: 'ゆっくり落ち着いた声' },
     { key: 'D', name: 'アルビン', desc: '男性の声' },
   ],
+  // 背景の音楽（2026-10-11 社長の指示：お客さんが申し込みページでえらぶ。曲は KAYO のパソコンの ALCOHOLIDAY/音声/backmusic）
+  MUSICS: ['バンドサウンド', 'ボサノバ', 'ジャズ', 'ポップ', '音楽なし'],
   PLATFORMS: ['instagram', 'tiktok', 'x'],
   PLATFORM_NAMES: { instagram: 'Instagram', tiktok: 'TikTok', x: 'X' },
   // お客さんに送るメールの最後（署名の下）に必ず付ける（2026-10-10 社長の指示）
@@ -65,7 +67,7 @@ const COLS = ['id', '会員ID', '受付日時', '状態', '店名', '担当者',
   '動画', '投稿文', '投稿日時', '承認日時', 'お客さんのコメント', '予約ID', '履歴',
   '前の動画', '前の投稿文',   // 直しのあと、お客さんが「直す前」を選べるように残す（2026-10-04 追加。台帳の右端に足される）
   'SNS',                     // 投稿文をつくる SNS（instagram,tiktok,x のように。2026-10-06 追加）
-  'プラン'];                 // 無料／有料（2026-10-10 追加。いまは受付で「無料」。有料にするときは、制作の前に社長が台帳で「有料」に変える）
+  'プラン', '音楽'];                 // 無料／有料（2026-10-10 追加。いまは受付で「無料」。有料にするときは、制作の前に社長が台帳で「有料」に変える）
 // 会員（受付台帳の「会員」シート）。パスワードはそのまま保存せず、ソルトを足して何度もハッシュにした値だけを残す
 const MEMBER_SHEET = '会員';
 const MCOLS = ['会員ID', '登録日時', '状態', 'メール', 'パスワード', 'ソルト', '店名', '担当者', '電話', '都道府県', '住所',
@@ -150,7 +152,7 @@ function pageTemplate_(p) {
 /* ───── AWS（Amplify）に置いた受付ページからの呼び出し（2026-10-11） ─────
    受付ページ（web/index.html）は、ページの中身を GAS から受け取って表示し、ボタンの動きも GAS を呼んで行う。
    呼べるのは、Google のページで google.script.run から呼べるものと同じ関数だけ（PUBLIC_FNS） */
-const PUBLIC_FNS = ['registerMember', 'login', 'formPage', 'logout', 'requestReset', 'resetPassword', 'orderResult',
+const PUBLIC_FNS = ['musicSample', 'registerMember', 'login', 'formPage', 'logout', 'requestReset', 'resetPassword', 'orderResult',
   'startUpload', 'uploadChunk', 'submitOrder', 'reviewVideo', 'videoFile', 'downloaded', 'requestChange'];
 
 /** 受付ページで表示する HTML（AWS の受付ページだと分かる印・画面の幅の設定・題名を足す） */
@@ -189,6 +191,7 @@ function formData_(m, session) {
   return {
     session: session, member: member, topUrl: pageUrl_(),
     platforms: CONFIG.PLATFORMS.map(p => ({ key: p, name: CONFIG.PLATFORM_NAMES[p] })),
+    musics: CONFIG.MUSICS,
     guides: (s => CONFIG.GUIDES.map(g => Object.assign({ sample: s[g.key] || '' }, g)))(voiceSamples()),   // 声の見本（フォルダを1回だけ見る）
     videos: CONFIG.VIDEOS,
     maxVideoMb: CONFIG.MAX_VIDEO_MB,
@@ -223,6 +226,14 @@ function voiceSamples() {
     }
   } catch (err) { /* 見本がまだ無いときは「声を聞く」を出さない */ }
   return out;
+}
+
+/** 背景の音楽の見本（「声見本」フォルダの 音楽_ジャズ.mp3 など。12秒ほど）。「▶ 聞く」を押したときだけ受け取る（2026-10-11）
+ *  見本は KAYO が tools/music_samples.py で置く */
+function musicSample(name) {
+  if (CONFIG.MUSICS.indexOf(name) < 0) throw new Error('音楽の名前が違います');
+  const it = voiceFolder_().getFilesByName('音楽_' + name + '.mp3');
+  return it.hasNext() ? 'data:audio/mpeg;base64,' + Utilities.base64Encode(it.next().getBlob().getBytes()) : '';
 }
 
 function voiceSample_(key) {
@@ -476,6 +487,7 @@ function submitOrder(f) {
   const platforms = (Array.isArray(f.platforms) ? f.platforms : []).filter((p, i, a) => CONFIG.PLATFORMS.indexOf(p) >= 0 && a.indexOf(p) === i);
   if (!platforms.length) throw new Error('動画を載せる SNS を1つ以上えらんでください');
   const guide = CONFIG.GUIDES.filter(g => g.key === f.guide)[0];
+  if (CONFIG.MUSICS.indexOf(f.music) < 0) throw new Error('背景の音楽をえらんでください');
 
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
@@ -496,7 +508,7 @@ function submitOrder(f) {
       '電話': clip_(f.tel, 30), '都道府県': clip_(f.pref, 10), '住所': clip_(f.address, 120), 'エリア': clip_(f.area, 80),
       '営業時間': clip_(f.hours, 80), '店のSNS': clip_(f.sns, 200), '商品名': clip_(f.product, CONFIG.PRODUCT_MAX),
       '商品の説明': clip_(f.desc, CONFIG.DESC_MAX), '価格': clip_(f.price, 40), '数量限定': f.limited ? 'はい' : '', 'SNS': platforms.join(','),
-      '案内役': guide ? guide.key : 'おまかせ', '要望': clip_(f.note, 600),
+      '案内役': guide ? guide.key : 'おまかせ', '音楽': f.music,   // 2026-10-11 から「ご要望」の欄はない（列は前の申し込みのために残す）
       // 投稿文は、商品の説明をもとに KAYO が自動でつくる（2026-10-10 から申し込みページに入力欄はない）
       '素材動画': folder.getId(), '動画の説明': JSON.stringify(videoInfo), '承認キー': key,
       'プラン': CONFIG.PLANS.indexOf(f.plan) >= 0 ? f.plan : '無料',   // 申し込みページでえらぶ（2026-10-11〜。お支払いの仕組みはまだない）
@@ -516,7 +528,7 @@ function submitOrder(f) {
     mail_(rec['メール'], '【ALCOHOLIDAY】ショート動画のお申し込みを受け付けました（' + id + '）',
       rec['店名'] + '\n' + dear_(rec) + '\n\n' +
       'お申し込みありがとうございます。以下の内容で受け付けました。\n\n' +
-      '受付番号：' + id + '\nプラン：' + rec['プラン'] + '版\n投稿文をつくる SNS：' + snsText + '\nおすすめ商品：' + rec['商品名'] + '\n\n' +
+      '受付番号：' + id + '\nプラン：' + rec['プラン'] + '版\n背景の音楽：' + rec['音楽'] + '\n投稿文をつくる SNS：' + snsText + '\nおすすめ商品：' + rec['商品名'] + '\n\n' +
       '■ このあとの流れ\n' +
       '1. ALCOHOLIDAY が動画をつくります\n' +
       '2. 動画ができたら、確認用ページのリンクをメールでお送りします（受付から約' + CONFIG.MAKE_MINUTES + '分後。混み合っているときは、遅れることがあります）\n' +
@@ -526,7 +538,7 @@ function submitOrder(f) {
       'ALCOHOLIDAY（アルコホリディ）');
     mail_(CONFIG.OWNER_EMAIL, '【BAR広告】新しい依頼 ' + id + ' ' + rec['店名'],
       '新しい依頼が届きました。\n\n店名：' + rec['店名'] + '（' + rec['都道府県'] + rec['住所'] + '）\n' +
-      '商品：' + rec['商品名'] + '\n投稿文：' + snsText + '\nプラン：' + rec['プラン'] + '\n声：' + guideName_(rec['案内役']) + '\n\n' +
+      '商品：' + rec['商品名'] + '\n投稿文：' + snsText + '\nプラン：' + rec['プラン'] + '\n音楽：' + rec['音楽'] + '\n声：' + guideName_(rec['案内役']) + '\n\n' +
       'Claude Code に「KAYO、BAR広告の新しい依頼を確認して」と話しかけてください。\n' +
       '受付台帳：' + SpreadsheetApp.openById(prop_('SHEET_ID')).getUrl());
     const res = { id: id, when: snsText, plan: rec['プラン'] };   // when の例：Instagram・TikTok

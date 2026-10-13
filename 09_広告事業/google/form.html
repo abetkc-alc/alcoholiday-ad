@@ -118,12 +118,13 @@
     </section>
 
     <section>
-      <h2><span class="no">5</span>声の案内の種類</h2>
+      <h2><span class="no">5</span>声の案内と音楽</h2>
       <p>動画の声の案内（ナレーション）の声をえらんでください。<b>「▶ 声を聞く」</b>で聞きくらべられます。</p>
       <div class="voices" id="voices"></div>
-      <div class="field" data-mic>
-        <div class="lab">ご要望<span class="tag opt">なくてもよい</span></div>
-        <textarea placeholder="例：楽しい雰囲気で／落ち着いた大人の感じで" name="note" maxlength="600" style="min-height:100px"></textarea>
+      <div class="field">
+        <div class="lab">背景の音楽<span class="tag must">必ず</span></div>
+        <p class="ex">動画の後ろに流す音楽をえらんでください</p>
+        <div class="snslist" id="musics"></div>
       </div>
     </section>
 
@@ -215,7 +216,7 @@
     au.onended = () => { p.textContent = '▶ 声を聞く'; };
     p.onclick = ev => {
       ev.stopPropagation();
-      if (playing && playing !== au) { playing.pause(); playing.currentTime = 0; document.querySelectorAll('.play').forEach(x => x.textContent = '▶ 声を聞く'); }
+      if (playing && playing !== au) stopAll();
       if (!au.paused) { au.pause(); au.currentTime = 0; p.textContent = '▶ 声を聞く'; return; }
       au.play(); playing = au; p.textContent = '■ 止める';
     };
@@ -230,6 +231,36 @@
     if (g.sample) addPlay(box, g.sample);
     box.onclick = () => { st.guide = g.key; document.querySelectorAll('.voice').forEach(x => x.classList.remove('on')); box.classList.add('on'); };
     $('voices').appendChild(box);
+  });
+
+  /* ───── 背景の音楽（2026-10-11）。「▶ 聞く」で12秒ほどの見本を流す（押したときに受け取る） ───── */
+  const stopAll = () => {
+    if (playing) { playing.pause(); playing.currentTime = 0; }
+    document.querySelectorAll('.play').forEach(x => x.textContent = x.dataset.label || '▶ 声を聞く');
+  };
+  DATA.musics.forEach(m => {
+    const lab = document.createElement('label'); lab.className = 'agree musicopt';
+    lab.innerHTML = '<input type="radio" name="music"><span class="mn"></span>';
+    lab.querySelector('input').value = m;
+    lab.querySelector('.mn').textContent = m;
+    if (m !== '音楽なし') {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'play'; b.dataset.label = '▶ 聞く'; b.textContent = '▶ 聞く';
+      let au = null;
+      b.onclick = async ev => {
+        ev.preventDefault(); ev.stopPropagation();
+        if (au && !au.paused) { stopAll(); return; }
+        stopAll();
+        if (!au) {
+          b.textContent = '読み込み中…';
+          try { const src = await run('musicSample', m); if (!src) { b.textContent = '見本はありません'; return; } au = new Audio(src); }
+          catch (e) { b.textContent = '▶ 聞く'; return; }
+          au.onended = () => { b.textContent = '▶ 聞く'; };
+        }
+        au.play(); playing = au; b.textContent = '■ 止める';
+      };
+      lab.appendChild(b);
+    }
+    $('musics').appendChild(lab);
   });
 
   /* ───── 投稿する SNS（はじめは全部に印） ───── */
@@ -379,6 +410,7 @@
     if (!String(f.desc || '').trim()) miss.push('2 の「商品の説明」を入れてください');
     st.videos.forEach((v, i) => { if (!v) miss.push('3 の「動画' + (i + 1) + '（' + DATA.videos[i].title + '）」をえらんでください'); });
     desc.forEach((d, i) => { if (!d) miss.push('3 の「動画' + (i + 1) + 'の説明」を入れてください'); });
+    if (!f.music) miss.push('5 の「背景の音楽」をえらんでください');
     if (!f.platforms.length) miss.push('7 の「動画を載せる SNS」を1つ以上えらんでください');
     if (!f.agree) miss.push('8 の「同意します」に印をつけてください');
     if (miss.length) { $('err').textContent = 'まだ入っていないところがあります：\n・' + miss.join('\n・'); return false; }
