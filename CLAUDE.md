@@ -41,6 +41,11 @@
   - 2026-10-04 社長の指示：申し込み（と直しの依頼・1回まで）→ 動画 → 「動画ができました」メールまでは自動（`09_広告事業/tools/bar_auto.py`・5分ごと）で、社長の確認は挟まない
 - お客さんの直しの依頼は `tools/fix_learn.py`（10分ごと）が学びと読み方を `09_広告事業/直しから学んだこと.md` に書き足し、次の台本づくり（bar_auto.py）と声（narrate.py）に自動で使う（2026-10-10）
 
+## Codex（OpenAI）との連携
+- Claude から Codex に仕事をたのむときは `08_AI部署/data/codex.py` を使う（2026-10-16）。codex.exe の場所は更新で変わるが、毎回いちばん新しいものを見つける
+- 「Codex で〜」と言われたら `.claude/skills/codex/SKILL.md` の手順に従う。相談・見直しは `--readonly`
+- Codex の返事やできたものは、Claude が自分で確かめてから社長に伝える
+
 ## GitHubリポジトリ
 https://github.com/abetkc-alc/alcoholiday-ad （非公開）
 - 送るのはノート・プログラム・設定だけ。画像・動画・音声・案件（お客さんの個人情報）・07_アカウント管理は送らない（.gitignore）
