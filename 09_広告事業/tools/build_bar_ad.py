@@ -218,58 +218,46 @@ def date_chip(path, date):
     im.save(path)
 
 
-def top_shade(im, depth=640, alpha=190):
-    grad = Image.new("L", (1, H), 0)
-    for yy in range(H):
-        grad.putpixel((0, yy), int(alpha * max(0, min(1, (depth - yy) / (depth * 0.55)))))
-    im.paste(Image.new("RGBA", (W, H), (10, 8, 6, 255)), (0, 0), grad.resize((W, H)))
-
-
-def bottom_shade(im, start=1380, alpha=150):
-    grad = Image.new("L", (1, H), 0)
-    for yy in range(H):
-        grad.putpixel((0, yy), int(alpha * max(0, min(1, (yy - start) / 300))))
-    im.paste(Image.new("RGBA", (W, H), (10, 8, 6, 255)), (0, 0), grad.resize((W, H)))
+def soft_shadow(im):
+    """文字のうしろにだけ、うすい影をつける（画面の上下を黒くしない。2026-10-16 社長の指示で上下の黒いグラデーションをやめた）"""
+    a = im.getchannel("A").filter(ImageFilter.GaussianBlur(6)).point(lambda v: min(255, int(v * 0.8)))
+    sh = Image.new("RGBA", im.size, (0, 0, 0, 255))
+    sh.putalpha(a)
+    return Image.alpha_composite(sh, im)
 
 
 def product_overlay(product, price, path, limited=False, top=210, line=True):
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    top_shade(im, depth=640 + top - 210)
     d = ImageDraw.Draw(im)
     y = top
     if line:
         d.line((440, y, 640, y), fill=GOLD, width=3)
     # 商品名が長いときは、2行に収まるまで文字を小さくする（64 → 56 → 50）
     f = next((font(sz, heavy=True) for sz in (64, 56, 50) if len(split_lines(d, product, font(sz, heavy=True))) <= 2), font(50, heavy=True))
-    y = text_center(d, y + 26, product, f, (255, 255, 255, 255), stroke=2)
+    y = text_center(d, y + 26, product, f, (255, 255, 255, 255), stroke=3)
     if price:
-        y = text_center(d, y + 8, price, font(46), GOLD, stroke=2)
+        y = text_center(d, y + 8, price, font(46), GOLD, stroke=3)
     if limited:
         text_center(d, y + 10, LIMITED, font(30), (255, 255, 255, 240), maxw=980, stroke=2)
-    bottom_shade(im)
-    im.save(path)
+    soft_shadow(im).save(path)
 
 
 def shop_overlay(shop, area, hours, path, top=210, line=True):
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    top_shade(im, depth=700 + top - 210)
     d = ImageDraw.Draw(im)
     y = top
     if line:
         d.line((440, y, 640, y), fill=GOLD, width=3)
-    y = text_center(d, y + 26, shop, font(68, heavy=True), (255, 255, 255, 255), stroke=2)
+    y = text_center(d, y + 26, shop, font(68, heavy=True), (255, 255, 255, 255), stroke=3)
     for t in (area, hours):
         if t:
-            y = text_center(d, y + 4, t, font(38), (240, 230, 215, 255), stroke=2)
-    bottom_shade(im)
-    text_center(d, 1810, NOTICE, font(27), (225, 215, 200, 240), maxw=1000, stroke=1)
-    im.save(path)
+            y = text_center(d, y + 4, t, font(38), (240, 230, 215, 255), stroke=3)
+    text_center(d, 1810, NOTICE, font(27), (225, 215, 200, 240), maxw=1000, stroke=2)
+    soft_shadow(im).save(path)
 
 
 def plain_overlay(path):
-    im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    bottom_shade(im)
-    im.save(path)
+    Image.new("RGBA", (W, H), (0, 0, 0, 0)).save(path)
 
 
 def probe(path):
