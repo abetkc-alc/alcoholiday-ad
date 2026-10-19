@@ -31,8 +31,13 @@ GOOGLE_VOICES = {
 # 読み方の直し（字幕はそのまま、声だけこの読み方にする）
 READINGS = {
     "BAR": "バー", "Bar": "バー", "bar": "バー",   # 「ビーエーアール」と読まれるので「バー」に統一
-    "徒歩": "とほ",                                # 「ポホ」と読み違える声があるため
+    "徒歩": "とほ",                                # 「ポホ」と読み違える声があるため（お試しの声だけ。Google の声は下の PRONOUNCE）
 }
+# Google の声で、漢字のまま読み方だけを指定する言葉（2026-10-19 社長の指示：「徒歩」は必ず「とほ」、「と」と「ほ」の間をあけない）
+#   ひらがなの「とほ」にすると「と」を助詞とまちがえて「と、ほ」と区切ることがあるので、漢字の「徒歩」のまま読ませ、読みだけ「とほ」と指定する
+PRONOUNCE = {"徒歩": "とほ"}
+# 台本にひらがな・カタカナで書かれた「とほ」「トホ」は、漢字の「徒歩」にもどしてから読む（「途方（とほう）」は変えない）
+TOHO_KANA = re.compile(r"(?<![ぁ-んァ-ヶ])(?:とほ|トホ)(?![うウーほホ])")   # 「ことほぎ」「とほう」「とほほ」は変えない
 # お試しの声（edge-tts）。3人とも別の人の声にする（2026-10-04 社長「全部同じ雰囲気」→ 変更）
 #   日本語の女性は Nanami だけなので、B・C は日本語も話せる多言語の声を使う（聞き取りで発音を確認済み）
 EDGE_VOICES = {
@@ -81,6 +86,7 @@ def duration(wav_path):
         return w.getnframes() / w.getframerate()
 
 
+PERCENT_OFF = re.compile(r"(\d+(?:\.\d+)?)\s*[%％]\s*(?:オフ|おふ|[Oo][Ff][Ff]\s*)")   # 英語の off のあとのスペースも詰める（「30% off です」）
 PAUSE = 0.4   # 文の中にスペースがあるとき、そこで置く「一拍」の長さ（秒）。2026-10-10 社長の指示
 
 
@@ -92,15 +98,28 @@ def synth(key, text, out):
     if key not in NAMES:
         raise SystemExit("声は A / B / C / D のどれか")
     out = pathlib.Path(out)
+    # 「20％オフ」「20% off」「20 ％ OFF」は、％とオフのあいだで間をあけずに続けて読む（2026-10-17 社長の指示）
+    #   「20%オフ」（半角の％のすぐあとにカタカナのオフ）の形がいちばん切れ目なく読まれた（聞きくらべ：「パーセントオフ」は途中に小さな間が出た）
+    text = PERCENT_OFF.sub(r"\1%オフ", text)
+    if engine() == "google":   # ひらがな・カタカナの「とほ」は漢字にもどす（読みは PRONOUNCE で「とほ」と指定する）
+        text = TOHO_KANA.sub("徒歩", text)
     # 読み方の直し（BAR→バー など）の前に区切る（英語どうしかどうかを、お客さんが書いたままの文字で見るため）
     parts = [p for p in re.split(r"(?<![A-Za-z0-9])\s+|\s+(?![A-Za-z0-9])", text.strip()) if p]
     for k, v in all_readings():
+        if engine() == "google" and k in PRONOUNCE:   # 漢字のまま読み方を指定する言葉は、ひらがなに置きかえない
+            continue
         parts = [p.replace(k, v) for p in parts]
     text = " ".join(parts)
     if len(parts) <= 1:
         synth_one(key, text.strip(), out)
         return duration(out)
-    # 区切りごとに読み上げて、一拍の無音をはさんでつなぐ（どれも 48kHz・ステレオ・16bit）
+    if engine() == "google":
+        # 2026-10-16 社長「もっと流ちょうに」：区切りごとに別々に読むと抑揚がとぎれるので、文全体を一度に読み、
+        # スペースのところには Google の「[pause short]」（約0.45秒の間）を入れる
+        clean = [p.replace("[", "［").replace("]", "］") for p in parts]
+        synth_one(key, " [pause short] ".join(clean), out, markup=True)
+        return duration(out)
+    # お試しの声（edge-tts）は間の指定ができないので、区切りごとに読み上げて、一拍の無音をはさんでつなぐ（どれも 48kHz・ステレオ・16bit）
     frames, params = [], None
     for i, part in enumerate(parts):
         piece = out.with_name(f"{out.stem}.part{i + 1}.wav")
@@ -116,15 +135,20 @@ def synth(key, text, out):
     return duration(out)
 
 
-def synth_one(key, text, out):
-    """区切りのない1つの文を読み上げて out（.wav）に保存する"""
+def synth_one(key, text, out, markup=False):
+    """1つの文を読み上げて out（.wav）に保存する（markup=True：文の中の [pause short] を間として読む。Google だけ）"""
     raw = out.with_suffix(".raw" + (".wav" if engine() == "google" else ".mp3"))
     if engine() == "google":
         import requests
         v = GOOGLE_VOICES[key]
+        inp = {"markup" if markup else "text": text}
+        prons = [{"phrase": k, "phoneticEncoding": "PHONETIC_ENCODING_JAPANESE_YOMIGANA", "pronunciation": y}
+                 for k, y in PRONOUNCE.items() if k in text]
+        if prons:   # 読み方の指定（「徒歩」→「とほ」など）
+            inp["customPronunciations"] = {"pronunciations": prons}
         r = requests.post("https://texttospeech.googleapis.com/v1/text:synthesize",
                           params={"key": env("GOOGLE_TTS_KEY")}, timeout=60,
-                          json={"input": {"text": text},
+                          json={"input": inp,
                                 "voice": {"languageCode": "ja-JP", "name": v["name"]},
                                 "audioConfig": {"audioEncoding": "LINEAR16", "sampleRateHertz": 48000, "speakingRate": v["rate"]}})
         if r.status_code != 200:

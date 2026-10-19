@@ -279,7 +279,8 @@
     if (!c.trim()) { $('msg').textContent = '直してほしいところを書いてください'; return; }
     $('msg').textContent = '';
     document.querySelectorAll('button').forEach(b => b.disabled = true);
-    try { done(await run('requestChange', ID, KEY, c), false); } catch (e) { fail(e); }
+    // 見出しは1行（折り返さない）なので短く、くわしいことは下の文に（2026-10-14 枠からはみ出していたのを直した）
+    try { await run('requestChange', ID, KEY, c); done('受け付けました', '直した動画ができたら、またメールでお知らせします。', '✔'); } catch (e) { fail(e); }
   }
 </script>
 </body>

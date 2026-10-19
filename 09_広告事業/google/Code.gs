@@ -36,7 +36,7 @@ const CONFIG = {
   ],
   MAX_VIDEO_MB: 25,          // 1本の大きさの上限（2026-10-07 社長の指示で150→25。5秒・1080p なら10MBくらい。大きいと受け取りに時間がかかる）
   MAX_VIDEO_SEC: 10,         // 1本の長さの上限（秒）。使うのは1本4〜5秒
-  VIDEO_DESC_MAX: 50,        // 動画1本ごとの説明の文字数の上限（2026-10-06 社長の指示で100→50。声と字幕にほぼそのまま使う）
+  // 動画1本ごとの説明の欄は、2026-10-16 社長の指示でなくした（商品の説明1つから、声の案内・字幕・投稿文をつくる）
   PW_MIN: 8,                 // パスワードの最短の文字数
   SESSION_DAYS: 30,          // ログインしたままでいられる日数
   LOGIN_MAX_FAIL: 5,         // パスワードを何回まちがえたら、しばらくログインできなくするか
@@ -44,7 +44,7 @@ const CONFIG = {
   RESET_HOURS: 1,            // パスワード再設定のリンクの有効時間
   MAX_FIX: 1,                // 動画の直しは何回までか（2026-10-04 社長の指示：1回だけ。直したあとは2本から選んで決める）
   PRODUCT_MAX: 40,           // 商品の名前の文字数の上限（動画の上に出すので短め）
-  DESC_MAX: 50,              // 商品の説明の文字数の上限（2026-10-06 社長の指示で300→50）
+  DESC_MAX: 300,             // 商品の説明の文字数の上限（2026-10-16 社長の指示で50→300。この説明から声の案内・字幕・投稿文をつくる）
   GUIDES: [                  // ナレーションの声（案内役。動画には出ず、声だけ担当）
     { key: 'A', name: 'ローズ', desc: '明るく親しみやすい声' },
     { key: 'B', name: 'ラフィ', desc: 'クールで大人っぽい声' },
@@ -196,7 +196,6 @@ function formData_(m, session) {
     videos: CONFIG.VIDEOS,
     maxVideoMb: CONFIG.MAX_VIDEO_MB,
     maxVideoSec: CONFIG.MAX_VIDEO_SEC,
-    videoDescMax: CONFIG.VIDEO_DESC_MAX,
     productMax: CONFIG.PRODUCT_MAX,
     descMax: CONFIG.DESC_MAX,
     approveDays: CONFIG.APPROVE_DAYS,
@@ -471,8 +470,6 @@ function submitOrder(f) {
   const vids = f.videos || [];
   if (vids.length !== CONFIG.VIDEOS.length) throw new Error('動画を' + CONFIG.VIDEOS.length + '本えらんでください');
   vids.forEach((v, i) => {
-    if (!v.desc || !String(v.desc).trim()) throw new Error('動画' + (i + 1) + '（' + CONFIG.VIDEOS[i].title + '）の説明を入力してください');
-    if (String(v.desc).length > CONFIG.VIDEO_DESC_MAX) throw new Error('動画' + (i + 1) + 'の説明は' + CONFIG.VIDEO_DESC_MAX + '文字までです');
     if (Number(v.size) > CONFIG.MAX_VIDEO_MB * 1024 * 1024) throw new Error('動画' + (i + 1) + 'が大きすぎます。' + CONFIG.MAX_VIDEO_MB + 'MB までの短い動画（5秒くらい）にしてください');
     if (Number(v.sec) > CONFIG.MAX_VIDEO_SEC + 0.5) throw new Error('動画' + (i + 1) + 'が長すぎます。' + CONFIG.MAX_VIDEO_SEC + '秒までの短い動画（5秒くらい）にしてください');
   });
@@ -498,7 +495,7 @@ function submitOrder(f) {
     folder.moveTo(caseFolder_());
     folder.setName(id + ' ' + clip_(f.shop, 40));
     const videoInfo = vids.map((v, i) => ({
-      no: i + 1, title: CONFIG.VIDEOS[i].title, desc: clip_(v.desc, 300), name: clip_(v.name, 120),
+      no: i + 1, title: CONFIG.VIDEOS[i].title, desc: clip_(v.desc || '', 300), name: clip_(v.name, 120),
       type: clip_(v.type, 40), size: Number(v.size) || 0, sec: Math.round((Number(v.sec) || 0) * 10) / 10, parts: Number(v.parts),
     }));
     const key = Utilities.getUuid().replace(/-/g, '').slice(0, 20);

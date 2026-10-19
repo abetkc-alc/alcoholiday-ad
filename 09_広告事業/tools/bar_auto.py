@@ -84,6 +84,23 @@ def allowed_words():
     return [w.strip() for w in t[:t.index("```")].splitlines() if w.strip()]
 
 
+SHOP_WORDS = r"(?i)\b(bar|pub|lounge|dining)\b|バー|ＢＡＲ"   # 店名から外して、名前の本体だけでも探す言葉
+
+
+def find_shop_name(a, shop):
+    """ナレーション・字幕に店名が入っていないかを調べる（2026-10-17 社長の指示：店名は読み上げない。画面の文字と投稿文には出す）
+    「Bar Salvador」なら「barsalvador」と「salvador」の両方を探す（ひらがな・カタカナに直された読みは探せないので、きまりでも伝える）"""
+    flat = lambda s: "".join(str(s).split()).lower()
+    names = {flat(shop), flat(re.sub(SHOP_WORDS, " ", str(shop)))}
+    names = {n for n in names if len(n) >= 2}
+    probs = []
+    for i, c in enumerate(a.get("clips", []), 1):
+        t = flat(str(c.get("narr", "")) + " ".join(map(str, c.get("subs", []))))
+        if any(n in t for n in names):
+            probs.append(f"動画{i}のナレーション・字幕に店名「{shop}」がある。店名は読み上げないので、店名を外した文にする（「このお店」などにしてもよい）")
+    return probs
+
+
 def find_banned(a):
     """台本と投稿文から禁止の言葉を探す。見つかったら直すところのリストを返す"""
     texts = [("ナレーション・字幕", " ".join(str(c.get("narr", "")) + " " + " ".join(map(str, c.get("subs", []))) for c in a.get("clips", [])))]
@@ -120,9 +137,24 @@ def ask_claude(prompt):
     raise RuntimeError("Claude の答えに JSON がありません：" + r.stdout[:300])
 
 
+NARR_CPS = 5.0    # 声が1秒に読む文字数（Google の声で、間やひらがなの読みがあると約4.5〜5文字。2026-10-16 試して決めた）
+NARR_MAX = 45     # 1本のナレーションの上限（字幕15文字×3行）
+NARR_MIN = 20
+
+
+def narr_budget(dur):
+    """動画の長さから、ナレーションの文字数の目安を決める（2026-10-16 社長「読み上げを多く」。前は一律20〜25文字）
+    使えるのは「使い始め0.3秒・終わりの余り0.1秒・声の前後の間0.9秒」を引いた分"""
+    return int(max(NARR_MIN, min(NARR_MAX, (dur - 1.3) * NARR_CPS)))
+
+
 def make_prompt(order, clips, feedback=""):
     vids = json.loads(order.get("動画の説明") or "[]")
-    lines = [f"動画{v['no']}（{v['title']}・長さ {c['dur']:.1f}秒）：お客さんの説明「{v['desc']}」" for v, c in zip(vids, clips)]
+    # 2026-10-16 社長の指示：動画ごとの説明の欄はなくなった。「商品の説明」1つから、3本の動画のナレーションを分けてつくる
+    #   （前の申し込みで動画ごとの説明があるときは、それも渡す）
+    lines = [f"動画{v['no']}（{v['title']}・長さ {c['dur']:.1f}秒・ナレーションは{narr_budget(c['dur'])}文字くらいまで）"
+             + (f"：お客さんの説明「{v['desc']}」" if str(v.get("desc") or "").strip() else "")
+             for v, c in zip(vids, clips)]
     music = music_list()
     plats = bar_sync.platforms_of(order)
     return f"""あなたは ALCOHOLIDAY の KAYO（scripts 部）です。BAR のおすすめ商品を紹介する縦型動画の台本と SNS の投稿文をつくります。
@@ -149,9 +181,9 @@ def make_prompt(order, clips, feedback=""):
 ## 返す JSON の形
 {{
   "clips": [
-    {{"narr": "動画1のナレーション（25文字まで）", "subs": ["字幕1行目", "字幕2行目"]}},
-    {{"narr": "動画2…", "subs": ["…", "…"]}},
-    {{"narr": "動画3…", "subs": ["…", "…"]}}
+    {{"narr": "動画1のナレーション（上の「ナレーションは〇文字くらいまで」の文字数）", "subs": ["字幕1行目", "字幕2行目", "字幕3行目"]}},
+    {{"narr": "動画2…", "subs": ["…", "…", "…"]}},
+    {{"narr": "動画3…", "subs": ["…", "…", "…"]}}
   ],
   "voice": "声の案内役（お客さんの指定が A/B/C/D ならそれ。おまかせなら店の雰囲気で A=ローズ（明るい女性）B=ラフィ（大人の女性）C=アイラ（落ち着いた女性）D=アルビン（男性）から選ぶ）",
   "product": "画面に出す商品名（40文字まで。お客さんの商品名をもとに整える）",
@@ -169,8 +201,14 @@ def make_prompt(order, clips, feedback=""):
 - 卑猥な言葉・差別的な言葉・誹謗中傷・乱暴な言葉は一切使わない（お客さんが書いた言葉でも使わない。ナレーション・字幕・商品名・投稿文すべて）
 - 上の「禁止表現リスト」の表現と、それに近い表現は使わない。お客さんの言葉にあったら、違う言葉に置き換える
 - これは自動の処理で、質問に答える人はいない。確認や質問はせず、必ず JSON を返す。申し込みに宣伝に向かない言葉や心配な言葉があれば、それは使わず、商品とお店の紹介として作る
-- ナレーションは動画の長さに入りきるように短く（動画が4秒台なら20文字くらいまで）。説明にないことは足さない
-- ナレーションは、お客さんの説明の言葉をそのまま使う。長いときだけ、言いかえずに削って短くする。決まり文句を足さない
+- **ナレーションは多めに**（2026-10-16 社長の指示）：動画ごとの「ナレーションは〇文字くらいまで」の8〜10割を使い、動画のあいだ声がとぎれないようにする。文字数をこえない。説明にないことは足さない
+- **ナレーションは「商品の説明」の文から、3本に分けてつくる**（2026-10-16 社長の指示。お客さんは動画ごとの文を書かない）
+  - 動画1（お店の雰囲気）：説明の中の、お店の場所・雰囲気の言葉。なければ場所でお店を紹介する
+  - 動画2（おすすめ商品）：説明の中の、商品の味・素材・こだわり・飲み方の言葉と商品名
+  - 動画3（自由）：説明の中の、マスターやお店の魅力の言葉、または商品をすすめる言葉で明るく締める
+  - 3本で同じことをくり返さない。説明の言葉をなるべくそのまま使い、足りないときは商品名・場所を足す（決まり文句・説明にないほめ言葉は足さない）。長いときだけ、言いかえずに削って短くする
+  - 動画ごとの「お客さんの説明」がある申し込み（前のページ）は、その言葉を優先する
+- ナレーションは、声に出して自然に流れる文にする（体言止めを続けない・読点「、」で息つぎする所を入れる）。字幕（subs）はナレーションを1行15文字までに分けたもの（3行まで）
 - お客さんの説明にスペース（半角・全角）があれば、ナレーション（narr）でも同じところにスペースを残す（読み上げでそこに一拍おくため）。スペースのないところに足さない
 - 「今夜はここへ」「まずはここへ」「今夜はここで」や、それに似た言葉は使わない
 - **言い回しは、原則としてすべて明るく**する（ナレーション・字幕・投稿文。前向きで楽しい感じに。2026-10-11 社長の指示）
@@ -252,7 +290,7 @@ def produce(oid, d, order, clips, ask, what, keep_voice):
         cap = {p: bar_sync.add_credit(a["captions"][p]) for p in bar_sync.platforms_of(order) if (a.get("captions") or {}).get(p)}
         a["captions"] = cap
         bad = find_banned(a)   # 禁止表現リスト.md の言葉（2026-10-07 社長の指示）
-        probs = bad + [p for p in bar_sync.check_captions(oid, cap) if not p.startswith("注意：")]
+        probs = bad + find_shop_name(a, order["店名"]) + [p for p in bar_sync.check_captions(oid, cap) if not p.startswith("注意：")]
         if probs:
             feedback = "\n## 前の答えの直すところ（必ず直す）\n- " + "\n- ".join(probs)
             log(f"{oid} {'禁止の言葉があるので' if bad else '投稿文の決まりが足りないので'}つくり直し（{attempt}回目）：{' / '.join(probs)}")
@@ -322,6 +360,7 @@ def fix_prompt(order, clips, spec, cap, comment, feedback=""):
         "captions": {k: bar_sync.add_credit(v).replace("\n\n" + bar_sync.CREDIT, "") for k, v in cap.items()},
     }
     lens = "、".join(f"動画{i}は{c['dur']:.1f}秒" for i, c in enumerate(clips, 1))
+    budgets = "、".join(f"動画{i}は{narr_budget(c['dur'])}文字まで" for i, c in enumerate(clips, 1))
     return f"""あなたは ALCOHOLIDAY の KAYO（scripts 部）です。お客さんから、動画の直しの依頼が届きました。
 ツールは使わず、依頼に合わせて今の内容を直し、最後に JSON だけを返してください（説明の文は不要）。
 言い回しは、原則としてすべて明るくします（前向きで楽しい感じに）。
@@ -333,7 +372,7 @@ def fix_prompt(order, clips, spec, cap, comment, feedback=""):
 {json.dumps(now, ensure_ascii=False, indent=2)}
 
 ## 直せること
-- clips：動画1〜3のナレーション（narr。25文字まで）と字幕（subs。1行15文字まで）。語尾や言い方、読み方
+- clips：動画1〜3のナレーション（narr。{budgets}）と字幕（subs。1行15文字まで・3行まで）。語尾や言い方、読み方
   - 語尾を下げたいときは、言い切りの形にして「。」で終える（例：「〜をどうぞ。」）。上げたいときは「！」
   - **読み間違いの直しは narr（声）だけをひらがなにする。subs（字幕）は漢字のまま**（例：narr「要町のいっけんや」、subs「要町の一軒家」）
 - starts：動画1〜3の使い始め（秒）。{lens}。使い始めから4.5秒ぶん使う

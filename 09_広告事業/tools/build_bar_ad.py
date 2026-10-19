@@ -322,6 +322,8 @@ def main():
         start = c.get("start", 0.0)
         need = max(MIN_CLIP, LEAD + nd + TAIL)
         dur = round(c.get("dur") or max(need, min(TARGET_CLIP, info["dur"] - start - 0.1)), 2)
+        if start + dur > info["dur"] - 0.05 and start > 0:   # 声が少しはみ出すときは、使い始めを前にずらす（2026-10-16 読み上げを多くしたため）
+            start = round(max(0.0, info["dur"] - dur - 0.1), 2)
         if start + dur > info["dur"] - 0.05:
             raise SystemExit(f"動画{i}が足りません：{dur:.2f}秒必要・使えるのは {info['dur'] - start:.2f}秒（{c['file']}）。"
                              "ナレーションを短くするか start を前にする")

@@ -16,7 +16,7 @@
     <p class="lead">お店の SNS に載せる、おすすめ商品のショート動画をおつくりします。</p>
     <ol class="flow">
       <li><b>1</b>お店の詳細を入力</li>
-      <li><b>2</b>おすすめ商品の説明を入力</li>
+      <li><b>2</b>おすすめ商品とお店の説明を入力</li>
       <li><b>3</b>動画をアップロード</li>
       <li><b>4</b>メールで届いた URL からダウンロード</li>
     </ol>
@@ -82,9 +82,11 @@
         <textarea class="grow" rows="1" placeholder="例：季節のフルーツカクテル「桃のベリーニ」" name="product" maxlength="<?= data.productMax ?>" data-count="<?= data.productMax ?>" required></textarea>
       </div>
       <div class="field" data-mic>
-        <div class="lab">商品の説明<span class="tag must">必ず</span></div>
-        <p class="ex"><b><?= data.descMax ?>文字まで</b>。味・こだわり・おすすめの飲み方など</p>
-        <textarea placeholder="例：岡山の白桃を丸ごと使った、秋だけのベリーニです。甘さひかえめで、食後の一杯にもおすすめです。" name="desc" maxlength="<?= data.descMax ?>" data-count="<?= data.descMax ?>" required></textarea>
+        <div class="lab">商品とお店の説明<span class="tag must">必ず</span></div>
+        <p class="ex"><b><?= data.descMax ?>文字まで</b>。<b>この文から、動画の声の案内・字幕と SNS の投稿文をつくります</b>（動画ごとに文を入れる必要はありません）。<br>
+          商品の味・こだわり・おすすめの飲み方に加えて、お店の雰囲気やマスターのことも書いていただくと、動画がにぎやかになります。</p>
+        <!-- 2026-10-16 社長の指示：動画1本ごとの説明の欄をなくし、ここ1つに長く書いてもらう -->
+        <textarea placeholder="例：恵比寿駅から歩いて3分、木のカウンターが落ち着く小さなバーです。秋だけの限定、岡山の白桃を丸ごと使ったベリーニは、甘さひかえめで食後の一杯にもおすすめ。マスターは銀座で20年。好みを伝えれば、あなただけの一杯をつくってくれます。" name="desc" maxlength="<?= data.descMax ?>" data-count="<?= data.descMax ?>" style="min-height:220px" required></textarea>
       </div>
       <div class="field" data-mic>
         <div class="lab">値段<span class="tag opt">なくてもよい</span></div>
@@ -98,7 +100,7 @@
 
     <section>
       <h2><span class="no">3</span>お店で撮った動画を3本</h2>
-      <p>スマホで<b>5秒くらいの動画を3本</b>撮ってください。3本をつないで、声の案内と字幕を入れた1本の動画にします。</p>
+      <p>スマホで<b>5秒くらいの動画を3本</b>撮ってください。3本をつないで、2 の説明から声の案内と字幕を入れた1本の動画にします。</p>
       <ul class="tips">
         <li>スマホは<b>縦向き</b>で、明るい場所で撮ってください</li>
         <li>動画の音は使いません（音楽と声の案内を入れます）</li>
@@ -164,7 +166,7 @@
       </ul>
       <label class="agree"><input type="checkbox" name="agree" value="1">上の内容に同意します</label>
       <button class="submit" id="btn">申し込む</button>
-      <p class="sendnote" id="sendnote" hidden><b>アップロードの時間は約3分</b>です。電波や混み具合によって変わります。<br>終わるまで、この画面を閉じずにお待ちください。</p>
+      <p class="sendnote" id="sendnote" hidden><b>アップロードの時間は約3分</b>です。電波や混み具合によって変わります。<br>終わるまで、<b>画面を消さずに</b>、この画面のままお待ちください。<br>もし画面が消えてしまっても、画面をつけ直せば、続きから自動で送ります。</p>
       <div class="progress" id="progress"></div>
       <div class="err" id="err"></div>
     </section>
@@ -279,13 +281,9 @@
     box.innerHTML = '<div class="rectime">⏱ 録画時間 <b>5秒</b> 程度</div>' +
       '<h3><em>動画' + (i + 1) + '</em><span class="t"></span></h3><p class="ex h"></p>' +
       '<label class="filebtn"><span class="bt">🎥 ここを押して動画をえらぶ</span><input type="file" accept="video/*"></label>' +
-      '<p class="msg"></p><video muted playsinline controls preload="metadata" hidden></video><div class="vinfo"></div>' +
-      '<div class="field"><div class="lab">この動画の説明<span class="tag must">必ず</span></div>' +
-      '<p class="ex"><b>' + DATA.videoDescMax + '文字まで</b>。書かれた言葉に基づいて、声の案内と字幕に使います</p>' +
-      '<textarea maxlength="' + DATA.videoDescMax + '" data-count="' + DATA.videoDescMax + '" style="min-height:100px"></textarea></div>';
+      '<p class="msg"></p><video muted playsinline controls preload="metadata" hidden></video><div class="vinfo"></div>';
     box.querySelector('.t').textContent = v.title;
     box.querySelector('.h').textContent = v.hint;
-    box.querySelector('textarea').placeholder = v.example;
     const input = box.querySelector('input'), vid = box.querySelector('video'), err = box.querySelector('.msg'), info = box.querySelector('.vinfo');
     input.onchange = () => {
       const file = input.files[0];
@@ -327,8 +325,6 @@
       };
     };
     $('videos').appendChild(box);
-    addCount(box.querySelector('textarea'));
-    addMic(box.querySelector('.field'));
   });
 
   const toB64 = blob => new Promise((ok, ng) => {
@@ -337,22 +333,53 @@
     r.readAsDataURL(blob);
   });
 
-  // 動画を約4MBずつに分けて送る（大きい動画でも送れるように）
+  /* ───── 送っているあいだ、スマホの画面が消えない（スリープしない）ようにする（2026-10-17 社長の指示） ─────
+     画面が消えるとスマホがページを止め、送っている途中の動画が届かなかった。
+     ・画面をつけたままにする機能（Wake Lock。iPhone は iOS 16.4 から・Android の Chrome）を、送っているあいだだけ使う
+     ・それでも画面が消えたときは、画面をつけ直すと、送れたところ（約4MBの区切り）の続きから自動で送る */
+  let wake = null, sending = false;
+  async function keepAwake() {
+    if (!sending || wake || !('wakeLock' in navigator) || document.hidden) return;
+    try { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); }
+    catch (e) { /* この機能が使えないスマホ・画面では、何もしない（続きから送るしくみで助ける） */ }
+  }
+  function letSleep() { sending = false; if (wake) { wake.release().catch(() => {}); wake = null; } }
+  // 画面が消えると、この機能は自動で切れるので、画面がついたらもう一度たのむ
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) keepAwake(); });
+  const whenVisible = () => new Promise(ok => {
+    if (!document.hidden) return ok();
+    const f = () => { if (!document.hidden) { document.removeEventListener('visibilitychange', f); ok(); } };
+    document.addEventListener('visibilitychange', f);
+  });
+  const wait = ms => new Promise(ok => setTimeout(ok, ms));
+
+  // 動画を約4MBずつに分けて送る（大きい動画でも送れるように）。st.done[i]＝動画iの送れた区切りの数（続きから送るため）
   async function sendVideos() {
-    if (!st.upload) { st.upload = await run('startUpload'); st.sent = []; }
+    if (!st.upload) { st.upload = await run('startUpload'); st.sent = []; st.done = []; }
     const total = st.videos.reduce((n, v) => n + v.file.size, 0);
-    let done = st.videos.reduce((n, v, i) => n + (st.sent[i] ? v.file.size : 0), 0);
+    let done = st.videos.reduce((n, v, i) => n + (st.sent[i] ? v.file.size : Math.min(v.file.size, (st.done[i] || 0) * CHUNK)), 0);
+    const show = () => { $('progress').textContent = '動画を送っています… ' + Math.round(done / total * 100) + '%\n（画面を消さずに、この画面のままお待ちください）'; };
+    show();
     for (let i = 0; i < st.videos.length; i++) {
       if (st.sent[i]) continue;
       const f = st.videos[i].file, parts = Math.max(1, Math.ceil(f.size / CHUNK));
-      for (let p = 0; p < parts; p++) {
+      for (let p = st.done[i] || 0; p < parts; p++) {
         const b64 = await toB64(f.slice(p * CHUNK, (p + 1) * CHUNK));
         for (let tryNo = 1; ; tryNo++) {
           try { await run('uploadChunk', st.upload, i + 1, p, b64); break; }
-          catch (e) { if (tryNo >= 3) throw new Error('動画を送れませんでした。電波のよい場所で、もう一度「申し込む」を押してください'); }
+          catch (e) {
+            if (document.hidden) {   // 画面が消えている：つくまで待って、数えずにやり直す
+              await whenVisible(); tryNo = 0; continue;
+            }
+            // 画面がついた直後は、電波がつながり直すまで少しかかる。間をあけて何度かやり直す
+            if (tryNo >= 6) throw new Error('動画を送れませんでした。電波のよい場所で、もう一度「申し込む」を押してください（送れたところの続きから送ります）');
+            $('progress').textContent = '電波がつながるのを待っています…（' + tryNo + '回目）\n（画面を消さずに、この画面のままお待ちください）';
+            await wait(2000 * tryNo);
+          }
         }
+        st.done[i] = p + 1;
         done += Math.min(CHUNK, f.size - p * CHUNK);
-        $('progress').textContent = '動画を送っています… ' + Math.round(done / total * 100) + '%\n（この画面を閉じないでください）';
+        show();
       }
       st.sent[i] = parts;
     }
@@ -398,7 +425,6 @@
     f.session = DATA.session; f.saveProfile = !!f.saveProfile;
     f.agree = !!f.agree; f.limited = !!f.limited; f.guide = st.guide;
     f.platforms = Array.from(document.querySelectorAll('.postsns:checked')).map(x => x.value);
-    const desc = Array.from(document.querySelectorAll('#videos textarea')).map(t => t.value.trim());
     const miss = [];
     if (!String(f.shop || '').trim()) miss.push('1 の「店名」を入れてください');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(f.email || ''))) miss.push('1 の「メールアドレス」を正しく入れてください');
@@ -407,20 +433,20 @@
     if (!String(f.address || '').trim()) miss.push('1 の「住所」を入れてください');
     if (!String(f.hours || '').trim()) miss.push('1 の「営業時間」を入れてください');
     if (!String(f.product || '').trim()) miss.push('2 の「商品の名前」を入れてください');
-    if (!String(f.desc || '').trim()) miss.push('2 の「商品の説明」を入れてください');
+    if (!String(f.desc || '').trim()) miss.push('2 の「商品とお店の説明」を入れてください');
     st.videos.forEach((v, i) => { if (!v) miss.push('3 の「動画' + (i + 1) + '（' + DATA.videos[i].title + '）」をえらんでください'); });
-    desc.forEach((d, i) => { if (!d) miss.push('3 の「動画' + (i + 1) + 'の説明」を入れてください'); });
     if (!f.music) miss.push('5 の「背景の音楽」をえらんでください');
     if (!f.platforms.length) miss.push('7 の「動画を載せる SNS」を1つ以上えらんでください');
     if (!f.agree) miss.push('8 の「同意します」に印をつけてください');
     if (miss.length) { $('err').textContent = 'まだ入っていないところがあります：\n・' + miss.join('\n・'); return false; }
     $('btn').disabled = true; $('btn').textContent = '送っています…';
     $('btn').classList.add('sending'); $('sendnote').hidden = false;   // 点滅と「約3分」の案内（2026-10-10・文は 2026-10-11）
+    sending = true; keepAwake();   // 送っているあいだ、画面が消えないようにする（2026-10-17）
     try {
       await sendVideos();
       $('progress').textContent = '申し込みを登録しています…';
       f.upload = st.upload;
-      f.videos = st.videos.map((v, i) => ({ name: v.file.name, type: v.file.type, size: v.file.size, sec: v.sec, parts: st.sent[i], desc: desc[i] }));
+      f.videos = st.videos.map((v, i) => ({ name: v.file.name, type: v.file.type, size: v.file.size, sec: v.sec, parts: st.sent[i] }));
       let r;
       try {
         r = await run('submitOrder', f);
@@ -433,8 +459,10 @@
         }
         if (!r) throw new Error('通信が切れました。受付が終わったかどうか、メールをご確認ください。受付のメールが届いていなければ、電波のよい場所で、もう一度「申し込む」を押してください（動画は送り直しません）');
       }
+      letSleep();
       showDone(r, f.email);
     } catch (e) {
+      letSleep();
       $('progress').textContent = '';
       $('err').textContent = errText(e);
       $('btn').disabled = false; $('btn').textContent = '申し込む';
