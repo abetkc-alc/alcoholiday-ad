@@ -8,7 +8,7 @@
 <body>
 <div class="wrap wide" id="app">
   <!-- 上の帯（ロゴ・ログイン・会員登録）は 2026-10-10 社長の指示で外した（ホームページに埋め込むとロゴが2つ並ぶため・上に詰める）。
-       はじめの画面にもどるボタンは、ログインと会員登録の画面にある -->
+       2026-11-03 タケシの指示で会員登録・ログインをやめた。「申し込む」を押すと、そのまま申し込みのページになる -->
   <div class="info" id="topmsg"></div>
 
   <!-- はじめの画面 -->
@@ -18,8 +18,7 @@
         <h1>あなたのお店の<br>おすすめを、<br>SNS で届けよう</h1>
         <p class="lead">お店の Instagram・TikTok・X に載せる、おすすめ商品のショート動画をおつくりします。</p>
         <div class="btns">
-          <button type="button" class="pill red" data-open="p-register">はじめての方：会員登録</button>
-          <button type="button" class="pill gray" data-open="p-login">会員の方はこちら（ログイン）</button>
+          <button type="button" class="pill red" data-go>申し込む（会員登録はいりません）</button>
         </div>
       </div>
       <div class="collage" id="collage"></div>
@@ -31,7 +30,7 @@
       <div class="features" id="features">
         <div class="feat"><img alt=""><div><b>動画を3本撮るだけ</b><span>1本5秒くらい。お店の雰囲気・おすすめの商品・自由の3本です。</span></div></div>
         <div class="feat"><img alt=""><div><b>声の案内と字幕で仕上げ</b><span>3本をつなぎ、声の案内と字幕を入れた1本の紹介動画にします。</span></div></div>
-        <div class="feat"><img alt=""><div><b>見てからダウンロード</b><span>できあがった動画はメールでお知らせします。直しも1回までできます。</span></div></div>
+        <div class="feat"><img alt=""><div><b>見てからダウンロード</b><span>できあがった動画はメールでお知らせします。有料版は、読み上げの読み方を1回まで直せます。</span></div></div>
         <div class="feat"><img alt=""><div><b>SNS ごとの投稿文つき</b><span>Instagram・TikTok・X から、載せる SNS をえらべます。投稿文もお送りします。</span></div></div>
       </div>
     </div>
@@ -39,133 +38,29 @@
     <section>
       <h2><span class="no">✎</span>申し込みの流れ</h2>
       <ol class="flow">
-        <li><b>1</b>会員登録（はじめの1回だけ）</li>
-        <li><b>2</b>おすすめ商品とお店の説明を入力</li>
-        <li><b>3</b>動画をアップロード</li>
-        <li><b>4</b>メールで届いた URL からダウンロード</li>
-        <li><b>5</b>動画をダウンロードして、お店の SNS に投稿</li>
+        <li><b>1</b>お店とおすすめ商品のことを入力</li>
+        <li><b>2</b>動画をアップロード</li>
+        <li><b>3</b>届いたメールで「申し込みを確定する」</li>
+        <li><b>4</b>メールで届いた URL から動画をダウンロード</li>
+        <li><b>5</b>お店の SNS に投稿</li>
       </ol>
+      <ul class="tips">
+        <li><b>会員登録やパスワードはいりません。</b>申し込みのたびに、メールで確かめます</li>
+        <li>無料版は、同じお店で<b><?= data.freeDays ?>日に1回</b>までです</li>
+      </ul>
     </section>
 
     <div class="band">
       <h2>さっそく始めましょう</h2>
       <div class="bigbtns">
-        <button type="button" class="btn" data-open="p-register">はじめての方<small>会員登録をする</small></button>
-        <button type="button" class="btn sub" data-open="p-login">会員の方<small>ログインして申し込む</small></button>
+        <button type="button" class="btn" data-go>申し込む<small>会員登録はいりません</small></button>
       </div>
     </div>
   </div>
 
-  <!-- ログイン -->
-  <section class="panel" id="p-login" hidden>
-    <h2><span class="no">🔑</span>ログイン</h2>
-    <p class="ex">会員登録のときのメールアドレスとパスワードを入れてください。</p>
-    <div class="field">
-      <div class="lab">メールアドレス</div>
-      <input type="email" id="l-email" maxlength="120" inputmode="email" autocomplete="email" placeholder="例：info@example.com">
-    </div>
-    <div class="field">
-      <div class="lab">パスワード</div>
-      <div class="pwrow"><input type="password" id="l-pw" maxlength="100" autocomplete="current-password"></div>
-    </div>
-    <button type="button" class="btn" id="l-btn" style="margin-top:22px">ログインする</button>
-    <div class="err" id="l-err"></div>
-    <button type="button" class="linkbtn" data-open="p-forgot">パスワードを忘れた方はこちら</button><br>
-    <button type="button" class="linkbtn" data-open="p-register">会員登録がまだの方はこちら</button><br>
-    <button type="button" class="linkbtn" data-open="p-home">← はじめの画面にもどる</button>
-  </section>
-
-  <!-- 会員登録 -->
-  <form class="panel" id="p-register" hidden novalidate onsubmit="return false">
-    <section>
-      <p class="step">会員登録（全部で2つです）</p>
-      <h2><span class="no">1</span>メールアドレスとパスワード</h2>
-      <p class="ex">ログインのときに使います。動画のお知らせもこのメールアドレスに届きます。</p>
-      <div class="field">
-        <div class="lab">メールアドレス<span class="tag must">必ず</span></div>
-        <input type="email" name="email" maxlength="120" inputmode="email" autocomplete="email" placeholder="例：info@example.com">
-      </div>
-      <div class="field">
-        <div class="lab">パスワード<span class="tag must">必ず</span></div>
-        <p class="ex"><b><?= data.pwMin ?>文字以上</b>。英字と数字をまぜると安全です。「見る」で入れた文字を確かめられます</p>
-        <div class="pwrow"><input type="password" name="password" maxlength="100" autocomplete="new-password"></div>
-      </div>
-    </section>
-    <section>
-      <h2><span class="no">2</span>お店のこと</h2>
-      <p class="ex">申し込みのたびに入力しなくてよいように登録します。あとで直すこともできます。</p>
-      <div class="field" data-mic>
-        <div class="lab">店名<span class="tag must">必ず</span></div>
-        <input placeholder="例：BAR アルコホリディ" type="text" name="shop" maxlength="80">
-      </div>
-      <div class="field" data-mic>
-        <div class="lab">担当者のお名前<span class="tag opt">なくてもよい</span></div>
-        <input placeholder="例：山田 太郎" type="text" name="person" maxlength="60">
-      </div>
-      <div class="field">
-        <div class="lab">お店の電話番号<span class="tag must">必ず</span></div>
-        <p class="ex">SNS の文に載せます</p>
-        <input placeholder="例：03-1234-5678" type="tel" name="tel" maxlength="30" inputmode="tel">
-      </div>
-      <div class="field">
-        <div class="lab">都道府県<span class="tag must">必ず</span></div>
-        <select name="pref" id="r-pref"><option value="">ここを押してえらぶ</option></select>
-      </div>
-      <div class="field" data-mic>
-        <div class="lab">住所（市区町村から）<span class="tag must">必ず</span></div>
-        <p class="ex">SNS の文に載せます</p>
-        <input placeholder="例：渋谷区恵比寿南1-2-3 ○○ビル2階" type="text" name="address" maxlength="120">
-      </div>
-      <div class="field" data-mic>
-        <div class="lab">最寄り駅<span class="tag opt">なくてもよい</span></div>
-        <input placeholder="例：恵比寿駅 歩いて3分" type="text" name="area" maxlength="80">
-      </div>
-      <div class="field" data-mic>
-        <div class="lab">営業時間<span class="tag must">必ず</span></div>
-        <p class="ex">SNS の文に載せます</p>
-        <input placeholder="例：夜7時〜夜中の2時（日曜休み）" type="text" name="hours" maxlength="80">
-      </div>
-      <div class="field">
-        <div class="lab">お店の SNS<span class="tag opt">なくてもよい</span></div>
-        <input placeholder="例：Instagram @bar_xxx" type="text" name="sns" maxlength="200">
-      </div>
-      <button type="button" class="btn" id="r-btn" style="margin-top:24px">登録して申し込みへ進む</button>
-      <div class="err" id="r-err"></div>
-      <button type="button" class="linkbtn" data-open="p-login">すでに会員の方はこちら（ログイン）</button><br>
-      <button type="button" class="linkbtn" data-open="p-home">← はじめの画面にもどる</button>
-    </section>
-  </form>
-
-  <!-- パスワードを忘れた -->
-  <section class="panel" id="p-forgot" hidden>
-    <h2><span class="no">✉</span>パスワードを忘れた方</h2>
-    <p>会員登録のメールアドレスを入れてください。新しいパスワードを決めるためのリンクを、メールでお送りします。</p>
-    <div class="field">
-      <div class="lab">メールアドレス</div>
-      <input type="email" id="f-email" maxlength="120" inputmode="email" autocomplete="email" placeholder="例：info@example.com">
-    </div>
-    <button type="button" class="btn" id="f-btn" style="margin-top:22px">メールを送る</button>
-    <div class="err" id="f-err"></div>
-    <div class="info" id="f-info"></div>
-    <button type="button" class="linkbtn" data-open="p-login">← ログインにもどる</button>
-  </section>
-
-  <!-- 新しいパスワード（メールのリンクから） -->
-  <section class="panel" id="p-reset" hidden>
-    <h2><span class="no">🔑</span>新しいパスワードを決める</h2>
-    <div class="field">
-      <div class="lab">新しいパスワード</div>
-      <p class="ex"><b><?= data.pwMin ?>文字以上</b></p>
-      <div class="pwrow"><input type="password" id="n-pw" maxlength="100" autocomplete="new-password"></div>
-    </div>
-    <button type="button" class="btn" id="n-btn" style="margin-top:22px">このパスワードにする</button>
-    <div class="err" id="n-err"></div>
-  </section>
-
-  <!-- 入れたあと：受付ページへ -->
+  <!-- 申し込みのページに入れ替えられなかったとき：ボタンで移ってもらう -->
   <section class="panel donebox" id="p-go" hidden>
-    <div class="okmark">✔</div>
-    <h2 class="donetitle" id="go-title">ログインしました</h2>
+    <h2 class="donetitle">申し込みのページ</h2>
     <p class="donelead">下のボタンを押して、申し込みのページへ進んでください。</p>
     <a class="btn" id="go-link" href="#" target="_top">申し込みのページへ進む</a>
   </section>
@@ -178,91 +73,25 @@
 <script>
   var DATA = <?!= JSON.stringify(data) ?>;   // var：申し込みのページに入れ替えたときに同じ名前を使えるように
 
-  function show(id) {
-    document.querySelectorAll('.panel').forEach(p => { p.hidden = p.id !== id; });
-    $('topmsg').textContent = '';
-    window.scrollTo(0, 0);
-  }
-  document.querySelectorAll('[data-open]').forEach(b => b.onclick = ev => { ev.preventDefault(); show(b.dataset.open); });
-
   // 写真を並べる（角の丸いタイル）
   PHOTOS.forEach(p => { const im = new Image(); im.src = p.src; im.alt = p.alt; $('collage').appendChild(im); });
   document.querySelectorAll('#features img').forEach((im, i) => { const p = PHOTOS[(i + 2) % PHOTOS.length]; im.src = p.src; im.alt = p.alt; });
-  document.querySelectorAll('input[type=password]').forEach(addShow);
-  document.querySelectorAll('[data-mic]').forEach(addMic);
-  fillPrefs($('r-pref'));
 
-  clearSession();   // トップページが出た＝ログインしていない（AWS の受付ページで、おぼえていた古い合言葉を消す）
-  if (DATA.mode === 'reset') show('p-reset');
   if (DATA.msg) $('topmsg').textContent = DATA.msg;
   else if (DATA.testOnly) $('topmsg').textContent = 'ただいま準備中です（テスト中）。公開まで、もうしばらくお待ちください。';
 
   // 申し込みのページへ：このページの中身を申し込みのページに入れ替える（うまくいかないときは、ボタンを押してもらう）
-  async function enter(r, title) {
-    // 申し込みのページを用意するあいだ、押したボタンに知らせる（2回押さなくてよいように）
-    document.querySelectorAll('button:disabled').forEach(b => { b.textContent = '申し込みのページを開いています…'; });
-    $('go-title').textContent = title;
-    $('go-link').href = r.url;
-    saveSession(r.session);
+  document.querySelectorAll('[data-go]').forEach(b => b.onclick = async () => {
+    document.querySelectorAll('[data-go]').forEach(x => { x.disabled = true; x.textContent = '申し込みのページを開いています…'; });
+    $('go-link').href = DATA.formUrl;
     try {
-      const html = await run('formPage', r.session);
+      const html = await run('formPage', '');
       document.open(); document.write(html); document.close();
       window.scrollTo(0, 0);
     } catch (e) {
-      show('p-go');
+      document.querySelectorAll('.panel').forEach(p => { p.hidden = p.id !== 'p-go'; });
+      window.scrollTo(0, 0);
     }
-  }
-
-  async function busy(btn, label, fn) {
-    const old = btn.textContent;
-    btn.disabled = true; btn.textContent = label;
-    try { await fn(); } finally { btn.disabled = false; btn.textContent = old; }
-  }
-
-  // ログイン
-  $('l-btn').onclick = () => busy($('l-btn'), '確かめています…', async () => {
-    $('l-err').textContent = '';
-    const email = $('l-email').value.trim(), pw = $('l-pw').value;
-    if (!email || !pw) { $('l-err').textContent = 'メールアドレスとパスワードを入れてください'; return; }
-    try { await enter(await run('login', email, pw), 'ログインしました'); }
-    catch (e) { $('l-err').textContent = errText(e); }
-  });
-  $('l-pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('l-btn').click(); });
-
-  // 会員登録
-  $('r-btn').onclick = () => busy($('r-btn'), '登録しています…', async () => {
-    stopMic();
-    $('r-err').textContent = '';
-    const f = Object.fromEntries(new FormData($('p-register')).entries());
-    const miss = [];
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(f.email || '').trim())) miss.push('1 の「メールアドレス」を正しく入れてください');
-    if (String(f.password || '').length < DATA.pwMin) miss.push('1 の「パスワード」を' + DATA.pwMin + '文字以上で入れてください');
-    if (!String(f.shop || '').trim()) miss.push('2 の「店名」を入れてください');
-    if (!String(f.tel || '').trim()) miss.push('2 の「お店の電話番号」を入れてください');
-    if (!f.pref) miss.push('2 の「都道府県」をえらんでください');
-    if (!String(f.address || '').trim()) miss.push('2 の「住所」を入れてください');
-    if (!String(f.hours || '').trim()) miss.push('2 の「営業時間」を入れてください');
-    if (miss.length) { $('r-err').textContent = 'まだ入っていないところがあります：\n・' + miss.join('\n・'); return; }
-    try { await enter(await run('registerMember', f), '会員登録ができました'); }
-    catch (e) { $('r-err').textContent = errText(e); }
-  });
-
-  // パスワードを忘れた
-  $('f-btn').onclick = () => busy($('f-btn'), '送っています…', async () => {
-    $('f-err').textContent = ''; $('f-info').textContent = '';
-    const email = $('f-email').value.trim();
-    if (!email) { $('f-err').textContent = 'メールアドレスを入れてください'; return; }
-    try { $('f-info').textContent = await run('requestReset', email); }
-    catch (e) { $('f-err').textContent = errText(e); }
-  });
-
-  // 新しいパスワード
-  $('n-btn').onclick = () => busy($('n-btn'), '保存しています…', async () => {
-    $('n-err').textContent = '';
-    const pw = $('n-pw').value;
-    if (pw.length < DATA.pwMin) { $('n-err').textContent = 'パスワードは' + DATA.pwMin + '文字以上にしてください'; return; }
-    try { await enter(await run('resetPassword', DATA.key, pw), '新しいパスワードにしました'); }
-    catch (e) { $('n-err').textContent = errText(e); }
   });
 </script>
 </body>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<?!= include_('css') ?>
+<style>
+  /* 申し込みを確定するページだけの見た目（ほかは css と同じ。2026-11-03） */
+  .center { text-align:center; }
+  .state { text-align:center; font-size:22px; font-weight:800; }
+  #done[hidden], #ask[hidden] { display:none; }
+</style>
+</head>
+<body>
+<!-- メールの「申し込みを確定する」のリンクから開くページ（2026-11-03 会員登録のかわり）
+     メールのリンクを開いただけでは確定しない（メールの安全チェックが自動でリンクを開くことがあるため）。ボタンを押してもらう -->
+<div class="wrap">
+  <div class="topbar"><span><?!= data.logo ?></span></div>
+<? if (data.error) { ?>
+  <section class="center"><p class="err"><?= data.error ?></p></section>
+<? } else { ?>
+  <header>
+    <h1>お申し込みの確定</h1>
+  </header>
+
+  <section>
+    <h2><span class="no">1</span>お申し込みの内容</h2>
+    <dl class="summary">
+      <dt>受付番号</dt><dd><?= data.id ?></dd>
+      <dt>店名</dt><dd><?= data.shop ?></dd>
+      <dt>おすすめ商品</dt><dd><?= data.product ?></dd>
+      <dt>プラン</dt><dd><?= data.plan ?>版</dd>
+      <dt>投稿文をつくる SNS</dt><dd><?= data.when ?></dd>
+      <dt>メールの送り先</dt><dd><?= data.email ?></dd>
+    </dl>
+  </section>
+
+  <section id="ask" <?= data.waiting ? '' : 'hidden' ?>>
+    <h2><span class="no">2</span>確定する</h2>
+    <p>内容がよければ、下のボタンを押してください。<b>押すと、動画づくりが始まります。</b><br>
+      （<?= data.deadline ?> までに押されないと、このお申し込みは取り消しになります）</p>
+    <button type="button" class="submit" id="btn">申し込みを確定する</button>
+    <div class="err" id="err"></div>
+  </section>
+
+  <section class="donebox" id="done" hidden>
+    <div class="okmark">✔</div>
+    <h2 class="donetitle">お申し込みを受け付けました</h2>
+    <p class="donelead">ありがとうございます。動画ができたら（約<?= data.makeMinutes ?>分後）、確認ページのリンクをメールでお送りします。<br>
+      確認ページで動画を見て、ダウンロードしてください（受付から<?= data.approveDays ?>日以内）。</p>
+    <div class="help">メールが届かないときは、<b>迷惑メール</b>のフォルダもご覧ください。</div>
+  </section>
+
+<? if (!data.waiting) { ?>
+  <section class="center"><p class="state" id="stateMsg"></p></section>
+<? } ?>
+<? } ?>
+  <p class="foot">ALCOHOLIDAY（アルコホリディ）　お酒との時間をもっと楽しく<br><a href="https://www.alcoholiday.org/" target="_blank">https://www.alcoholiday.org/</a></p>
+</div>
+
+<?!= include_('common') ?>
+<script>
+  var DATA = <?!= JSON.stringify(data) ?>;
+  if (!DATA.error) {
+    if (!DATA.waiting) {
+      // もう確定している・期限が過ぎた
+      if (DATA.state === '確認待ち' || DATA.state === '未確定') $('stateMsg').textContent = '確定の期限（' + DATA.deadline + '）が過ぎました。お手数ですが、もう一度お申し込みください。';
+      else $('stateMsg').textContent = 'このお申し込みは、確定しています。';
+    } else {
+      $('btn').onclick = async () => {
+        $('err').textContent = '';
+        $('btn').disabled = true; $('btn').textContent = '確定しています…';
+        try {
+          await run('confirmOrder', DATA.id, DATA.key);
+          $('ask').hidden = true; $('done').hidden = false;
+          window.scrollTo(0, 0);
+        } catch (e) {
+          $('err').textContent = errText(e);
+          $('btn').disabled = false; $('btn').textContent = '申し込みを確定する';
+        }
+      };
+    }
+  }
+</script>
+</body>
+</html>

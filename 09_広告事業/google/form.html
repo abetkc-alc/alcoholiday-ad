@@ -9,7 +9,6 @@
 <div class="wrap" id="app">
   <div class="memberbar">
     <span class="who"><?!= data.logo ?></span>
-    <span class="who"><span><b id="mname"></b> 様</span><a href="#" class="pill gray" id="logout">ログアウト</a></span>
   </div>
   <header>
     <h1>ショート動画作成の申し込み</h1>
@@ -18,7 +17,8 @@
       <li><b>1</b>お店の詳細を入力</li>
       <li><b>2</b>おすすめ商品とお店の説明を入力</li>
       <li><b>3</b>動画をアップロード</li>
-      <li><b>4</b>メールで届いた URL からダウンロード</li>
+      <li><b>4</b>届いたメールで「申し込みを確定する」</li>
+      <li><b>5</b>メールで届いた URL からダウンロード</li>
     </ol>
   </header>
 
@@ -26,18 +26,19 @@
     <section>
       <p class="step">全部で8つです</p>
       <h2><span class="no">1</span>お店のこと</h2>
-      <p class="ex">会員登録のときの内容を入れてあります。変わったところがあれば直してください。</p>
+      <p class="ex" id="prefillnote" hidden>前回の内容を入れてあります。変わったところがあれば直してください。</p>
       <div class="field" data-mic>
         <div class="lab">店名<span class="tag must">必ず</span></div>
         <input placeholder="例：BAR アルコホリディ" type="text" name="shop" maxlength="80" required>
       </div>
       <div class="field" data-mic>
-        <div class="lab">担当者のお名前<span class="tag opt">なくてもよい</span></div>
-        <input placeholder="例：山田 太郎" type="text" name="person" maxlength="60">
+        <div class="lab">店名のカナ<span class="tag must">必ず</span></div>
+        <p class="ex">動画の声は、この読み方で店名を読みます（ひらがな・カタカナ）</p>
+        <input placeholder="例：バー アルコホリディ" type="text" name="kana" maxlength="80" required>
       </div>
       <div class="field">
         <div class="lab">メールアドレス<span class="tag must">必ず</span></div>
-        <p class="ex">できあがった動画を、このアドレスにお送りします</p>
+        <p class="ex">申し込みを確定するメールと、できあがった動画のお知らせを、このアドレスにお送りします</p>
         <input placeholder="例：info@example.com" type="email" name="email" maxlength="120" required inputmode="email" autocomplete="email">
       </div>
       <div class="field">
@@ -59,17 +60,14 @@
         <input placeholder="例：恵比寿駅 歩いて3分" type="text" name="area" maxlength="80">
       </div>
       <div class="field" data-mic>
-        <div class="lab">営業時間<span class="tag must">必ず</span></div>
+        <div class="lab">営業時間<span class="tag opt">なくてもよい</span></div>
         <p class="ex">SNS の文に載せます</p>
         <input placeholder="例：夜7時〜夜中の2時（日曜休み）" type="text" name="hours" maxlength="80">
       </div>
       <div class="field">
-        <div class="lab">お店の SNS<span class="tag opt">なくてもよい</span></div>
+        <div class="lab">お店の SNS か Google マップ<span class="tag must">必ず</span></div>
+        <p class="ex">どちらか1つ。お店の Instagram などのアカウントか、Google マップのお店のページの URL を入れてください</p>
         <input placeholder="例：Instagram @bar_xxx" type="text" name="sns" maxlength="200">
-      </div>
-      <div class="field">
-        <label class="agree"><input type="checkbox" name="saveProfile" value="1" checked>直した内容を会員情報にも保存する</label>
-        <p class="ex">印をつけておくと、次からも直した内容が最初から入ります</p>
       </div>
     </section>
 
@@ -137,9 +135,9 @@
         <label class="plan"><input type="radio" name="plan" value="無料" checked>
           <span><b>無料版</b>　0円<br><small>動画の上と下に ALCOHOLIDAY のロゴがうすく入り、最後に ALCOHOLIDAY の締めの画面と声（約4秒）が入ります。</small></span></label>
         <label class="plan"><input type="radio" name="plan" value="有料">
-          <span><b>有料版</b>　500円<br><small>ロゴの透かしや締めの画面は入りません。<b>広告は、最後に小さく「Designed by ALCOHOLIDAY」が入るだけです。</b>最後の場面は、おすすめ商品の動画に商品名・値段と「詳細はキャプションから」を載せます。</small></span></label>
+          <span><b>有料版</b>　500円<br><small>ロゴの透かしや締めの画面は入りません。<b>広告は、最後に小さく「Designed by ALCOHOLIDAY」が入るだけです。</b>最後の場面は、おすすめ商品の動画に商品名・値段と「詳細はキャプションから」を載せます。読み上げの読み方を1回まで直せます。</small></span></label>
       </div>
-      <p class="ex">※ 有料版のお支払いの方法は、ただいま準備中です。</p>
+      <p class="ex">※ 無料版は、同じお店（メールアドレス・店名・電話番号）で<b><?= data.freeDays ?>日に1回</b>までです。<br>※ 有料版のお支払いの方法は、ただいま準備中です。</p>
     </section>
 
     <section>
@@ -154,8 +152,10 @@
     <section>
       <h2><span class="no">8</span>確認して申し込む</h2>
       <ul class="notes">
+        <li>「申し込む」のあと、メールが届きます。<b>メールの「申し込みを確定する」を押すと、動画づくりが始まります</b>（<?= data.confirmHours ?>時間以内に押されないと取り消しになります）。</li>
         <li>できあがった動画は、メールのページから<b>ダウンロード</b>していただきます。SNS への投稿は、お店で行っていただきます。</li>
-        <li>動画の<b>直しは1回まで</b>です。直したあとは、直す前と直したあとの2本から選んでいただきます。</li>
+        <li>送っていただいた動画（素材）は、受付から<b><?= data.keepDays ?>日で消します</b>。</li>
+        <li><b>無料版は、動画の直しはできません。</b>有料版は、読み上げの読み方を<b>1回まで</b>直せます（確認ページで、ひらがなの読み方を書きかえます）。直したあとは、直す前と直したあとの2本から選んでいただきます。</li>
         <li>お送りする投稿文には、広告であることを示す「#PR」と、お酒の注意書き（20歳未満の飲酒・飲酒運転の禁止）を入れます。投稿するときも消さずにお使いください。</li>
         <li>投稿した内容と、投稿のあとに起きたことについては、<b>投稿したお店の責任</b>となります。</li>
         <li>送っていただく動画に映っている<b>場所・人・商品・音楽・看板やロゴなど</b>は、撮影と SNS への掲載について、<b>お申し込みいただいた方が、すべて了承を得ているもの</b>とします。</li>
@@ -181,24 +181,13 @@
 
   fillPrefs($('pref'));
 
-  /* ───── 会員の情報を最初から入れておく ───── */
-  const M = DATA.member || {};
-  $('mname').textContent = M.shop || '';
-  ['shop', 'person', 'email', 'tel', 'pref', 'address', 'area', 'hours', 'sns'].forEach(k => {
+  /* ───── 「前回の内容でもう一度申し込む」のリンクから来たときは、前回のお店の情報を最初から入れておく（2026-11-03） ───── */
+  const M = DATA.prefill || {};
+  ['shop', 'kana', 'email', 'tel', 'pref', 'address', 'area', 'hours', 'sns'].forEach(k => {
     const el = document.querySelector('[name=' + k + ']');
     if (el && M[k]) el.value = M[k];
   });
-  // ログアウト：押したらトップページへ移り、そこでログアウトする（Google のページはボタンを押したときだけ移れる）
-  $('logout').href = DATA.topUrl + '?p=logout&s=' + encodeURIComponent(DATA.session);
-  $('logout').target = '_top';
-  // ホームページ（alcoholiday.org）に埋め込んだときも外へ移らないように、その場でログアウトする（2026-10-08）
-  $('logout').onclick = async ev => {
-    ev.preventDefault();
-    clearSession();
-    try { await run('logout', DATA.session); } catch (e) { goTo($('logout').href); return; }
-    document.body.innerHTML = '<div style="padding:40px 16px;font-size:20px;line-height:1.8;text-align:center">ログアウトしました。<br>もう一度使うときは、このページを開き直してください。</div>';
-    window.scrollTo(0, 0);
-  };
+  if (M.shop) $('prefillnote').hidden = false;
 
   document.querySelectorAll('[data-mic]').forEach(addMic);
   document.querySelectorAll('[data-count]').forEach(addCount);
@@ -385,26 +374,27 @@
     }
   }
 
-  /* ───── 受け付けた画面（申し込み画面と同じ見た目） ───── */
+  /* ───── 送り終わった画面（申し込み画面と同じ見た目）。まだ確定していないので、メールを開いてもらう ───── */
   function showDone(r, email) {
     $('app').innerHTML =
       '<header>' + DATA.logo + '</header>' +
       '<section class="donebox">' +
       '  <div class="okmark">✔</div>' +
-      '  <h2 class="donetitle">お申し込みを受け付けました</h2>' +
-      '  <p class="donelead">ありがとうございます。下の内容で受け付けました。</p>' +
-      '  <dl class="summary"><dt>受付番号</dt><dd class="id"></dd><dt>プラン</dt><dd class="plan"></dd><dt>投稿文をつくる SNS</dt><dd class="when"></dd><dt>確認のメールの送り先</dt><dd class="mail"></dd></dl>' +
+      '  <h2 class="donetitle">あと1つ：メールで申し込みを確定してください</h2>' +
+      '  <p class="donelead">動画を受け取りました。<b>まだお申し込みは終わっていません。</b><br>届いたメールを開いて「申し込みを確定する」を押してください（' + (r.confirmHours || 24) + '時間以内）。</p>' +
+      '  <dl class="summary"><dt>受付番号</dt><dd class="id"></dd><dt>プラン</dt><dd class="plan"></dd><dt>投稿文をつくる SNS</dt><dd class="when"></dd><dt>メールの送り先</dt><dd class="mail"></dd></dl>' +
       '  <div class="note"></div>' +
       '</section>' +
       '<section>' +
       '  <h2><span class="no">✉</span>このあとの流れ</h2>' +
       '  <ol class="flow">' +
-      '    <li><b>1</b>ALCOHOLIDAY が動画をつくります</li>' +
-      '    <li><b>2</b>動画ができたら、メールでお知らせします</li>' +
-      '    <li><b>3</b>メールのページで動画を見て、ダウンロードしてください（受付から' + DATA.approveDays + '日以内）</li>' +
-      '    <li><b>4</b>確認ページでコピーできる SNS ごとの投稿文を使って、お店の SNS に投稿してください</li>' +
+      '    <li><b>1</b>メールの「申し込みを確定する」を押してください</li>' +
+      '    <li><b>2</b>ALCOHOLIDAY が動画をつくります</li>' +
+      '    <li><b>3</b>動画ができたら、メールでお知らせします</li>' +
+      '    <li><b>4</b>メールのページで動画を見て、ダウンロードしてください（受付から' + DATA.approveDays + '日以内）</li>' +
+      '    <li><b>5</b>確認ページでコピーできる SNS ごとの投稿文を使って、お店の SNS に投稿してください</li>' +
       '  </ol>' +
-      '  <div class="help">確認のメールが届かないときは、<b>迷惑メール</b>のフォルダもご覧ください。</div>' +
+      '  <div class="help">メールが届かないときは、<b>迷惑メール</b>のフォルダもご覧ください。</div>' +
       '</section>' +
       '<p class="foot">ALCOHOLIDAY（アルコホリディ）　お酒との時間をもっと楽しく<br><a href="https://www.alcoholiday.org/" target="_blank">https://www.alcoholiday.org/</a></p>';
     // 受付番号などは文字として入れる（記号がそのまま表示されるように）
@@ -422,16 +412,16 @@
     $('err').textContent = '';
     const fd = new FormData($('f'));
     const f = Object.fromEntries(fd.entries());
-    f.session = DATA.session; f.saveProfile = !!f.saveProfile;
     f.agree = !!f.agree; f.limited = !!f.limited; f.guide = st.guide;
     f.platforms = Array.from(document.querySelectorAll('.postsns:checked')).map(x => x.value);
     const miss = [];
     if (!String(f.shop || '').trim()) miss.push('1 の「店名」を入れてください');
+    if (!/^[ぁ-んァ-ヶー・ 　]+$/.test(String(f.kana || '').trim())) miss.push('1 の「店名のカナ」を、ひらがなかカタカナで入れてください');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(f.email || ''))) miss.push('1 の「メールアドレス」を正しく入れてください');
     if (!String(f.tel || '').trim()) miss.push('1 の「お店の電話番号」を入れてください');
     if (!f.pref) miss.push('1 の「都道府県」をえらんでください');
     if (!String(f.address || '').trim()) miss.push('1 の「住所」を入れてください');
-    if (!String(f.hours || '').trim()) miss.push('1 の「営業時間」を入れてください');
+    if (!String(f.sns || '').trim()) miss.push('1 の「お店の SNS か Google マップ」を入れてください');
     if (!String(f.product || '').trim()) miss.push('2 の「商品の名前」を入れてください');
     if (!String(f.desc || '').trim()) miss.push('2 の「商品とお店の説明」を入れてください');
     st.videos.forEach((v, i) => { if (!v) miss.push('3 の「動画' + (i + 1) + '（' + DATA.videos[i].title + '）」をえらんでください'); });
@@ -443,6 +433,8 @@
     $('btn').classList.add('sending'); $('sendnote').hidden = false;   // 点滅と「約3分」の案内（2026-10-10・文は 2026-10-11）
     sending = true; keepAwake();   // 送っているあいだ、画面が消えないようにする（2026-10-17）
     try {
+      // 動画を送る前に、申し込めるか（無料版の回数など）を確かめる（送ってから断られないように。2026-11-03）
+      if (!st.upload) { $('progress').textContent = '確かめています…'; await run('checkLimit', { email: f.email, shop: f.shop, tel: f.tel, plan: f.plan }); }
       await sendVideos();
       $('progress').textContent = '申し込みを登録しています…';
       f.upload = st.upload;
@@ -451,6 +443,8 @@
       try {
         r = await run('submitOrder', f);
       } catch (e) {
+        // GAS が理由をつけて断ったときは、その理由を出す（「通信が切れました」で隠さない。2026-10-31 先生の PC で原因が分からなかったため）
+        if (e && e.server) throw e;
         // 「NetworkError … HTTP 0」など、返事だけが届かないことがある（受付はできていることが多い）。受け付けたかを確かめる（2026-10-08）
         $('progress').textContent = '受付ができたか確かめています…';
         for (let k = 0; k < 4 && !r; k++) {

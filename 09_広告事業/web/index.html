@@ -19,16 +19,12 @@
 <script>
   (async () => {
     const params = Object.fromEntries(new URLSearchParams(location.search));
-    let saved = '';
-    try { saved = localStorage.getItem('alc_session') || ''; } catch (e) { /* おぼえられない設定のとき */ }
-    if (!params.p && saved) Object.assign(params, { p: 'form', s: saved, auto: '1' });   // ログインしたままなら、申し込みのページを開く
-    if (params.p === 'form' && params.s) try { localStorage.setItem('alc_session', params.s); } catch (e) { /* 同上 */ }
+    // 2026-11-03 会員登録・ログインをやめた。前に端末におぼえたログインの合言葉は消す
+    try { localStorage.removeItem('alc_session'); } catch (e) { /* おぼえられない設定のとき */ }
     try {
       const r = await fetch(window.ALC_API, { method: 'POST', body: JSON.stringify({ action: 'page', params: params }) });
       const j = await r.json();
       if (!j.ok) throw new Error(j.error);
-      // ログインの合言葉が入った住所（?p=form&s=…）は、画面の住所の欄から消す（人に見られたり、共有されたりしないように）
-      if (params.s && history.replaceState) history.replaceState(null, '', location.pathname);
       document.open(); document.write(j.result); document.close();
       window.scrollTo(0, 0);
     } catch (e) {

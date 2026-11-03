@@ -119,20 +119,27 @@
     <div class="donebox"><div class="okmark">✔</div><h2 class="donetitle">ご利用ありがとうございました</h2>
       <p class="donelead">このページは <b><?= data.deadline ?> まで</b>使えます。<br>それを過ぎると見られなくなりますので、投稿文もお早めにコピーしてください。</p></div>
   <? } else if (data.canAct) { ?>
-    <h2><span class="no">4</span><?= data.canFix ? '直してほしいところがあるとき' : '保存について' ?></h2>
+    <h2><span class="no">4</span><?= data.canFix ? '読み上げの読み方を直したいとき' : '保存について' ?></h2>
     <? if (data.canFix) { ?>
-    <p>動画でよければ、上の<b>「カメラロールに保存」</b>を押して、スマホに保存してください。<br>直してほしいところがあれば、下のボタンからお知らせください。</p>
-    <button type="button" class="btn sub" id="fixOpen" onclick="openFix()">直してほしいところがある（1回まで）</button>
+    <!-- 有料版：読み上げの文をひらがなで見せ、お客さんが直した読み方で作り直す（1回まで。2026-10-31 タケシの指示） -->
+    <p>動画でよければ、上の<b>「カメラロールに保存」</b>を押して、スマホに保存してください。<br>読み上げの読み方を直したいときは、下のひらがなを書きかえてお知らせください。</p>
+    <button type="button" class="btn sub" id="fixOpen" onclick="openFix()">読み方を直したい（1回まで）</button>
     <div id="fix" hidden>
-      <p class="ex">動画の直しは<b>1回まで</b>です。直したあとは、直す前と直したあとの2本から、よいほうを保存していただきます。</p>
-      <div class="field" data-mic>
-        <div class="lab">直してほしいところ<span class="tag must">必ず</span></div>
-        <textarea id="comment" maxlength="1000" data-count="1000" placeholder="例：商品名の漢字がちがいます／もう少し明るい雰囲気にしてほしい"></textarea>
+      <p class="ex">動画で読み上げている文を、<b>ひらがな</b>でのせています。読み方がちがうところだけ、ひらがなで書きかえてください。<br>
+        スペースを入れると、そこで一拍おいて読みます。漢字・英字は使えません。<br>
+        直しは<b>1回まで</b>です。直したあとは、直す前と直したあとの2本から、よいほうを保存していただきます。</p>
+      <? data.yomi.forEach(function (y, i) { ?>
+      <div class="field">
+        <div class="lab">動画<?= i + 1 ?>の読み上げ</div>
+        <textarea class="yomi" maxlength="<?= data.yomiMax ?>" data-count="<?= data.yomiMax ?>" data-orig="<?= y ?>"><?= y ?></textarea>
       </div>
-      <button type="button" class="submit" id="ngBtn" onclick="ng()">この内容で直しをお願いする</button>
+      <? }); ?>
+      <button type="button" class="submit" id="ngBtn" onclick="ng()">この読み方で直しをお願いする</button>
     </div>
+    <? } else if (data.plan === '有料') { ?>
+    <p>読み上げの直しは1回までです。上の2本のうち、よいほうの<b>「カメラロールに保存」</b>を押して、スマホに保存してください。</p>
     <? } else { ?>
-    <p>動画の直しは1回までです。上の2本のうち、よいほうの<b>「カメラロールに保存」</b>を押して、スマホに保存してください。</p>
+    <p>動画でよければ、上の<b>「カメラロールに保存」</b>を押して、スマホに保存してください。<br>無料版は、動画の直しはできません。</p>
     <? } ?>
   <? } else { ?>
     <p class="state">いまの状態：<?= data.state ?></p>
@@ -213,7 +220,7 @@
     $('msg').textContent = errText(e);
     document.querySelectorAll('button').forEach(b => b.disabled = false);
   }
-  function openFix() { $('fix').hidden = false; $('fixOpen').hidden = true; $('comment').focus(); }
+  function openFix() { $('fix').hidden = false; $('fixOpen').hidden = true; document.querySelector('.yomi').focus(); }
 
   // 「カメラロールに保存」（2026-10-10 社長の指示：別のページを開かず、その場でスマホに保存する）
   //   ページを開いたら本番の動画を先に受け取っておき、押したときにスマホの「共有」の画面を出す（「ビデオを保存」でカメラロールへ）
@@ -273,14 +280,23 @@
   // 動画の再生の準備のあとに、保存の準備をする（同時に受け取ると重くなるため、1本ずつ）
   (async () => { for (const b of document.querySelectorAll('.dlbtn')) await prepare(b); })();
 
+  // 「この読み方で直しをお願いする」（有料版。2026-10-31 タケシの指示）
+  const YOMI_OK = /^[ぁ-んァ-ヶー・、。！？!?「」 　0-9０-９]*$/;   // Code.gs の YOMI_RE と同じ
   async function ng() {
-    stopMic();
-    const c = $('comment').value;
-    if (!c.trim()) { $('msg').textContent = '直してほしいところを書いてください'; return; }
+    const boxes = [...document.querySelectorAll('.yomi')];
+    const list = boxes.map(t => t.value.replace(/\s+/g, ' ').trim());
+    const bad = list.findIndex(s => !s || !YOMI_OK.test(s));
+    if (bad >= 0) {
+      $('msg').textContent = '動画' + (bad + 1) + 'の読み方は、ひらがなで書いてください（漢字・英字は使えません）';
+      boxes[bad].focus(); return;
+    }
+    if (list.every((s, i) => s === boxes[i].dataset.orig.replace(/\s+/g, ' ').trim())) {
+      $('msg').textContent = '読み方が変わっていません。直したいところを書きかえてから押してください'; return;
+    }
     $('msg').textContent = '';
     document.querySelectorAll('button').forEach(b => b.disabled = true);
     // 見出しは1行（折り返さない）なので短く、くわしいことは下の文に（2026-10-14 枠からはみ出していたのを直した）
-    try { await run('requestChange', ID, KEY, c); done('受け付けました', '直した動画ができたら、またメールでお知らせします。', '✔'); } catch (e) { fail(e); }
+    try { await run('requestReading', ID, KEY, list); done('受け付けました', '直した動画ができたら、またメールでお知らせします。', '✔'); } catch (e) { fail(e); }
   }
 </script>
 </body>

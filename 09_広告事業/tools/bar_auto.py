@@ -4,6 +4,7 @@
 #   2. KAYO（Claude）が台本（ナレーション・字幕）と、えらばれた SNS ごとの投稿文をつくる（claude -p）
 #      投稿文の最後には「提供：アルコホリディ」と URL を、プログラムが必ず付ける（2026-10-10 社長の指示）
 #   ※ 直しの依頼（「修正依頼」。1回まで）も同じように自動で直して、もう一度メールを送る（2026-10-04 社長の指示）
+#      2026-10-31 タケシの指示：無料版は直しなし。有料版は、確認ページでお客さんが直した「ひらがなの読み方」で読み直す（make_reading_fix）
 #   3. 動画を組み立てる（build_bar_ad.py。台帳の「プラン」が「有料」なら有料版、それ以外は無料版）
 #   4. 投稿文の決まりを確かめて、お客さんに「動画ができました」メールを送る（bar_sync.py deliver と同じ）
 #
@@ -33,6 +34,7 @@ sys.path.insert(0, str(TOOLS))
 import bar_sync  # noqa: E402
 import build_bar_ad  # noqa: E402
 import fix_learn  # noqa: E402  直しから学んだこと（2026-10-10）
+import narrate  # noqa: E402  読み方の直し（有料版のひらがなをつくるとき）
 
 HERE = TOOLS.parent                      # 09_広告事業
 LOG = HERE / "自動制作ログ.md"
@@ -84,21 +86,15 @@ def allowed_words():
     return [w.strip() for w in t[:t.index("```")].splitlines() if w.strip()]
 
 
-SHOP_WORDS = r"(?i)\b(bar|pub|lounge|dining)\b|バー|ＢＡＲ"   # 店名から外して、名前の本体だけでも探す言葉
-
-
-def find_shop_name(a, shop):
-    """ナレーション・字幕に店名が入っていないかを調べる（2026-10-17 社長の指示：店名は読み上げない。画面の文字と投稿文には出す）
-    「Bar Salvador」なら「barsalvador」と「salvador」の両方を探す（ひらがな・カタカナに直された読みは探せないので、きまりでも伝える）"""
+def find_shop_name(a, shop, kana):
+    """ナレーションの店名が、お客さんの入れたカナになっているかを調べる（2026-10-31 タケシの指示：店名を読み上げてよい。
+    前の「店名は読み上げない」（2026-10-17）はやめた）。字幕は正式名称のままでよいので調べない。カナのない前の申し込みは調べない"""
     flat = lambda s: "".join(str(s).split()).lower()
-    names = {flat(shop), flat(re.sub(SHOP_WORDS, " ", str(shop)))}
-    names = {n for n in names if len(n) >= 2}
-    probs = []
-    for i, c in enumerate(a.get("clips", []), 1):
-        t = flat(str(c.get("narr", "")) + " ".join(map(str, c.get("subs", []))))
-        if any(n in t for n in names):
-            probs.append(f"動画{i}のナレーション・字幕に店名「{shop}」がある。店名は読み上げないので、店名を外した文にする（「このお店」などにしてもよい）")
-    return probs
+    name, kana = flat(shop), str(kana).strip()
+    if not kana or len(name) < 2 or name == flat(kana):
+        return []
+    return [f"動画{i}のナレーションに店名が「{shop}」のまま書いてある。ナレーションでは店名を「{kana}」と書く（字幕は「{shop}」のままでよい）"
+            for i, c in enumerate(a.get("clips", []), 1) if name in flat(c.get("narr", ""))]
 
 
 def find_banned(a):
@@ -165,6 +161,7 @@ def make_prompt(order, clips, feedback=""):
 
 ## この申し込み
 - 店名：{order['店名']}
+- 店名の読み（カナ）：{order.get('店名カナ') or '（なし）'}
 - 都道府県：{order['都道府県']}
 - 住所：{order.get('住所', '')}
 - 最寄り駅・エリア：{order.get('エリア', '')}
@@ -290,7 +287,7 @@ def produce(oid, d, order, clips, ask, what, keep_voice):
         cap = {p: bar_sync.add_credit(a["captions"][p]) for p in bar_sync.platforms_of(order) if (a.get("captions") or {}).get(p)}
         a["captions"] = cap
         bad = find_banned(a)   # 禁止表現リスト.md の言葉（2026-10-07 社長の指示）
-        probs = bad + find_shop_name(a, order["店名"]) + [p for p in bar_sync.check_captions(oid, cap) if not p.startswith("注意：")]
+        probs = bad + find_shop_name(a, order["店名"], order.get("店名カナ", "")) + [p for p in bar_sync.check_captions(oid, cap) if not p.startswith("注意：")]
         if probs:
             feedback = "\n## 前の答えの直すところ（必ず直す）\n- " + "\n- ".join(probs)
             log(f"{oid} {'禁止の言葉があるので' if bad else '投稿文の決まりが足りないので'}つくり直し（{attempt}回目）：{' / '.join(probs)}")
@@ -311,10 +308,14 @@ def produce(oid, d, order, clips, ask, what, keep_voice):
             continue
         video = d / spec["out"]
         write_script_note(d / f"台本-{ver}.md", spec, cap, a.get("changes", ""))
+        # 有料版：読み上げのひらがなを確認ページに出し、お客さんが読み方を直せるようにする（2026-10-31 タケシの指示）
+        yomi = a.get("yomi") or (make_yomi([c["narr"] for c in spec["clips"]]) if spec["plan"] == "paid" else None)
+        if yomi:
+            (d / f"よみ-{ver}.json").write_text(json.dumps(yomi, ensure_ascii=False, indent=2), encoding="utf-8")
         if DRY:
             log(f"{oid} 試し（--dry）：{what}の動画 {video.name} をつくった。メールは送っていない")
             return
-        bar_sync.deliver(oid, str(video), str(cap_path))
+        bar_sync.deliver(oid, str(video), str(cap_path), yomi)
         bar_sync.call("update", id=oid, fields={}, log=f"自動制作：{what}の動画 {video.name} を届け、「動画ができました」メールを送った")
         log(f"{oid} {order['店名']}：{what}の動画 {video.name}（{'有料版' if spec['plan'] == 'paid' else '無料版'}・声：{bar_sync.GUIDE_NAMES[voice]}）を届け、「動画ができました」メールを送った"
             + (f"　直したところ：{a.get('changes')}" if a.get("changes") else ""))
@@ -392,6 +393,7 @@ def fix_prompt(order, clips, spec, cap, comment, feedback=""):
 
 ## この申し込みのお店の情報（投稿文の住所・営業時間・電話番号は、この文字をそのまま入れる）
 - 店名：{order['店名']}
+- 店名の読み（カナ）：{order.get('店名カナ') or '（なし）'}
 - 住所：{order.get('住所', '')}
 - 営業時間：{order.get('営業時間', '')}
 - 電話：{order.get('電話', '')}
@@ -408,6 +410,78 @@ def make_fix(oid, comment):
     produce(oid, d, order, clips, lambda fb: ask_claude(fix_prompt(order, clips, spec, cap, comment, fb)), "直し", False)
 
 
+YOMI_OK = re.compile(r"^[ぁ-んァ-ヶー・、。！？!?「」 　0-9０-９]*$")   # Code.gs の YOMI_RE と同じ
+
+
+def make_yomi(narrs):
+    """ナレーションを、声が読むとおりのひらがなにする（有料版の確認ページで見せる。2026-10-31 タケシの指示）
+    読み方の直し（BAR→バー・お客さんの直しから学んだ読み方など）をしてから、Claude にひらがなにしてもらう"""
+    texts = []
+    for t in narrs:
+        t = narrate.PERCENT_OFF.sub(r"\1%オフ", t)
+        for k, v in narrate.all_readings():
+            t = t.replace(k, v)
+        texts.append(t)
+    prompt = f"""次の3つの文は、動画のナレーション（AI の声が読み上げる文）です。
+それぞれを、声に出して読むとおりに、すべてひらがなに書きかえてください。ツールは使わず、最後に JSON だけを返してください。
+
+- 漢字・カタカナ・英字・数字・記号は、読み方のひらがなにする（例：「要町駅から徒歩3分」→「かなめちょうえきからとほさんぷん」、「BAR」→「ばー」、「20%オフ」→「にじゅっぱーせんとおふ」）
+- のばす音は「ー」のまま、句読点（、。！？）はそのまま残す
+- 元の文にあるスペースは、同じところに残す。スペースのないところに足さない
+- 地名・店名・人の名前・お酒の名前は、いちばんふつうの読み方にする
+
+{json.dumps(texts, ensure_ascii=False)}
+
+## 返す JSON の形
+{{"yomi": ["動画1のひらがな", "動画2のひらがな", "動画3のひらがな"]}}"""
+    yomi = []
+    for _ in range(2):
+        yomi = [str(y).strip() for y in (ask_claude(prompt).get("yomi") or [])]
+        bad = [i + 1 for i, y in enumerate(yomi) if not YOMI_OK.match(y)]
+        if len(yomi) == len(narrs) and not bad:
+            return yomi
+        prompt += f"\n\n## もう一度\n前の答えは、ひらがな以外の文字が残っていたか、数が{len(narrs)}つではありませんでした（動画{bad}）。すべてひらがなにしてください。"
+    if len(yomi) != len(narrs):
+        raise RuntimeError("ナレーションのひらがなをつくれませんでした")
+    log("注意：ナレーションのひらがなに、ひらがな以外の文字が残りました（そのまま確認ページに出す）")
+    return yomi
+
+
+def make_reading_fix(oid, row):
+    """有料版の「読み方の直し」（1回まで。2026-10-31 タケシの指示）。Claude は使わず、
+    お客さんが読み方を変えた動画だけ、ナレーションをお客さんのひらがなにして読み直す（字幕・投稿文・音楽・声は前のまま）"""
+    d = bar_sync.CASES / oid
+    order = json.loads((d / "order.json").read_text(encoding="utf-8"))
+    clips = find_clips(d)
+    spec, cap = latest(d)
+    new = json.loads(row["よみの直し"])
+    old = json.loads(row.get("よみ") or "[]")
+    norm = lambda s: " ".join(str(s).split())
+    if len(new) != len(spec["clips"]) or len(old) != len(new):
+        raise RuntimeError("読み方の数が動画の数と合いません")
+    changed = [i for i in range(len(new)) if norm(new[i]) != norm(old[i])]
+
+    def spoken(i):
+        """お客さんのひらがな。もとの文に「徒歩」などがあれば、その読み（とほ）を漢字にもどす（「と、ほ」と区切って読まないように）"""
+        t = norm(new[i])
+        for k, y in narrate.PRONOUNCE.items():
+            if k in spec["clips"][i]["narr"]:
+                t = t.replace(y, k, spec["clips"][i]["narr"].count(k))
+        return t
+    comment = row.get("お客さんのコメント") or "読み方の直し"
+    (d / "直しの依頼.md").open("a", encoding="utf-8").write(f"- {datetime.now():%Y-%m-%d %H:%M} {comment}\n")
+    a = {
+        "clips": [{"narr": spoken(i) if i in changed else c["narr"], "subs": c["subs"]} for i, c in enumerate(spec["clips"])],
+        "starts": [c.get("start", 0) for c in spec["clips"]],
+        "voice": spec.get("voice"), "product": spec["product"], "price": spec["price"], "area": spec["area"], "hours": spec["hours"],
+        "music": pathlib.Path(spec["music"]).name if spec.get("music") else "",
+        "captions": {k: bar_sync.add_credit(v).replace("\n\n" + bar_sync.CREDIT, "") for k, v in cap.items()},
+        "changes": "読み上げの読み方を直しました（" + "・".join(f"動画{i + 1}" for i in changed) + "）",
+        "yomi": [norm(y) for y in new],
+    }
+    produce(oid, d, order, clips, lambda fb: json.loads(json.dumps(a)), "読み方の直し", False)
+
+
 def write_script_note(path, spec, cap, changes=""):
     rows = "\n".join(f"| {i} | {c['narr']} | {' / '.join(c['subs'])} |" for i, c in enumerate(spec["clips"], 1))
     path.write_text(
@@ -416,6 +490,34 @@ def write_script_note(path, spec, cap, changes=""):
         f"| 動画 | ナレーション | 字幕 |\n|---|---|---|\n{rows}\n\n## 投稿文\n"
         + "".join(f"\n### {bar_sync.PLATFORM_NAMES.get(k, k)}\n\n{v}\n" for k, v in cap.items()),
         encoding="utf-8")
+
+
+KEEP_SOURCE_DAYS = 30   # お客さんが送った動画（素材）を残す日数（2026-11-03 タケシの指示。Google 側は Code.gs の KEEP_SOURCE_DAYS）
+
+
+def remove_old_sources():
+    """受付から30日たった案件の、お客さんの動画（素材/）と、それから作った途中のファイル（動画/work-*）を消す。
+    できあがった動画（動画/bar-ad-v*.mp4）・台本・投稿文は残す。消したら「.素材を消した」の印と自動制作ログに残す"""
+    import shutil
+    for d in sorted(bar_sync.CASES.iterdir()):
+        order, mark = d / "order.json", d / ".素材を消した"
+        if not d.is_dir() or not order.exists() or mark.exists():
+            continue
+        try:
+            n = [int(x) for x in re.findall(r"\d+", json.loads(order.read_text(encoding="utf-8")).get("受付日時", ""))[:5]]
+            at = datetime(*n)
+        except (ValueError, TypeError):
+            continue   # 受付日時が読めない案件はさわらない
+        if (datetime.now() - at).days < KEEP_SOURCE_DAYS:
+            continue
+        files = [p for p in (d / "素材").glob("*") if p.is_file()]
+        works = [p for p in (d / "動画").glob("work-*") if p.is_dir()]
+        for p in files:
+            p.unlink()
+        for p in works:
+            shutil.rmtree(p)
+        mark.write_text(f"{datetime.now():%Y-%m-%d %H:%M} 素材 {len(files)}個・途中のフォルダ {len(works)}個を消した\n", encoding="utf-8")
+        log(f"{d.name} 受付から{KEEP_SOURCE_DAYS}日たったので、素材の動画 {len(files)}個と途中のフォルダ {len(works)}個を消した")
 
 
 def do_fixes():
@@ -427,7 +529,10 @@ def do_fixes():
         if not (d / "order.json").exists() or (mark.exists() and mark.read_text(encoding="utf-8") == comment):
             continue
         try:
-            make_fix(oid, comment)
+            if r.get("よみの直し"):   # 有料版の読み方の直し（2026-10-31〜）
+                make_reading_fix(oid, r)
+            else:
+                make_fix(oid, comment)
         except (Exception, SystemExit) as e:
             mark.write_text(comment, encoding="utf-8")
             log(f"{oid} 直しを自動でできませんでした（修正依頼のまま。KAYO が手で直す）：{e}")
@@ -451,6 +556,10 @@ def main():
     LOCK.parent.mkdir(exist_ok=True)
     LOCK.write_text(datetime.now().isoformat(), encoding="utf-8")
     try:
+        try:
+            remove_old_sources()
+        except Exception as e:
+            log(f"古い素材を消すところでエラー：{e}")
         do_fixes()
         rows = bar_sync.call("list", state="受付")
         # 取り込んだあとに止まった案件（「制作中」で、動画がまだなく、自動でできなかった印もないもの）も仕上げる

@@ -2,9 +2,11 @@
  * ALCOHOLIDAY BAR広告 ショート動画作成の受付・お渡しシステム（Google Apps Script）
  *
  * できること
- *   0. トップページ（お客さん用）：サービスの紹介・会員登録・ログイン（メール＋パスワード）
- *   1. 受付ページ（会員用）：店・おすすめ商品・お店で撮った動画3本とその説明・動画を載せる SNS・ナレーションの声を入力してもらう
- *   2. 確認ページ（お客さん用）：完成した動画を見て、ダウンロードするか「直してほしい」を押してもらう
+ *   0. トップページ（お客さん用）：サービスの紹介と「申し込む」ボタン（2026-11-03 タケシの指示で会員登録・ログインはやめた）
+ *   1. 受付ページ（だれでも）：店・おすすめ商品・お店で撮った動画3本とその説明・動画を載せる SNS・ナレーションの声を入力してもらう
+ *      送ったあと、メールの「申し込みを確定する」を押してもらうまで動画はつくらない（いたずら・まちがいのメールアドレスを防ぐ）
+ *      無料版は、同じメール・同じ店名・同じ電話番号で10日に1回まで。送ってもらった動画（素材）は受付から30日で消す
+ *   2. 確認ページ（お客さん用）：完成した動画を見て、ダウンロードしてもらう（有料版は、読み上げのひらがなを直して作り直しを頼める。1回まで）
  *      保存のボタンで、ページの中からそのままスマホのカメラロールへ保存してもらう（お客さんへのお礼・投稿文のメールは送らない）。ページは受付から24時間で使えなくする
  *   3. 決まったら、動画のダウンロードのリンクと、えらばれた SNS ごとの投稿文をメールで送る
  *      （2026-10-10 社長の指示：ALCOHOLIDAY のアカウントには投稿しない。お客さんが自分の SNS に投稿する。Upload-Post の自動投稿はやめた）
@@ -17,15 +19,18 @@ const CONFIG = {
   OWNER_EMAIL: 'abetkc@alcoholiday.org',   // 新しい依頼・承認の知らせを受け取るメール
   MAIL_FROM: 'info@alcoholiday.org',          // お客さんに届くメールの送り主（2026-10-08 社長の指示。Gmail の「他のアドレスから送る」に登録が必要）
   TZ: 'Asia/Tokyo',
-  // テスト中は、下のメールアドレスの人だけが会員登録・ログインできる（2026-10-08 社長の指示。公開するときは false にする）
+  // テスト中は、下のメールアドレスの人だけが申し込める（2026-10-08 社長の指示。公開するときは false にする）
   TEST_ONLY: true,
-  TEST_EMAILS: ['abetkc@gmail.com', 'abetkc@alcoholiday.org'],
+  TEST_EMAILS: ['abetkc@gmail.com', 'abetkc@alcoholiday.org',
+    'k.yoshida.s.mentor@gmail.com'],   // 先生（ショート動画を見てもらう。2026-10-31 タケシの指示）
+  // 無料版の回数の決まりを使わない人（ALCOHOLIDAY のテスト用。公開したあとも、何回でも試せるように）
+  NO_LIMIT_EMAILS: ['abetkc@gmail.com', 'abetkc@alcoholiday.org', 'k.yoshida.s.mentor@gmail.com'],
   // 受付サイトを埋め込んだホームページのページ（2026-10-08）。メールのトップページへのリンクはここにする
   //   （Google のページを直接開くと「Google Apps Script のユーザーによって作成…」のお知らせが出るため）
   SITE_URL: 'https://www.alcoholiday.org/%E7%BE%8E%E5%91%B3%E3%81%97%E3%81%84%E3%82%82%E3%81%AE',
   // AWS（Amplify）に置いた受付ページの住所（2026-10-11）。例：'https://ad.alcoholiday.org/'
-  //   空のあいだは今までどおり（メールのリンクは Google のページ・ホームページ）。入れると、メールのリンク（会員登録・
-  //   パスワード再設定・動画の確認ページ）がこの住所になる。切り替えは、AWS の受付ページで試してから
+  //   空のあいだは今までどおり（メールのリンクは Google のページ・ホームページ）。入れると、メールのリンク（申し込みの確定・
+  //   動画の確認ページ・もう一度申し込む）がこの住所になる。切り替えは、AWS の受付ページで試してから
   WEB_URL: 'https://ad.alcoholiday.org/',   // 2026-10-11 切り替え（社長の指示）
   MAKE_MINUTES: 20,          // 受付から動画確認のメールまでの目安（分）。受付のメールに書く（2026-10-09。2026-10-11 社長の指示で 15→20）
   APPROVE_DAYS: 1,           // 受付から何日以内に動画を決めてもらうか（過ぎたら期限切れ・お渡ししない。2026-10-10 社長の指示で 7→1）
@@ -37,11 +42,10 @@ const CONFIG = {
   MAX_VIDEO_MB: 25,          // 1本の大きさの上限（2026-10-07 社長の指示で150→25。5秒・1080p なら10MBくらい。大きいと受け取りに時間がかかる）
   MAX_VIDEO_SEC: 10,         // 1本の長さの上限（秒）。使うのは1本4〜5秒
   // 動画1本ごとの説明の欄は、2026-10-16 社長の指示でなくした（商品の説明1つから、声の案内・字幕・投稿文をつくる）
-  PW_MIN: 8,                 // パスワードの最短の文字数
-  SESSION_DAYS: 30,          // ログインしたままでいられる日数
-  LOGIN_MAX_FAIL: 5,         // パスワードを何回まちがえたら、しばらくログインできなくするか
-  LOCK_MINUTES: 15,          // そのときの待ち時間（分）
-  RESET_HOURS: 1,            // パスワード再設定のリンクの有効時間
+  // 2026-11-03 タケシの指示：会員登録（パスワード）をやめ、申し込みのたびにメールで確定してもらう
+  CONFIRM_HOURS: 24,         // 申し込みを確定するメールのリンクが使える時間。過ぎたら「未確定」にして、動画はつくらない
+  FREE_EVERY_DAYS: 10,       // 無料版は、同じメール・同じ店名・同じ電話番号で、この日数に1回まで
+  KEEP_SOURCE_DAYS: 30,      // 送ってもらった動画（素材）を残す日数。過ぎたら消す（できあがった動画は残す）
   MAX_FIX: 1,                // 動画の直しは何回までか（2026-10-04 社長の指示：1回だけ。直したあとは2本から選んで決める）
   PRODUCT_MAX: 40,           // 商品の名前の文字数の上限（動画の上に出すので短め）
   DESC_MAX: 300,             // 商品の説明の文字数の上限（2026-10-16 社長の指示で50→300。この説明から声の案内・字幕・投稿文をつくる）
@@ -67,15 +71,25 @@ const COLS = ['id', '会員ID', '受付日時', '状態', '店名', '担当者',
   '動画', '投稿文', '投稿日時', '承認日時', 'お客さんのコメント', '予約ID', '履歴',
   '前の動画', '前の投稿文',   // 直しのあと、お客さんが「直す前」を選べるように残す（2026-10-04 追加。台帳の右端に足される）
   'SNS',                     // 投稿文をつくる SNS（instagram,tiktok,x のように。2026-10-06 追加）
-  'プラン', '音楽'];                 // 無料／有料（2026-10-10 追加。いまは受付で「無料」。有料にするときは、制作の前に社長が台帳で「有料」に変える）
-// 会員（受付台帳の「会員」シート）。パスワードはそのまま保存せず、ソルトを足して何度もハッシュにした値だけを残す
-const MEMBER_SHEET = '会員';
-const MCOLS = ['会員ID', '登録日時', '状態', 'メール', 'パスワード', 'ソルト', '店名', '担当者', '電話', '都道府県', '住所',
-  'エリア', '営業時間', '店のSNS', 'セッション', 'セッション期限', '失敗回数', 'ロック期限', '再設定キー', '再設定期限', '最終ログイン', '履歴'];
-// 受付ページの入力欄の名前 → 会員シートの列
-const PROFILE = { shop: '店名', person: '担当者', tel: '電話', pref: '都道府県', address: '住所', area: 'エリア', hours: '営業時間', sns: '店のSNS' };
-// 枠を使っていない（ほかの人が申し込める）状態
-const FREE_STATES = ['キャンセル', '期限切れ'];
+  'プラン', '音楽',
+  '店名カナ',                // 店名の読み（ナレーションで使う。2026-10-31 タケシの指示）。前の段の「プラン」は 無料／有料（2026-10-10 追加。いまは受付で「無料」。有料にするときは、制作の前に社長が台帳で「有料」に変える）
+  'よみ', 'よみの直し',       // 有料版：読み上げの文のひらがな（動画1〜3）と、お客さんが直したひらがな（JSON の配列。2026-10-31 タケシの指示）
+  '確定キー', '再申込キー'];  // メールの「申し込みを確定する」のリンクの合言葉と、「前回の内容でもう一度申し込む」のリンクの合言葉（2026-11-03）
+// 「会員ID」「担当者」の列は、前の申し込みのために残す（2026-11-03 から会員登録はなく、担当者の名前も聞かない）
+// 2026-10-31 タケシの指示：無料版は直しなし。有料版は、確認ページで読み上げをひらがなで見せ、お客さんが直した読み方で作り直す（1回まで）
+const YOMI_RE = /^[ぁ-んァ-ヶー・、。！？!?「」 　0-9０-９]*$/;   // 読みの直しに使える文字（ひらがな・カタカナ・のばす音・句読点・数字・スペース）
+const YOMI_MAX = 120;      // 1本の読みの文字数の上限
+// 2026-11-03 タケシの指示で会員登録をやめた。台帳の「会員」シートは、もう読み書きしない（消してはいない）
+// 受付ページの入力欄の名前 → 受付台帳の列（「前回の内容でもう一度申し込む」で最初から入れておくお店の情報）
+const PROFILE = { shop: '店名', kana: '店名カナ', tel: '電話', pref: '都道府県', address: '住所', area: 'エリア', hours: '営業時間', sns: '店のSNS' };
+// 店名のカナ：ひらがな・カタカナと、のばす音・スペース・中黒だけ（ナレーションでこの読み方にする。2026-10-31 タケシの指示）
+const KANA_RE = /^[ぁ-んァ-ヶー・ 　]+$/;
+const WAIT_STATE = '確認待ち';     // 申し込んだが、まだメールの「申し込みを確定する」を押していない
+const UNSURE_STATE = '未確定';     // 確定しないまま CONFIRM_HOURS が過ぎた（動画はつくらない）
+// 無料版の回数に数えない状態（確定していない・ALCOHOLIDAY が取り消した）
+const NOT_COUNTED = [WAIT_STATE, UNSURE_STATE, 'キャンセル'];
+// 素材を消してはいけない状態（つくっている・直している途中）
+const BUSY_STATES = ['受付', '制作中', '修正依頼'];
 
 /* ────────────────────────────── 最初に一度だけ ────────────────────────────── */
 
@@ -90,7 +104,6 @@ function setup() {
     sh.setFrozenRows(1);
     props.setProperty('SHEET_ID', ss.getId());
   }
-  memberSheet_();   // 「会員」シートをつくる
   if (!props.getProperty('FOLDER_ID')) {
     const root = DriveApp.createFolder('ALCOHOLIDAY BAR広告');
     root.createFolder('案件');
@@ -129,22 +142,16 @@ function pageTemplate_(p) {
   if (p.p === 'review') {
     t = HtmlService.createTemplateFromFile('review');
     t.data = Object.assign(reviewData_(p.id, p.k), { logo: logo_() });
-  } else if (p.p === 'logout') {   // 申し込みのページの「ログアウト」から
-    logout(p.s);
-    t = HtmlService.createTemplateFromFile('top');
-    t.data = topData_('', '', 'ログアウトしました。');
-  } else if (p.p === 'form') {
-    const m = memberBySession_(p.s);
-    if (m && testOk_(m.rec['メール'])) {
-      t = HtmlService.createTemplateFromFile('form');
-      t.data = formData_(m, p.s);
-    } else {
-      t = HtmlService.createTemplateFromFile('top');
-      t.data = topData_('', '', p.auto ? '' : 'ログインの期限が切れました。もう一度ログインしてください。');
-    }
+  } else if (p.p === 'confirm') {   // メールの「申し込みを確定する」のリンクから
+    t = HtmlService.createTemplateFromFile('confirm');
+    t.data = Object.assign(confirmData_(p.id, p.k), { logo: logo_() });
+  } else if (p.p === 'form') {      // a：「前回の内容でもう一度申し込む」のリンクの合言葉
+    t = HtmlService.createTemplateFromFile('form');
+    t.data = formData_(p.a);
   } else {
     t = HtmlService.createTemplateFromFile('top');
-    t.data = topData_(p.p === 'reset' ? 'reset' : '', p.k || '', '');
+    // 前の会員登録のころのメールのリンク（パスワードの再設定・ログアウト）から来た人への案内
+    t.data = topData_(p.p === 'reset' || p.p === 'logout' ? '会員登録はなくなりました。そのままお申し込みいただけます。' : '');
   }
   return t;
 }
@@ -152,8 +159,8 @@ function pageTemplate_(p) {
 /* ───── AWS（Amplify）に置いた受付ページからの呼び出し（2026-10-11） ─────
    受付ページ（web/index.html）は、ページの中身を GAS から受け取って表示し、ボタンの動きも GAS を呼んで行う。
    呼べるのは、Google のページで google.script.run から呼べるものと同じ関数だけ（PUBLIC_FNS） */
-const PUBLIC_FNS = ['musicSample', 'registerMember', 'login', 'formPage', 'logout', 'requestReset', 'resetPassword', 'orderResult',
-  'startUpload', 'uploadChunk', 'submitOrder', 'reviewVideo', 'videoFile', 'downloaded', 'requestChange'];
+const PUBLIC_FNS = ['musicSample', 'formPage', 'checkLimit', 'confirmOrder', 'orderResult',
+  'startUpload', 'uploadChunk', 'submitOrder', 'reviewVideo', 'videoFile', 'downloaded', 'requestChange', 'requestReading'];
 
 /** 受付ページで表示する HTML（AWS の受付ページだと分かる印・画面の幅の設定・題名を足す） */
 function webHtml_(html) {
@@ -174,8 +181,8 @@ function publicApi_(req) {
 function include_(name) { return HtmlService.createHtmlOutputFromFile(name).getContent(); }
 function logo_() { return include_('logo'); }
 
-function topData_(mode, key, msg) {
-  return { logo: logo_(), mode: mode, key: key, msg: msg, pwMin: CONFIG.PW_MIN, testOnly: CONFIG.TEST_ONLY };
+function topData_(msg) {
+  return { logo: logo_(), msg: msg, testOnly: CONFIG.TEST_ONLY, formUrl: pageUrl_() + '?p=form', freeDays: CONFIG.FREE_EVERY_DAYS };
 }
 
 /** テスト中は、決めた人だけ通す */
@@ -184,12 +191,17 @@ function testOk_(email) {
 }
 const TEST_NG = 'ただいま準備中です。公開まで、もうしばらくお待ちください。';
 
-function formData_(m, session) {
-  const member = {};
-  Object.keys(PROFILE).forEach(k => { member[k] = m.rec[PROFILE[k]]; });
-  member.email = m.rec['メール'];
+/** 申し込みのページのデータ。again（「前回の内容でもう一度申し込む」の合言葉）があれば、前回のお店の情報を最初から入れておく */
+function formData_(again) {
+  const prefill = {};
+  const r = /^[0-9a-f]{32}$/.test(String(again || '')) ? findBy_('再申込キー', again) : null;
+  if (r) {
+    Object.keys(PROFILE).forEach(k => { prefill[k] = r.rec[PROFILE[k]]; });
+    prefill.email = r.rec['メール'];
+  }
   return {
-    session: session, member: member, topUrl: pageUrl_(),
+    prefill: prefill, topUrl: pageUrl_(), freeDays: CONFIG.FREE_EVERY_DAYS, confirmHours: CONFIG.CONFIRM_HOURS,
+    keepDays: CONFIG.KEEP_SOURCE_DAYS,
     platforms: CONFIG.PLATFORMS.map(p => ({ key: p, name: CONFIG.PLATFORM_NAMES[p] })),
     musics: CONFIG.MUSICS,
     guides: (s => CONFIG.GUIDES.map(g => Object.assign({ sample: s[g.key] || '' }, g)))(voiceSamples()),   // 声の見本（フォルダを1回だけ見る）
@@ -248,7 +260,7 @@ function voiceSample_(key) {
   return '';
 }
 
-/* ────────────────────────────── 会員 ────────────────────────────── */
+/* ──────────────────── 申し込みの確定・無料版の回数（2026-11-03 会員登録のかわり） ──────────────────── */
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -259,187 +271,111 @@ function orderResult(upload) {
   return v ? JSON.parse(v) : null;
 }
 
-/** トップページの「登録して申し込みへ進む」 */
-function registerMember(f) {
+/** トップページの「申し込む」：申し込みのページに入れ替えるために、ページの中身を渡す
+ *  （Google のページは、ボタンを押さないと別のページへ移れないため） */
+function formPage(again) {
+  const t = HtmlService.createTemplateFromFile('form');
+  t.data = formData_(again);
+  return t.evaluate().getContent();
+}
+
+// 同じお店かを見くらべるための形（全角・半角、大文字・小文字、空白や記号のちがいは無視する）
+function sameShop_(s) { return String(s || '').normalize('NFKC').toLowerCase().replace(/[\s・･.,'’"\-_]/g, ''); }
+function sameTel_(s) { return String(s || '').normalize('NFKC').replace(/\D/g, ''); }
+
+/** 無料版の回数の決まり（同じメール・同じ店名・同じ電話番号で FREE_EVERY_DAYS 日に1回）。
+ *  使えるときは null、使えないときは、次に申し込める日時を返す。exceptId：その申し込み自身は数えない */
+function nextFreeAt_(f, exceptId) {
+  if (f.plan === '有料') return null;
+  const email = String(f.email || '').trim().toLowerCase();
+  if (CONFIG.NO_LIMIT_EMAILS.indexOf(email) >= 0) return null;
+  const shop = sameShop_(f.shop), tel = sameTel_(f.tel), now = Date.now(), span = CONFIG.FREE_EVERY_DAYS * 86400000;
+  let next = 0;
+  rows_().forEach(r => {
+    if (r.id === exceptId || (r['プラン'] || '無料') !== '無料' || NOT_COUNTED.indexOf(r['状態']) >= 0) return;
+    const at = parseTime_(r['受付日時']).getTime() + span;
+    if (at <= now) return;
+    if (String(r['メール']).trim().toLowerCase() === email || (shop && sameShop_(r['店名']) === shop) || (tel && sameTel_(r['電話']) === tel)) next = Math.max(next, at);
+  });
+  return next ? new Date(next) : null;
+}
+
+function limitMessage_(at) {
+  return '無料版は、同じお店（メールアドレス・店名・電話番号）で' + CONFIG.FREE_EVERY_DAYS + '日に1回までです。\n' +
+    '次は ' + jaTime_(at) + ' からお申し込みいただけます。';
+}
+
+/** 申し込みのページ：動画を送り始める前に、申し込めるかを確かめる（送ってから断られないように） */
+function checkLimit(f) {
+  f = f || {};
   const email = String(f.email || '').trim().toLowerCase();
   if (!EMAIL_RE.test(email)) throw new Error('メールアドレスの形が正しくありません');
   if (!testOk_(email)) throw new Error(TEST_NG);
-  if (String(f.password || '').length < CONFIG.PW_MIN) throw new Error('パスワードは' + CONFIG.PW_MIN + '文字以上にしてください');
-  const need = { shop: '店名', tel: 'お店の電話番号', pref: '都道府県', address: '住所', hours: '営業時間' };
-  Object.keys(need).forEach(k => { if (!String(f[k] || '').trim()) throw new Error(need[k] + 'を入力してください'); });
+  const at = nextFreeAt_(f, '');
+  if (at) throw new Error(limitMessage_(at));
+  return 'ok';
+}
 
+/** メールの「申し込みを確定する」のページのデータ */
+function confirmData_(id, k) {
+  const r = findRow_(id);
+  if (!r || !k || r.rec['確定キー'] !== k) return { error: 'ページが見つかりません。メールのリンクをもう一度開いてください。' };
+  const rec = r.rec;
+  return {
+    id: rec.id, key: k, state: rec['状態'], shop: rec['店名'], product: rec['商品名'], plan: rec['プラン'] || '無料',
+    when: snsLabel_(snsOf_(rec)), email: rec['メール'], waiting: rec['状態'] === WAIT_STATE && !confirmClosed_(rec),
+    deadline: jaTime_(confirmDeadline_(rec)), makeMinutes: CONFIG.MAKE_MINUTES, approveDays: CONFIG.APPROVE_DAYS,
+  };
+}
+
+function confirmDeadline_(rec) { return new Date(parseTime_(rec['受付日時']).getTime() + CONFIG.CONFIRM_HOURS * 3600000); }
+function confirmClosed_(rec) { return new Date() >= confirmDeadline_(rec); }
+
+/** 確定のページの「申し込みを確定する」：ここで「受付」になり、パソコン（bar_auto.py）が動画をつくり始める */
+function confirmOrder(id, k) {
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    if (mfind_('メール', email)) throw new Error('このメールアドレスは、すでに登録されています。「会員の方」からログインしてください');
+    const r = findRow_(id);
+    if (!r || !k || r.rec['確定キー'] !== k) throw new Error('ページが見つかりません。メールのリンクをもう一度開いてください。');
+    const rec = r.rec;
+    if (rec['状態'] !== WAIT_STATE && rec['状態'] !== UNSURE_STATE) return { id: rec.id, already: true };   // もう確定している（2回押した）
+    if (rec['状態'] === UNSURE_STATE || confirmClosed_(rec)) {
+      throw new Error('確定の期限（' + jaTime_(confirmDeadline_(rec)) + '）が過ぎました。お手数ですが、もう一度お申し込みください。');
+    }
+    const at = nextFreeAt_({ plan: rec['プラン'], email: rec['メール'], shop: rec['店名'], tel: rec['電話'] }, rec.id);
+    if (at) throw new Error(limitMessage_(at));
+    // 受付日時は、確定した時にする（動画のお渡しの期限は、ここから数える）
     const now = new Date();
-    const salt = Utilities.getUuid().replace(/-/g, '');
-    const rec = {
-      '会員ID': 'M-' + ('000' + (mrows_().length + 1)).slice(-4), '登録日時': fmt_(now), '状態': '有効',
-      'メール': email, 'パスワード': hash_(f.password, salt), 'ソルト': salt, '失敗回数': '0', '履歴': fmt_(now) + ' 会員登録',
-    };
-    Object.keys(PROFILE).forEach(k => { rec[PROFILE[k]] = clip_(f[k], k === 'address' ? 120 : (k === 'sns' ? 200 : 80)); });
-    const sh = memberSheet_();
-    sh.getRange(sh.getLastRow() + 1, 1, 1, MCOLS.length).setNumberFormat('@')
-      .setValues([MCOLS.map(c => rec[c] === undefined ? '' : rec[c])]);
-    const m = mfind_('メール', email);
-    const token = newSession_(m.row);
-    mail_(email, '【ALCOHOLIDAY】会員登録が完了しました',
-      rec['店名'] + '\n' + dear_(rec) + '\n\n' +
-      'ALCOHOLIDAY のショート動画作成に会員登録いただき、ありがとうございます。\n' +
-      '次からは、下のページの「会員の方」から、このメールアドレスとパスワードでログインしてください。\n\n' +
-      siteUrl_() + '\n\n会員ID：' + rec['会員ID'] + '\n\n' +
-      '※ お心当たりのない場合は、このメールにご返信ください。\n\nALCOHOLIDAY（アルコホリディ）');
-    mail_(CONFIG.OWNER_EMAIL, '【BAR広告】新しい会員 ' + rec['会員ID'] + ' ' + rec['店名'],
-      '新しい会員が登録しました。\n\n店名：' + rec['店名'] + '（' + rec['都道府県'] + rec['住所'] + '）\n' +
-      '電話：' + rec['電話'] + '\nメール：' + email + '\n\n受付台帳の「会員」シートで確認できます。止めたいときは「状態」を「停止」にします。');
-    return { url: formUrl_(token), session: token };
+    update_(r.row, { '状態': '受付', '受付日時': fmt_(now) }, 'お客さんがメールで申し込みを確定した');
+    const done = findRow_(id).rec;
+    const snsText = snsLabel_(snsOf_(done));
+    mail_(done['メール'], '【ALCOHOLIDAY】ショート動画のお申し込みを受け付けました（' + id + '）',
+      done['店名'] + '\n' + dear_(done) + '\n\n' +
+      'お申し込みを確定しました。以下の内容で受け付けました。\n\n' +
+      '受付番号：' + id + '\nプラン：' + done['プラン'] + '版\n背景の音楽：' + done['音楽'] + '\n投稿文をつくる SNS：' + snsText + '\nおすすめ商品：' + done['商品名'] + '\n\n' +
+      '■ このあとの流れ\n' +
+      '1. ALCOHOLIDAY が動画をつくります\n' +
+      '2. 動画ができたら、確認用ページのリンクをメールでお送りします（約' + CONFIG.MAKE_MINUTES + '分後。混み合っているときは、遅れることがあります）\n' +
+      '3. 確認ページで動画を見て、ダウンロードしてください（受付から24時間以内）\n' +
+      '4. ' + snsText + ' ごとの投稿文は、確認ページでコピーできます\n' +
+      '5. お店の SNS アカウントから、ご自身で投稿してください\n\n' +
+      '※ 送っていただいた動画（素材）は、受付から' + CONFIG.KEEP_SOURCE_DAYS + '日で消します。\n' +
+      '※ お問い合わせは、受付番号を書いて、このメールにご返信ください。\n\n' +
+      'ALCOHOLIDAY（アルコホリディ）');
+    mail_(CONFIG.OWNER_EMAIL, '【BAR広告】新しい依頼 ' + id + ' ' + done['店名'],
+      '新しい依頼が届きました（お客さんがメールで確定しました）。\n\n店名：' + done['店名'] + '（' + done['都道府県'] + done['住所'] + '）\n' +
+      '商品：' + done['商品名'] + '\n投稿文：' + snsText + '\nプラン：' + done['プラン'] + '\n音楽：' + done['音楽'] + '\n声：' + guideName_(done['案内役']) + '\n\n' +
+      'Claude Code に「KAYO、BAR広告の新しい依頼を確認して」と話しかけてください。\n' +
+      '受付台帳：' + SpreadsheetApp.openById(prop_('SHEET_ID')).getUrl());
+    return { id: id, already: false };
   } finally {
     lock.releaseLock();
   }
 }
 
-/** トップページの「ログインする」 */
-function login(email, password) {
-  email = String(email || '').trim().toLowerCase();
-  const m = mfind_('メール', email);
-  const ng = 'メールアドレスかパスワードがちがいます';
-  if (!testOk_(email)) throw new Error(TEST_NG);
-  if (!m) throw new Error(ng);
-  const now = new Date();
-  if (m.rec['ロック期限'] && now < new Date(m.rec['ロック期限'].replace(' ', 'T') + ':00+09:00')) {
-    throw new Error('パスワードを何回もまちがえたため、しばらくログインできません。' + CONFIG.LOCK_MINUTES + '分ほどたってから、もう一度お試しください');
-  }
-  if (m.rec['状態'] === '停止') throw new Error('この会員は利用を止めています。ALCOHOLIDAY へご連絡ください');
-  if (hash_(password, m.rec['ソルト']) !== m.rec['パスワード']) {
-    const fails = (Number(m.rec['失敗回数']) || 0) + 1;
-    const fields = { '失敗回数': String(fails) };
-    if (fails >= CONFIG.LOGIN_MAX_FAIL) {
-      fields['ロック期限'] = fmt_(new Date(now.getTime() + CONFIG.LOCK_MINUTES * 60000));
-      fields['失敗回数'] = '0';
-    }
-    mupdate_(m.row, fields, fails >= CONFIG.LOGIN_MAX_FAIL ? 'パスワードのまちがいが続いたので一時停止' : '');
-    throw new Error(ng);
-  }
-  mupdate_(m.row, { '失敗回数': '0', 'ロック期限': '', '最終ログイン': fmt_(now) }, '');
-  const token = newSession_(m.row);
-  return { url: formUrl_(token), session: token };
-}
-
-/** 受付ページの「ログアウト」 */
-// ログインのあと、トップページの中身を申し込みのページに入れ替えるために、申し込みのページを渡す
-//   （Google のページは、ボタンを押さないと別のページへ移れないため）
-function formPage(session) {
-  const m = memberBySession_(session);
-  if (!m) throw new Error('ログインの期限が切れました。もう一度ログインしてください。');
-  if (!testOk_(m.rec['メール'])) throw new Error(TEST_NG);
-  const t = HtmlService.createTemplateFromFile('form');
-  t.data = formData_(m, session);
-  return t.evaluate().getContent();
-}
-
-function logout(session) {
-  const m = memberBySession_(session);
-  if (m) mupdate_(m.row, { 'セッション': '', 'セッション期限': '' }, 'ログアウト');
-  return 'ok';
-}
-
-/** 「パスワードを忘れた方」：再設定のリンクをメールで送る（登録がなくても同じ返事にする） */
-function requestReset(email) {
-  email = String(email || '').trim().toLowerCase();
-  const m = EMAIL_RE.test(email) && testOk_(email) ? mfind_('メール', email) : null;
-  if (m && m.rec['状態'] !== '停止') {
-    const key = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
-    mupdate_(m.row, { '再設定キー': key, '再設定期限': fmt_(new Date(Date.now() + CONFIG.RESET_HOURS * 3600000)) }, '再設定のメールを送った');
-    mail_(email, '【ALCOHOLIDAY】パスワードの再設定',
-      m.rec['店名'] + '\n' + dear_(m.rec) + '\n\n下のリンクを開いて、新しいパスワードを決めてください（' + CONFIG.RESET_HOURS + '時間だけ使えます）。\n\n' +
-      pageUrl_() + '?p=reset&k=' + key + '\n\n※ お心当たりのない場合は、このメールは捨ててください。パスワードは変わりません。\n\nALCOHOLIDAY（アルコホリディ）');
-  }
-  return 'ご登録のメールアドレスであれば、再設定のメールをお送りしました。\nメールのリンクを開いて、新しいパスワードを決めてください。\n届かないときは、迷惑メールのフォルダもご覧ください。';
-}
-
-/** メールのリンクから：新しいパスワードを決める */
-function resetPassword(key, password) {
-  if (!/^[0-9a-f]{64}$/.test(String(key))) throw new Error('リンクが正しくありません。もう一度「パスワードを忘れた方」からお試しください');
-  if (String(password || '').length < CONFIG.PW_MIN) throw new Error('パスワードは' + CONFIG.PW_MIN + '文字以上にしてください');
-  const m = mfind_('再設定キー', key);
-  if (!m || new Date() > new Date(m.rec['再設定期限'].replace(' ', 'T') + ':00+09:00')) {
-    throw new Error('リンクの期限が切れています。もう一度「パスワードを忘れた方」からお試しください');
-  }
-  const salt = Utilities.getUuid().replace(/-/g, '');
-  mupdate_(m.row, { 'パスワード': hash_(password, salt), 'ソルト': salt, '再設定キー': '', '再設定期限': '', '失敗回数': '0', 'ロック期限': '' }, 'パスワードを再設定');
-  const token = newSession_(m.row);
-  return { url: formUrl_(token), session: token };
-}
-
-/** 受付ページの合言葉（セッション）から会員をさがす。期限切れ・停止中なら null */
-function memberBySession_(session) {
-  if (!/^[0-9a-f]{40}$/.test(String(session || ''))) return null;
-  const m = mfind_('セッション', session);
-  if (!m || m.rec['状態'] === '停止') return null;
-  if (new Date() > new Date(m.rec['セッション期限'].replace(' ', 'T') + ':00+09:00')) return null;
-  return m;
-}
-
-function newSession_(row) {
-  const token = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '').slice(0, 40);
-  mupdate_(row, { 'セッション': token, 'セッション期限': fmt_(new Date(Date.now() + CONFIG.SESSION_DAYS * 86400000)) }, '');
-  return token;
-}
-
-function formUrl_(token) { return pageUrl_() + '?p=form&s=' + token; }
-
-/** パスワードをそのまま残さないための変換（ソルトを足して 1000 回くり返す） */
-function hash_(password, salt) {
-  let h = salt + ':' + String(password);
-  for (let i = 0; i < 1000; i++) {
-    h = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, h + salt, Utilities.Charset.UTF_8));
-  }
-  return h;
-}
-
-function memberSheet_() {
-  const ss = SpreadsheetApp.openById(prop_('SHEET_ID'));
-  let sh = ss.getSheetByName(MEMBER_SHEET);
-  if (!sh) {
-    sh = ss.insertSheet(MEMBER_SHEET);
-    sh.getRange(1, 1, sh.getMaxRows(), MCOLS.length).setNumberFormat('@');
-    sh.getRange(1, 1, 1, MCOLS.length).setValues([MCOLS]).setFontWeight('bold').setBackground('#dce8f5');
-    sh.setFrozenRows(1);
-  }
-  return sh;
-}
-
-function mrows_() {
-  const v = memberSheet_().getDataRange().getDisplayValues();
-  return v.slice(1).map(row => {
-    const o = {};
-    MCOLS.forEach((c, i) => { o[c] = row[i]; });
-    return o;
-  });
-}
-
-function mfind_(col, value) {
-  if (!value) return null;
-  const all = mrows_();
-  for (let i = 0; i < all.length; i++) {
-    if (String(all[i][col]).toLowerCase() === String(value).toLowerCase()) return { row: i + 2, rec: all[i] };
-  }
-  return null;
-}
-
-function mupdate_(row, fields, log) {
-  const sh = memberSheet_();
-  Object.keys(fields).forEach(k => {
-    const c = MCOLS.indexOf(k);
-    if (c >= 0) sh.getRange(row, c + 1).setNumberFormat('@').setValue(fields[k]);
-  });
-  if (log) {
-    const c = MCOLS.indexOf('履歴') + 1;
-    const old = sh.getRange(row, c).getValue();
-    sh.getRange(row, c).setValue((old ? old + '\n' : '') + fmt_(new Date()) + ' ' + log);
-  }
-}
+/** 台帳の日時（2026-11-03 16:50）を日付にする */
+function parseTime_(s) { return new Date(String(s).replace(' ', 'T') + ':00+09:00'); }
 
 /* ────────────────────────────── 受付 ────────────────────────────── */
 
@@ -459,14 +395,15 @@ function submitOrder(f) {
   // 受け付けたのに、返事がスマホに届かなかった（電波・画面が消えた）あとでもう一度押されたときは、同じ受付の返事を返す（2重に受け付けない）
   const done = orderResult(f.upload);
   if (done) return done;
-  const member = memberBySession_(f.session);
-  if (!member) throw new Error('ログインの期限が切れました。トップページからもう一度ログインしてください（入力した内容は消えてしまいます。お手数ですが、もう一度入力してください）');
-  const need = { shop: '店名', email: 'メールアドレス', tel: '電話番号', pref: '都道府県',
-    address: '住所', hours: '営業時間', product: 'おすすめ商品の名前', desc: '商品の説明' };
+  const need = { shop: '店名', kana: '店名のカナ', email: 'メールアドレス', tel: '電話番号', pref: '都道府県',
+    address: '住所', sns: 'お店の SNS か Google マップ', product: 'おすすめ商品の名前', desc: '商品の説明' };
   Object.keys(need).forEach(k => {
     if (!f[k] || !String(f[k]).trim()) throw new Error(need[k] + 'を入力してください');
   });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) throw new Error('メールアドレスの形が正しくありません');
+  f.email = String(f.email).trim().toLowerCase();
+  if (!EMAIL_RE.test(f.email)) throw new Error('メールアドレスの形が正しくありません');
+  if (!testOk_(f.email)) throw new Error(TEST_NG);
+  if (!KANA_RE.test(String(f.kana).trim())) throw new Error('店名のカナは、ひらがなかカタカナで入力してください');
   const vids = f.videos || [];
   if (vids.length !== CONFIG.VIDEOS.length) throw new Error('動画を' + CONFIG.VIDEOS.length + '本えらんでください');
   vids.forEach((v, i) => {
@@ -489,6 +426,9 @@ function submitOrder(f) {
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
+    const plan = CONFIG.PLANS.indexOf(f.plan) >= 0 ? f.plan : '無料';
+    const at = nextFreeAt_({ plan: plan, email: f.email, shop: f.shop, tel: f.tel }, '');
+    if (at) throw new Error(limitMessage_(at));
     const now = new Date();
     const id = newId_(now);
     const folder = upFolder;   // 送ってもらった動画のフォルダを、そのまま案件のフォルダにする
@@ -499,46 +439,37 @@ function submitOrder(f) {
       type: clip_(v.type, 40), size: Number(v.size) || 0, sec: Math.round((Number(v.sec) || 0) * 10) / 10, parts: Number(v.parts),
     }));
     const key = Utilities.getUuid().replace(/-/g, '').slice(0, 20);
+    const confirmKey = Utilities.getUuid().replace(/-/g, '');
     const rec = {
-      'id': id, '会員ID': member.rec['会員ID'], '受付日時': fmt_(now), '状態': '受付',
-      '店名': clip_(f.shop, 80), '担当者': clip_(f.person, 60), 'メール': clip_(f.email, 120),
+      'id': id, '受付日時': fmt_(now), '状態': WAIT_STATE,   // メールで確定してもらうまで、動画はつくらない（2026-11-03）
+      '店名': clip_(f.shop, 80), '店名カナ': clip_(f.kana, 80), 'メール': clip_(f.email, 120),
       '電話': clip_(f.tel, 30), '都道府県': clip_(f.pref, 10), '住所': clip_(f.address, 120), 'エリア': clip_(f.area, 80),
       '営業時間': clip_(f.hours, 80), '店のSNS': clip_(f.sns, 200), '商品名': clip_(f.product, CONFIG.PRODUCT_MAX),
       '商品の説明': clip_(f.desc, CONFIG.DESC_MAX), '価格': clip_(f.price, 40), '数量限定': f.limited ? 'はい' : '', 'SNS': platforms.join(','),
       '案内役': guide ? guide.key : 'おまかせ', '音楽': f.music,   // 2026-10-11 から「ご要望」の欄はない（列は前の申し込みのために残す）
       // 投稿文は、商品の説明をもとに KAYO が自動でつくる（2026-10-10 から申し込みページに入力欄はない）
       '素材動画': folder.getId(), '動画の説明': JSON.stringify(videoInfo), '承認キー': key,
-      'プラン': CONFIG.PLANS.indexOf(f.plan) >= 0 ? f.plan : '無料',   // 申し込みページでえらぶ（2026-10-11〜。お支払いの仕組みはまだない）
-      '履歴': fmt_(now) + ' 受付',
+      'プラン': plan,   // 申し込みページでえらぶ（2026-10-11〜。お支払いの仕組みはまだない）
+      '確定キー': confirmKey, '再申込キー': Utilities.getUuid().replace(/-/g, ''),
+      '履歴': fmt_(now) + ' 申し込み（メールでの確定を待っている）',
     };
     const sh = sheet_();
     ensureCols_(sh);
     sh.getRange(sh.getLastRow() + 1, 1, 1, COLS.length).setNumberFormat('@')
       .setValues([COLS.map(c => rec[c] === undefined ? '' : rec[c])]);
-    if (f.saveProfile) {   // 受付ページで直したお店の情報を、会員情報にも保存する
-      const prof = {};
-      Object.keys(PROFILE).forEach(k => { if (String(f[k] || '') !== member.rec[PROFILE[k]]) prof[PROFILE[k]] = rec[PROFILE[k]]; });
-      if (Object.keys(prof).length) mupdate_(member.row, prof, '受付ページで会員情報を更新（' + Object.keys(prof).join('・') + '）');
-    }
 
     const snsText = snsLabel_(platforms);
-    mail_(rec['メール'], '【ALCOHOLIDAY】ショート動画のお申し込みを受け付けました（' + id + '）',
+    const url = pageUrl_() + '?p=confirm&id=' + encodeURIComponent(id) + '&k=' + confirmKey;
+    mail_(rec['メール'], '【ALCOHOLIDAY】お申し込みを確定してください（' + id + '）',
       rec['店名'] + '\n' + dear_(rec) + '\n\n' +
-      'お申し込みありがとうございます。以下の内容で受け付けました。\n\n' +
-      '受付番号：' + id + '\nプラン：' + rec['プラン'] + '版\n背景の音楽：' + rec['音楽'] + '\n投稿文をつくる SNS：' + snsText + '\nおすすめ商品：' + rec['商品名'] + '\n\n' +
-      '■ このあとの流れ\n' +
-      '1. ALCOHOLIDAY が動画をつくります\n' +
-      '2. 動画ができたら、確認用ページのリンクをメールでお送りします（受付から約' + CONFIG.MAKE_MINUTES + '分後。混み合っているときは、遅れることがあります）\n' +
-      '3. 確認ページで動画を見て、ダウンロードしてください（受付から24時間以内）\n' +
-      '4. ' + snsText + ' ごとの投稿文は、確認ページでコピーできます\n' +
-      '5. お店の SNS アカウントから、ご自身で投稿してください\n\n' +
+      'お申し込みありがとうございます。まだ、お申し込みは終わっていません。\n' +
+      '下のページを開いて「申し込みを確定する」を押してください。押すと、動画づくりが始まります。\n\n' +
+      url + '\n\n' +
+      '受付番号：' + id + '\nプラン：' + rec['プラン'] + '版\nおすすめ商品：' + rec['商品名'] + '\n投稿文をつくる SNS：' + snsText + '\n\n' +
+      '※ ' + CONFIG.CONFIRM_HOURS + '時間以内に確定されない場合、このお申し込みは取り消しになります。\n' +
+      '※ お心当たりのない場合は、このメールは捨ててください（確定しなければ、何も起きません）。\n\n' +
       'ALCOHOLIDAY（アルコホリディ）');
-    mail_(CONFIG.OWNER_EMAIL, '【BAR広告】新しい依頼 ' + id + ' ' + rec['店名'],
-      '新しい依頼が届きました。\n\n店名：' + rec['店名'] + '（' + rec['都道府県'] + rec['住所'] + '）\n' +
-      '商品：' + rec['商品名'] + '\n投稿文：' + snsText + '\nプラン：' + rec['プラン'] + '\n音楽：' + rec['音楽'] + '\n声：' + guideName_(rec['案内役']) + '\n\n' +
-      'Claude Code に「KAYO、BAR広告の新しい依頼を確認して」と話しかけてください。\n' +
-      '受付台帳：' + SpreadsheetApp.openById(prop_('SHEET_ID')).getUrl());
-    const res = { id: id, when: snsText, plan: rec['プラン'] };   // when の例：Instagram・TikTok
+    const res = { id: id, when: snsText, plan: rec['プラン'], confirmHours: CONFIG.CONFIRM_HOURS };   // when の例：Instagram・TikTok
     if (f.upload) CacheService.getScriptCache().put('order-' + f.upload, JSON.stringify(res), 21600);   // 6時間おぼえておく
     return res;
   } finally {
@@ -617,16 +548,17 @@ function reviewData_(id, k) {
   // 確認ページは期限（受付から24時間）を過ぎたら見られなくする（2026-10-10 社長の指示。動画のファイルは消さない）
   if (pageClosed_(rec)) return { error: 'このページの公開期間（' + jaTime_(approveDeadline_(rec)) + ' まで）は終わりました。ご用の方は、メールにご返信ください。' };
   const captions = parseCaptions_(rec['投稿文']);
+  const yomi = yomiOf_(rec);
   return {
     id: rec.id, key: k, state: rec['状態'], shop: rec['店名'], product: rec['商品名'],
-    when: snsLabel_(snsOf_(rec)), plan: rec['プラン'] || '無料',
+    when: snsLabel_(snsOf_(rec)), plan: rec['プラン'] || '無料', yomi: yomi, yomiMax: YOMI_MAX,
     // 動画をダウンロードできるのは、お客さんが見ている動画があるときだけ（直しを待っているあいだは出さない）。直したあとは2本とも
     download: rec['動画'] && canDownload_(rec) ? downloadUrl_(rec['動画']) : '',
     prevDownload: rec['前の動画'] && canDownload_(rec) ? downloadUrl_(rec['前の動画']) : '',
     videoId: rec['動画'], captions: captions, comment: rec['お客さんのコメント'],
     deadline: jaTime_(approveDeadline_(rec)), canAct: rec['状態'] === '承認待ち' && new Date() < approveDeadline_(rec),
-    canFix: fixCount_(rec) < CONFIG.MAX_FIX,
-    prev: rec['前の動画'] ? { videoId: rec['前の動画'], captions: parseCaptions_(rec['前の投稿文']) } : null,
+    canFix: canFix_(rec) && yomi.length > 0,   // 有料版で、読み上げのひらがながあるときだけ
+    prev:rec['前の動画'] ? { videoId: rec['前の動画'], captions: parseCaptions_(rec['前の投稿文']) } : null,
   };
 }
 
@@ -637,6 +569,14 @@ function parseCaptions_(t) {
 // これまでに直しを頼まれた回数（履歴から数える）
 function fixCount_(rec) {
   return (String(rec['履歴'] || '').match(/お客さんが修正を依頼/g) || []).length;
+}
+
+// 直しを頼めるか：有料版で、まだ1回も直していないとき（無料版は直しなし。2026-10-31 タケシの指示）
+function canFix_(rec) { return rec['プラン'] === '有料' && fixCount_(rec) < CONFIG.MAX_FIX; }
+
+// 読み上げのひらがな（動画1〜3）。ないとき（無料版・前の申し込み）は空
+function yomiOf_(rec) {
+  try { const a = JSON.parse(rec['よみ'] || '[]'); return Array.isArray(a) ? a.map(String) : []; } catch (err) { return []; }
 }
 
 // ダウンロードの期限（確認ページとリンクが使える期限）：受付から APPROVE_DAYS 日（24時間）
@@ -699,9 +639,34 @@ function reviewVideo(id, k, which) {
   return Utilities.base64Encode(file.getBlob().getBytes());
 }
 
+/** 確認ページ（有料版）の「この読み方で直しをお願いする」：お客さんが直したひらがな（動画1〜3）を受け取る（2026-10-31 タケシの指示）
+ *  KAYO（bar_auto.py）が、変わった動画だけ、このひらがなで読み直して作り直す */
+function requestReading(id, k, list) {
+  const r = checkReview_(id, k);
+  if (r.rec['プラン'] !== '有料') throw new Error('無料版は、動画の直しはできません');
+  if (!canFix_(r.rec)) throw new Error('読み上げの直しは1回までです。2本のうち、よいほうを保存してください');
+  const old = yomiOf_(r.rec);
+  if (!Array.isArray(list) || list.length !== old.length) throw new Error('読み方の数が合いません。ページを開き直してください');
+  const yomi = list.map((s, i) => {
+    s = String(s || '').replace(/\s+/g, ' ').trim();
+    if (!s) throw new Error('動画' + (i + 1) + 'の読み方が空です');
+    if (s.length > YOMI_MAX) throw new Error('動画' + (i + 1) + 'の読み方が長すぎます（' + YOMI_MAX + '文字まで）');
+    if (!YOMI_RE.test(s)) throw new Error('動画' + (i + 1) + 'の読み方は、ひらがなで書いてください（漢字・英字は使えません）');
+    return s;
+  });
+  const changed = yomi.map((s, i) => s !== old[i].replace(/\s+/g, ' ').trim() ? '動画' + (i + 1) + '「' + old[i] + '」→「' + s + '」' : '').filter(Boolean);
+  if (!changed.length) throw new Error('読み方が変わっていません。直したいところを書きかえてから押してください');
+  const comment = '読み方の直し：' + changed.join('／');
+  update_(r.row, { '状態': '修正依頼', 'よみの直し': JSON.stringify(yomi), 'お客さんのコメント': clip_(comment, 1000) }, 'お客さんが修正を依頼（読み方）');
+  mail_(CONFIG.OWNER_EMAIL, '【BAR広告】読み方の直しの依頼 ' + id + ' ' + r.rec['店名'],
+    'お客さんから読み上げの読み方の直しが届きました。自動で作り直します。\n\n' + changed.join('\n'));
+  return '受け付けました。直した動画ができたら、またメールでお知らせします。';
+}
+
 function requestChange(id, k, comment) {
   if (!comment || !String(comment).trim()) throw new Error('直してほしいところを書いてください');
   const r = checkReview_(id, k);
+  if (r.rec['プラン'] !== '有料') throw new Error('無料版は、動画の直しはできません');
   if (fixCount_(r.rec) >= CONFIG.MAX_FIX) throw new Error('動画の直しは1回までです。2本のうち、よいほうをダウンロードしてください');
   update_(r.row, { '状態': '修正依頼', 'お客さんのコメント': clip_(comment, 1000) }, 'お客さんが修正を依頼');
   mail_(CONFIG.OWNER_EMAIL, '【BAR広告】修正の依頼 ' + id + ' ' + r.rec['店名'],
@@ -725,8 +690,15 @@ function checkReview_(id, k) {
 function hourlyCheck() {
   const now = new Date();
   remindOwner_(now);
+  removeOldUploads_(now);
   rows_().forEach((rec, i) => {
     const row = i + 2;
+    // メールで確定しないまま期限が過ぎた申し込みは「未確定」にする（動画はつくらない。2026-11-03）
+    if (rec['状態'] === WAIT_STATE && confirmClosed_(rec)) {
+      update_(row, { '状態': UNSURE_STATE }, CONFIG.CONFIRM_HOURS + '時間たっても確定されなかった');
+      return;
+    }
+    removeSources_(row, rec, now);
     if (now < approveDeadline_(rec) || (rec['状態'] !== '承認待ち' && rec['状態'] !== DONE_STATE)) return;
     stopSharing_(rec);
     if (rec['状態'] === DONE_STATE) {
@@ -761,6 +733,32 @@ function remindOwner_(now) {
   });
 }
 
+/* 送ってもらった動画（素材）を、受付から KEEP_SOURCE_DAYS 日で消す（2026-11-03 タケシの指示）
+   消すのは、お客さんの動画のかけら（v1.part000 など）だけ。できあがった動画・確認用の動画は残す。
+   ドライブのゴミ箱に入れる（ゴミ箱は Google が30日で空にする）。消したら台帳の履歴に残し、二度は消さない */
+function removeSources_(row, rec, now) {
+  if (!rec['素材動画'] || BUSY_STATES.indexOf(rec['状態']) >= 0 || /素材の動画を消した/.test(rec['履歴'])) return;
+  if (now.getTime() < parseTime_(rec['受付日時']).getTime() + CONFIG.KEEP_SOURCE_DAYS * 86400000) return;
+  let n = 0;
+  try {
+    const it = DriveApp.getFolderById(rec['素材動画']).getFiles();
+    while (it.hasNext()) {
+      const f = it.next();
+      if (/^(old_)?v\d\.part\d+$/.test(f.getName())) { f.setTrashed(true); n++; }
+    }
+  } catch (err) { console.warn('素材を消せませんでした：' + rec.id + ' ' + err); return; }
+  update_(row, {}, '素材の動画を消した（' + CONFIG.KEEP_SOURCE_DAYS + '日たった・' + n + '個）');
+}
+
+/** 送り始めたが申し込みまで進まなかった動画（「送信中」フォルダに残ったもの）も、KEEP_SOURCE_DAYS 日で消す */
+function removeOldUploads_(now) {
+  const it = uploadRoot_().getFolders();
+  while (it.hasNext()) {
+    const f = it.next();
+    if (/^up-[0-9a-f]{32}$/.test(f.getName()) && now.getTime() - f.getDateCreated().getTime() > CONFIG.KEEP_SOURCE_DAYS * 86400000) f.setTrashed(true);
+  }
+}
+
 /** 動画のダウンロードのリンクを止める（共有を「自分だけ」に戻す。ファイルは消さない） */
 function stopSharing_(rec) {
   [rec['動画'], rec['前の動画']].filter(Boolean).forEach(id => {
@@ -771,9 +769,11 @@ function stopSharing_(rec) {
 /* ────────────────────────────── KAYO との受け渡し口（API） ────────────────────────────── */
 
 function doPost(e) {
-  let out;
+  let out, name = '?';
   try {
     const req = JSON.parse(e.postData.contents);
+    name = String(req.fn || req.action || '?').slice(0, 40);   // Apps Script の「実行数」に、何を呼んだかを残す（中身・キーは残さない。2026-10-31）
+    console.log(name);
     if (req.action === 'page' || req.action === 'call') {   // AWS の受付ページから（お客さん）
       out = { ok: true, result: publicApi_(req) };
     } else {                                               // KAYO（パソコン）から：キーが必要
@@ -781,6 +781,7 @@ function doPost(e) {
       out = { ok: true, result: api_(req) };
     }
   } catch (err) {
+    console.error(name + ' で断った：' + err.message);   // 「実行数」の行を開くと見える（2026-10-31 先生の PC の「通信が切れました」の原因さがし）
     out = { ok: false, error: err.message };
   }
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
@@ -829,18 +830,22 @@ function api_(req) {
         folder.createFile(Utilities.newBlob(Utilities.base64Decode(req.preview), 'video/mp4', '確認用_' + file.getName()));
       }
       const keep = r.rec['状態'] === '修正依頼' && r.rec['動画'] ? { '前の動画': r.rec['動画'], '前の投稿文': r.rec['投稿文'] } : {};
+      if (Array.isArray(req.yomi)) keep['よみ'] = JSON.stringify(req.yomi.map(String));   // 有料版：読み上げのひらがな（2026-10-31）
       update_(r.row, Object.assign({ '動画': file.getId(), '投稿文': JSON.stringify(req.captions || {}), '状態': '承認待ち' }, keep),
         '動画を届けた（' + file.getName() + '）');
       const rec = findRow_(req.id).rec;
       const url = pageUrl_() + '?p=review&id=' + encodeURIComponent(rec.id) + '&k=' + rec['承認キー'];
+      // 直しの案内は、有料版で直しがまだできるときだけ（無料版は直しなし。2026-10-31 タケシの指示）
+      const fixNote = canFix_(rec) && yomiOf_(rec).length ? '読み上げの読み方を直したいときは、同じページで、ひらがなの読み方を書きかえてお知らせください（1回まで）。\n' : '';
       mail_(rec['メール'], '【ALCOHOLIDAY】動画ができました。ご確認ください（' + rec.id + '）',
         rec['店名'] + ' ' + dear_(rec) + '\n\nおすすめ商品「' + rec['商品名'] + '」の動画ができました。\n' +
         '下のページで動画と投稿文を見て、よければ「カメラロールに保存」を押して、スマホに保存してください。\n' +
-        '直してほしいところがあれば、同じページの「直してほしいところがある」からお知らせください（1回まで）。\n\n' + url + '\n\n' +
+        fixNote + '\n' + url + '\n\n' +
         '投稿文をつくった SNS：' + snsLabel_(snsOf_(rec)) + '\nダウンロードの期限：' + jaTime_(approveDeadline_(rec)) + '\n' +
         '※ SNS ごとの投稿文は、同じページの「コピーする」ボタンでコピーできます。\n' +
         '※ ' + jaTime_(approveDeadline_(rec)) + ' までにダウンロードいただけない場合、動画のお渡しは終了します。' +
-        'このページとダウンロードのリンクも ' + jaTime_(approveDeadline_(rec)) + ' で使えなくなります。\n\nALCOHOLIDAY（アルコホリディ）');
+        'このページとダウンロードのリンクも ' + jaTime_(approveDeadline_(rec)) + ' で使えなくなります。\n' +
+        againText_(rec) + '\nALCOHOLIDAY（アルコホリディ）');
       return { videoId: file.getId(), reviewUrl: url };
     }
     case 'voice': {     // 声の見本を置く（A / B / C / D の mp3）
@@ -884,10 +889,19 @@ function rows_() {
   });
 }
 
-function findRow_(id) {
+function findRow_(id) { return id ? findBy_('id', id) : null; }
+
+function findBy_(col, value) {
   const all = rows_();
-  for (let i = 0; i < all.length; i++) if (all[i].id === id) return { row: i + 2, rec: all[i] };
+  for (let i = 0; i < all.length; i++) if (all[i][col] === value) return { row: i + 2, rec: all[i] };
   return null;
+}
+
+/** 「動画ができました」メールの最後：次の申し込みのリンク（お店の情報が最初から入る）（2026-11-03） */
+function againText_(rec) {
+  if (!rec['再申込キー']) return '';
+  return '\n■ 次のお申し込みは、下のリンクから（お店の情報が最初から入っています）\n' + pageUrl_() + '?p=form&a=' + rec['再申込キー'] + '\n' +
+    (rec['プラン'] === '有料' ? '' : '※ 無料版は、同じお店で' + CONFIG.FREE_EVERY_DAYS + '日に1回までお申し込みいただけます。\n');
 }
 
 function mustFind_(id) {
