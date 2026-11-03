@@ -1,0 +1,15 @@
+﻿{
+    "generated_at":  "2026-10-12T19:20:53.8937188+09:00",
+    "model":  "kling-video/o3/first-last-frame",
+    "request_id":  "47417d37-3821-407d-961b-a421ee41c43b",
+    "estimate_usd":  "0.420",
+    "input":  {
+                  "prompt":  "One single continuous cinematic shot with no cuts, filmed on a smooth steady gimbal at a slow, constant walking pace, like a scene from a film. Warm golden evening light, cozy European bistro. The camera continues walking slowly forward from the entrance into the dining room, gliding between the set tables with candles and wine glasses, the poster on the wall growing gradually closer, ending at a wider view of the corner with the window on the left and the poster in the center. The framed red pop-art poster of a hand holding a sparkling wine glass with the caption \u0027NO SPARKLING WINE, NO LIFE.\u0027 is a real flat printed poster: its illustration, lettering, white border and gold frame stay perfectly rigid and never warp, morph, redraw or change. Avoid: cuts, scene changes, morphing objects, warped poster, changing letters, garbled text, new text, extra posters, people, hands, birds, steam, smoke, shaking camera, fast movement, zoom jumps.",
+                  "duration":  5,
+                  "mode":  "std",
+                  "sound":  "off",
+                  "aspect_ratio":  "9:16",
+                  "first_frame_url":  "https://d3snorpfx4xhv8.cloudfront.net/30af197c-76ac-4037-b137-705ad83dab27/aafe34e1-8b98-42fb-911c-47f58d7e3256.png",
+                  "last_frame_url":  "https://d3snorpfx4xhv8.cloudfront.net/30af197c-76ac-4037-b137-705ad83dab27/b3b121bd-6f32-4c48-bbfd-eaed8e902b2e.png"
+              }
+}

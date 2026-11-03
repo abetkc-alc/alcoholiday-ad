@@ -106,18 +106,22 @@ def text_center(d, y, text, f, fill, maxw=940, gap=1.25, stroke=0):
     return y
 
 
-def subtitle_png(text, path, y=1540, size=60):
-    f = font(size)
-    base = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    d = ImageDraw.Draw(base)
-    w = d.textlength(text, font=f)
-    if w > 960:
+def subtitle_png(text, path, bottom=1600, sizes=(66, 62, 58)):
+    """字幕：白い太字＋黒く太い縁どり＋うっすらした影（2026-11-03 社長が「とても読みやすい」と言った
+    トーク動画 04_動画生成/トーク動画 IMG_0097（2026-11-03）/build_talk18.py と同じ見た目）。
+    大きさは 66。15文字ぎりぎりで入りきらない行だけ 62・58 に下げる。下の端は 1600 にそろえる"""
+    d = ImageDraw.Draw(Image.new("RGBA", (W, H)))
+    size = next((s for s in sizes if d.textlength(text, font=font(s)) + 12 <= 1000), None)
+    if size is None:
         raise SystemExit(f"字幕が長すぎて1行に収まりません（15文字くらいまでに）: {text}")
-    x = (W - w) / 2
+    f = font(size)
+    w = d.textlength(text, font=f)
+    x, y = (W - w) / 2, bottom - int(size * 1.3)
+    base = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(shadow).text((x + 2, y + 3), text, font=f, fill=(0, 0, 0, 190))
+    ImageDraw.Draw(shadow).text((x + 3, y + 4), text, font=f, fill=(0, 0, 0, 180))
     base = Image.alpha_composite(base, shadow.filter(ImageFilter.GaussianBlur(5)))
-    ImageDraw.Draw(base).text((x, y), text, font=f, fill=(255, 255, 255, 255), stroke_width=3, stroke_fill=(20, 20, 20, 220))
+    ImageDraw.Draw(base).text((x, y), text, font=f, fill=(255, 255, 255, 255), stroke_width=6, stroke_fill=(15, 15, 15, 255))
     base.save(path)
 
 

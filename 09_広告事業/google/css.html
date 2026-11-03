@@ -135,8 +135,10 @@
   /* 受け付けた画面 */
   .donebox { text-align:center; }
   .okmark { width:76px; height:76px; margin:4px auto 10px; border-radius:50%; background:var(--ok); color:#fff; font-size:44px; font-weight:900; display:flex; align-items:center; justify-content:center; }
-  .donetitle { justify-content:center; font-size:clamp(20px, 6vw, 28px); white-space:nowrap; margin:0 0 6px; }
+  /* 見出しが長いと画面からはみ出して読めなかった（2026-11-03）→ 画面の幅で折り返す */
+  .donetitle { display:block; text-align:center; font-size:clamp(20px, 6vw, 28px); margin:0 0 6px; }
   .donelead { margin:0 0 14px; color:var(--sub); }
+  .donelead .warn { color:var(--red); font-weight:800; }
   .summary { text-align:left; margin:0; border-radius:20px; padding:8px 18px; background:#fff; }
   .summary dt { font-size:17px; color:var(--sub); margin-top:10px; }
   .summary dd { margin:0 0 6px; font-size:23px; font-weight:800; word-break:break-all; }

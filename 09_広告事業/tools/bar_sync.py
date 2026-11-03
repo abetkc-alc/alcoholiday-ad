@@ -176,7 +176,7 @@ tags: [広告事業, BAR広告]
 
 | 項目 | 内容 |
 |---|---|
-| 店名 | {r['店名']} |
+| 店名 | {r['店名']}（読み：{r.get('店名カナ') or 'なし'}） |
 | 住所 | {full_address(r)} |
 | 最寄り駅 | {r['エリア']} |
 | 営業時間 | {r['営業時間']} |
@@ -272,7 +272,8 @@ def check_captions(oid, cap):
     return probs
 
 
-def deliver(oid, video, captions):
+def deliver(oid, video, captions, yomi=None):
+    """yomi：有料版の読み上げのひらがな（動画1〜3）。確認ページで、お客さんが読み方を直すのに使う（2026-10-31）"""
     video, captions = pathlib.Path(video), pathlib.Path(captions)
     cap = json.loads(captions.read_text(encoding="utf-8"))
     probs = [x for x in check_captions(oid, cap) if not x.startswith("注意：")]
@@ -288,7 +289,8 @@ def deliver(oid, video, captions):
                     "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart", str(prev)], check=True)
     res = call("deliver", id=oid, name=video.name, captions=cap,
                video=base64.b64encode(video.read_bytes()).decode(),
-               preview=base64.b64encode(prev.read_bytes()).decode())
+               preview=base64.b64encode(prev.read_bytes()).decode(),
+               **({"yomi": yomi} if yomi else {}))
     print("届けました。お客さんに「動画ができました」メールを送りました")
     print("確認ページ：", res["reviewUrl"])
 

@@ -31,7 +31,7 @@
         <div class="feat"><img alt=""><div><b>動画を3本撮るだけ</b><span>1本5秒くらい。お店の雰囲気・おすすめの商品・自由の3本です。</span></div></div>
         <div class="feat"><img alt=""><div><b>声の案内と字幕で仕上げ</b><span>3本をつなぎ、声の案内と字幕を入れた1本の紹介動画にします。</span></div></div>
         <div class="feat"><img alt=""><div><b>見てからダウンロード</b><span>できあがった動画はメールでお知らせします。有料版は、読み上げの読み方を1回まで直せます。</span></div></div>
-        <div class="feat"><img alt=""><div><b>SNS ごとの投稿文つき</b><span>Instagram・TikTok・X から、載せる SNS をえらべます。投稿文もお送りします。</span></div></div>
+        <div class="feat"><img alt=""><div><b>SNS ごとの投稿文つき</b><span>Instagram・TikTok・X の3つの投稿文を、すべてお送りします。</span></div></div>
       </div>
     </div>
 
@@ -75,7 +75,9 @@
 
   // 写真を並べる（角の丸いタイル）
   PHOTOS.forEach(p => { const im = new Image(); im.src = p.src; im.alt = p.alt; $('collage').appendChild(im); });
-  document.querySelectorAll('#features img').forEach((im, i) => { const p = PHOTOS[(i + 2) % PHOTOS.length]; im.src = p.src; im.alt = p.alt; });
+  // 紹介の4枚は FEAT_PHOTOS（料理2枚を含む）。photos がまだ古いときは、今までどおり PHOTOS から
+  const FEAT = typeof FEAT_PHOTOS !== 'undefined' ? FEAT_PHOTOS : PHOTOS.slice(2);
+  document.querySelectorAll('#features img').forEach((im, i) => { const p = FEAT[i % FEAT.length]; im.src = p.src; im.alt = p.alt; });
 
   if (DATA.msg) $('topmsg').textContent = DATA.msg;
   else if (DATA.testOnly) $('topmsg').textContent = 'ただいま準備中です（テスト中）。公開まで、もうしばらくお待ちください。';

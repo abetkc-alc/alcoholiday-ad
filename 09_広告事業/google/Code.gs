@@ -3,7 +3,7 @@
  *
  * できること
  *   0. トップページ（お客さん用）：サービスの紹介と「申し込む」ボタン（2026-11-03 タケシの指示で会員登録・ログインはやめた）
- *   1. 受付ページ（だれでも）：店・おすすめ商品・お店で撮った動画3本とその説明・動画を載せる SNS・ナレーションの声を入力してもらう
+ *   1. 受付ページ（だれでも）：店・おすすめ商品・お店で撮った動画3本とその説明・ナレーションの声を入力してもらう
  *      送ったあと、メールの「申し込みを確定する」を押してもらうまで動画はつくらない（いたずら・まちがいのメールアドレスを防ぐ）
  *      無料版は、同じメール・同じ店名・同じ電話番号で10日に1回まで。送ってもらった動画（素材）は受付から30日で消す
  *   2. 確認ページ（お客さん用）：完成した動画を見て、ダウンロードしてもらう（有料版は、読み上げのひらがなを直して作り直しを頼める。1回まで）
@@ -396,7 +396,7 @@ function submitOrder(f) {
   const done = orderResult(f.upload);
   if (done) return done;
   const need = { shop: '店名', kana: '店名のカナ', email: 'メールアドレス', tel: '電話番号', pref: '都道府県',
-    address: '住所', sns: 'お店の SNS か Google マップ', product: 'おすすめ商品の名前', desc: '商品の説明' };
+    address: '住所', product: 'おすすめ商品の名前', desc: '商品の説明' };   // お店の SNS か Google マップは、なくてもよい（2026-11-03）
   Object.keys(need).forEach(k => {
     if (!f[k] || !String(f[k]).trim()) throw new Error(need[k] + 'を入力してください');
   });
@@ -418,8 +418,7 @@ function submitOrder(f) {
     if ((parts[i + 1] || 0) !== Number(v.parts)) throw new Error('動画' + (i + 1) + 'が最後まで届いていません。もう一度「申し込む」を押してください');
   });
   if (!f.agree) throw new Error('注意事項への同意が必要です');
-  const platforms = (Array.isArray(f.platforms) ? f.platforms : []).filter((p, i, a) => CONFIG.PLATFORMS.indexOf(p) >= 0 && a.indexOf(p) === i);
-  if (!platforms.length) throw new Error('動画を載せる SNS を1つ以上えらんでください');
+  const platforms = CONFIG.PLATFORMS.slice();   // どの申し込みにも3つとも投稿文をつくる（2026-11-03 タケシの指示。SNS をえらぶ欄はなくした）
   const guide = CONFIG.GUIDES.filter(g => g.key === f.guide)[0];
   if (CONFIG.MUSICS.indexOf(f.music) < 0) throw new Error('背景の音楽をえらんでください');
 

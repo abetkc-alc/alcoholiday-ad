@@ -37,11 +37,6 @@
         <input placeholder="例：バー アルコホリディ" type="text" name="kana" maxlength="80" required>
       </div>
       <div class="field">
-        <div class="lab">メールアドレス<span class="tag must">必ず</span></div>
-        <p class="ex">申し込みを確定するメールと、できあがった動画のお知らせを、このアドレスにお送りします</p>
-        <input placeholder="例：info@example.com" type="email" name="email" maxlength="120" required inputmode="email" autocomplete="email">
-      </div>
-      <div class="field">
         <div class="lab">お店の電話番号<span class="tag must">必ず</span></div>
         <p class="ex">SNS の文に載せます</p>
         <input placeholder="例：03-1234-5678" type="tel" name="tel" maxlength="30" inputmode="tel">
@@ -65,8 +60,8 @@
         <input placeholder="例：夜7時〜夜中の2時（日曜休み）" type="text" name="hours" maxlength="80">
       </div>
       <div class="field">
-        <div class="lab">お店の SNS か Google マップ<span class="tag must">必ず</span></div>
-        <p class="ex">どちらか1つ。お店の Instagram などのアカウントか、Google マップのお店のページの URL を入れてください</p>
+        <div class="lab">お店の SNS か Google マップ<span class="tag opt">なくてもよい</span></div>
+        <p class="ex">お店の Instagram などのアカウントか、Google マップのお店のページの URL を入れてください</p>
         <input placeholder="例：Instagram @bar_xxx" type="text" name="sns" maxlength="200">
       </div>
     </section>
@@ -140,13 +135,15 @@
       <p class="ex">※ 無料版は、同じお店（メールアドレス・店名・電話番号）で<b><?= data.freeDays ?>日に1回</b>までです。<br>※ 有料版のお支払いの方法は、ただいま準備中です。</p>
     </section>
 
+    <!-- 2026-11-03 タケシの指示：「動画を載せる SNS」をえらぶ欄はなくし、どの申し込みにも Instagram・TikTok・X の3つの投稿文をお送りする。
+         メールアドレスは 1 から外して、ここ（申し込む前）で入れてもらう -->
     <section>
-      <h2><span class="no">7</span>動画を載せる SNS</h2>
-      <p>お店で動画を載せる SNS に印をつけてください（いくつでも）。<br>えらんだ SNS ごとに、<b>そのまま使える投稿文</b>をつくります。投稿文は、動画の確認ページでコピーできます。</p>
-      <ul class="tips">
-        <li>投稿は、お店の SNS アカウントから<b>ご自身で</b>行ってください（ALCOHOLIDAY のアカウントには載せません）</li>
-      </ul>
-      <div class="snslist" id="snslist"></div>
+      <h2><span class="no">7</span>メールアドレス</h2>
+      <div class="field">
+        <div class="lab">動画確認・ダウンロードリンクの送り先<span class="tag must">必ず</span></div>
+        <p class="ex">申し込みを確定するメールと、できあがった動画の確認・ダウンロードのリンクを、このアドレスにお送りします。<br>Instagram・TikTok・X の3つの投稿文も、確認ページでコピーできます。</p>
+        <input placeholder="例：info@example.com" type="email" name="email" maxlength="120" required inputmode="email" autocomplete="email">
+      </div>
     </section>
 
     <section>
@@ -252,15 +249,6 @@
       lab.appendChild(b);
     }
     $('musics').appendChild(lab);
-  });
-
-  /* ───── 投稿する SNS（はじめは全部に印） ───── */
-  DATA.platforms.forEach(p => {
-    const lab = document.createElement('label'); lab.className = 'agree';
-    lab.innerHTML = '<input type="checkbox" class="postsns" checked><span></span>';
-    lab.querySelector('input').value = p.key;
-    lab.querySelector('span').textContent = p.name;
-    $('snslist').appendChild(lab);
   });
 
   /* ───── 動画3本 ───── */
@@ -380,8 +368,8 @@
       '<header>' + DATA.logo + '</header>' +
       '<section class="donebox">' +
       '  <div class="okmark">✔</div>' +
-      '  <h2 class="donetitle">あと1つ：メールで申し込みを確定してください</h2>' +
-      '  <p class="donelead">動画を受け取りました。<b>まだお申し込みは終わっていません。</b><br>届いたメールを開いて「申し込みを確定する」を押してください（' + (r.confirmHours || 24) + '時間以内）。</p>' +
+      '  <h2 class="donetitle">メールで申し込みを確定してください</h2>' +
+      '  <p class="donelead">動画を受け取りました。<b class="warn">まだお申し込みは終わっていません。</b><br>届いたメールを開いて「申し込みを確定する」を押してください（' + (r.confirmHours || 24) + '時間以内）。</p>' +
       '  <dl class="summary"><dt>受付番号</dt><dd class="id"></dd><dt>プラン</dt><dd class="plan"></dd><dt>投稿文をつくる SNS</dt><dd class="when"></dd><dt>メールの送り先</dt><dd class="mail"></dd></dl>' +
       '  <div class="note"></div>' +
       '</section>' +
@@ -413,20 +401,18 @@
     const fd = new FormData($('f'));
     const f = Object.fromEntries(fd.entries());
     f.agree = !!f.agree; f.limited = !!f.limited; f.guide = st.guide;
-    f.platforms = Array.from(document.querySelectorAll('.postsns:checked')).map(x => x.value);
+    f.platforms = DATA.platforms.map(p => p.key);   // 3つとも（2026-11-03）
     const miss = [];
     if (!String(f.shop || '').trim()) miss.push('1 の「店名」を入れてください');
     if (!/^[ぁ-んァ-ヶー・ 　]+$/.test(String(f.kana || '').trim())) miss.push('1 の「店名のカナ」を、ひらがなかカタカナで入れてください');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(f.email || ''))) miss.push('1 の「メールアドレス」を正しく入れてください');
     if (!String(f.tel || '').trim()) miss.push('1 の「お店の電話番号」を入れてください');
     if (!f.pref) miss.push('1 の「都道府県」をえらんでください');
     if (!String(f.address || '').trim()) miss.push('1 の「住所」を入れてください');
-    if (!String(f.sns || '').trim()) miss.push('1 の「お店の SNS か Google マップ」を入れてください');
     if (!String(f.product || '').trim()) miss.push('2 の「商品の名前」を入れてください');
     if (!String(f.desc || '').trim()) miss.push('2 の「商品とお店の説明」を入れてください');
     st.videos.forEach((v, i) => { if (!v) miss.push('3 の「動画' + (i + 1) + '（' + DATA.videos[i].title + '）」をえらんでください'); });
     if (!f.music) miss.push('5 の「背景の音楽」をえらんでください');
-    if (!f.platforms.length) miss.push('7 の「動画を載せる SNS」を1つ以上えらんでください');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(f.email || ''))) miss.push('7 の「メールアドレス」を正しく入れてください');
     if (!f.agree) miss.push('8 の「同意します」に印をつけてください');
     if (miss.length) { $('err').textContent = 'まだ入っていないところがあります：\n・' + miss.join('\n・'); return false; }
     $('btn').disabled = true; $('btn').textContent = '送っています…';
