@@ -256,7 +256,7 @@ def shop_overlay(shop, area, hours, path, top=210, line=True):
     for t in (area, hours):
         if t:
             y = text_center(d, y + 4, t, font(38), (240, 230, 215, 255), stroke=3)
-    text_center(d, 1810, NOTICE, font(27), (225, 215, 200, 240), maxw=1000, stroke=2)
+    # お酒の注意書き（NOTICE）は、2026-11-07 タケシの指示で動画の画面にも出さない
     soft_shadow(im).save(path)
 
 

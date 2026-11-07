@@ -26,6 +26,45 @@
     try { window.open(url, '_top'); } catch (e) { /* 下のボタンで移ってもらう */ }
   }
 
+  /* ───── Google でログイン（2026-11-07 タケシの指示：ログインは Google だけ） ─────
+     Google のボタンで本人のメールアドレスを確かめ、GAS（googleLogin）で合言葉（session）にかえて、この端末に覚えておく。
+     AWS の受付ページ（ad.alcoholiday.org）でだけ使える（Google のページの中では、Google のボタンが動かない） */
+  var LOGIN_KEY = 'alc_google';
+  function loginNow() {
+    try { const v = JSON.parse(localStorage.getItem(LOGIN_KEY) || 'null'); return v && v.session && v.until > Date.now() ? v : null; }
+    catch (e) { return null; }
+  }
+  function logout() {
+    try { localStorage.removeItem(LOGIN_KEY); } catch (e) { /* おぼえられない設定のとき */ }
+    try { google.accounts.id.disableAutoSelect(); } catch (e) { /* ボタンを読み込む前 */ }
+  }
+  // boxes の中に Google のボタンを出す。ログインできたら done({ session, email }) を呼ぶ。msg：知らせを出すところ
+  function googleButton(boxes, msg, done) {
+    if (!DATA.clientId) { msg.textContent = 'ただいま準備中です（Google のログインの設定がまだです）'; return; }
+    const draw = () => {
+      google.accounts.id.initialize({ client_id: DATA.clientId, ux_mode: 'popup', callback: async r => {
+        msg.textContent = 'ログインしています…';
+        try {
+          const v = await run('googleLogin', r.credential);
+          try { localStorage.setItem(LOGIN_KEY, JSON.stringify(v)); } catch (e) { /* おぼえられなくても、このページのあいだは使える */ }
+          msg.textContent = '';
+          done(v);
+        } catch (e) { msg.textContent = errText(e); }
+      } });
+      boxes.forEach(b => {
+        b.innerHTML = '';
+        google.accounts.id.renderButton(b, { theme: 'filled_blue', size: 'large', shape: 'pill', text: 'signin_with', locale: 'ja',
+          width: Math.max(220, Math.min(b.clientWidth || 320, 400)) });
+      });
+    };
+    if (window.google && google.accounts && google.accounts.id) return draw();
+    const sc = document.createElement('script');
+    sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true; sc.onload = draw;
+    sc.onerror = () => { msg.textContent = 'Google のログインを読み込めませんでした。電波のよい場所で、ページを開き直してください。'; };
+    document.head.appendChild(sc);
+  }
+  var LOGIN_HELP = 'LINE や Instagram の中で開いたときは、Google のログインができないことがあります。そのときは、右上のメニューから Safari か Chrome で開いてください。';
+
   /* ───── 声で入力（ブラウザの音声認識。使えないときはキーボードのマイクを案内） ───── */
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   var micNow = null;

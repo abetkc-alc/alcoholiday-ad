@@ -1,0 +1,1 @@
+完成しました： [studio-empty-v1.png](<C:\Users\abetk\Desktop\AIアルコホリディ\09_広告事業\ALCニュース\素材\キャスター\studio-empty-v1.png>)（936×1664）

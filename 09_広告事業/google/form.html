@@ -9,22 +9,16 @@
 <div class="wrap" id="app">
   <div class="memberbar">
     <span class="who"><?!= data.logo ?></span>
+    <span class="who" id="me-bar" hidden><span id="me-mail"></span><a href="#" id="me-out">ログアウト</a></span>
   </div>
   <header>
     <h1>ショート動画作成の申し込み</h1>
     <p class="lead">お店の SNS に載せる、おすすめ商品のショート動画をおつくりします。</p>
-    <ol class="flow">
-      <li><b>1</b>お店の詳細を入力</li>
-      <li><b>2</b>おすすめ商品とお店の説明を入力</li>
-      <li><b>3</b>動画をアップロード</li>
-      <li><b>4</b>届いたメールで「申し込みを確定する」</li>
-      <li><b>5</b>メールで届いた URL からダウンロード</li>
-    </ol>
   </header>
 
   <form id="f" onsubmit="return send(event)" novalidate>
     <section>
-      <p class="step">全部で8つです</p>
+      <p class="step">全部で7つです</p>
       <h2><span class="no">1</span>お店のこと</h2>
       <p class="ex" id="prefillnote" hidden>前回の内容を入れてあります。変わったところがあれば直してください。</p>
       <div class="field" data-mic>
@@ -64,6 +58,7 @@
         <p class="ex">お店の Instagram などのアカウントか、Google マップのお店のページの URL を入れてください</p>
         <input placeholder="例：Instagram @bar_xxx" type="text" name="sns" maxlength="200">
       </div>
+      <p class="ex">※ SNS に載せる文（Instagram・TikTok・X）は、2 の「商品とお店の説明」をもとに自動でつくります（入力はいりません）。上のお店の住所・営業時間・電話番号と「#PR」も、自動で入れます。</p>
     </section>
 
     <section>
@@ -97,23 +92,14 @@
       <ul class="tips">
         <li>スマホは<b>縦向き</b>で、明るい場所で撮ってください</li>
         <li>動画の音は使いません（音楽と声の案内を入れます）</li>
-        <li>人・商品・場所などが映るときは、掲載の了承をとってください（8 の確認事項をお読みください）</li>
+        <li>人・商品・場所などが映るときは、掲載の了承をとってください（7 の確認事項をお読みください）</li>
         <li>1本 <b><?= data.maxVideoSec ?>秒まで・<?= data.maxVideoMb ?>MB まで</b>（5秒くらいがおすすめです）。長い動画・大きい動画は送れません。送るのに少し時間がかかります（Wi-Fi がおすすめです）</li>
       </ul>
       <div id="videos"></div>
     </section>
 
     <section>
-      <h2><span class="no">4</span>SNS に載せる文</h2>
-      <p>動画といっしょに SNS に載せる文は、<b>2 の「おすすめの商品」の説明をもとに、自動でつくります</b>。入力はいりません。</p>
-      <ul class="tips">
-        <li>最初に入力した<b>お店の住所・営業時間・電話番号</b>は必ず入れます</li>
-        <li>「#PR」「お酒は20歳になってから」などの決まった文も、自動で付けます</li>
-      </ul>
-    </section>
-
-    <section>
-      <h2><span class="no">5</span>声の案内と音楽</h2>
+      <h2><span class="no">4</span>声の案内と音楽</h2>
       <p>動画の声の案内（ナレーション）の声をえらんでください。<b>「▶ 声を聞く」</b>で聞きくらべられます。</p>
       <div class="voices" id="voices"></div>
       <div class="field">
@@ -124,36 +110,48 @@
     </section>
 
     <section>
-      <h2><span class="no">6</span>動画のプラン</h2>
+      <h2><span class="no">5</span>動画のプラン</h2>
       <p>どちらかをえらんでください。</p>
       <div class="plans">
-        <label class="plan"><input type="radio" name="plan" value="無料" checked>
-          <span><b>無料版</b>　0円<br><small>動画の上と下に ALCOHOLIDAY のロゴがうすく入り、最後に ALCOHOLIDAY の締めの画面と声（約4秒）が入ります。</small></span></label>
+        <label class="plan"><input type="radio" name="plan" value="体験" checked>
+          <span><b>体験版</b>　0円（1回だけ）<br><small>動画の上と下に ALCOHOLIDAY のロゴがうすく入り、最後に ALCOHOLIDAY の締めの画面と声（約4秒）が入ります。</small></span></label>
         <label class="plan"><input type="radio" name="plan" value="有料">
           <span><b>有料版</b>　500円<br><small>ロゴの透かしや締めの画面は入りません。<b>広告は、最後に小さく「Designed by ALCOHOLIDAY」が入るだけです。</b>最後の場面は、おすすめ商品の動画に商品名・値段と「詳細はキャプションから」を載せます。読み上げの読み方を1回まで直せます。</small></span></label>
       </div>
-      <p class="ex">※ 無料版は、同じお店（メールアドレス・店名・電話番号）で<b><?= data.freeDays ?>日に1回</b>までです。<br>※ 有料版のお支払いの方法は、ただいま準備中です。</p>
+      <p class="ex">※ 体験版は、1つの Google アカウントで<b>1回だけ</b>お使いいただけます。2回目からは有料版でお申し込みください。<br>※ 有料版のお支払いの方法は、ただいま準備中です。</p>
     </section>
 
     <!-- 2026-11-03 タケシの指示：「動画を載せる SNS」をえらぶ欄はなくし、どの申し込みにも Instagram・TikTok・X の3つの投稿文をお送りする。
-         メールアドレスは 1 から外して、ここ（申し込む前）で入れてもらう -->
+         2026-11-07 タケシの指示：メールアドレスは入力してもらわず、Google でログインしたメールアドレスを使う -->
     <section>
-      <h2><span class="no">7</span>メールアドレス</h2>
+      <h2><span class="no">6</span>メールアドレス（Google でログイン）</h2>
       <div class="field">
         <div class="lab">動画確認・ダウンロードリンクの送り先<span class="tag must">必ず</span></div>
-        <p class="ex">申し込みを確定するメールと、できあがった動画の確認・ダウンロードのリンクを、このアドレスにお送りします。<br>Instagram・TikTok・X の3つの投稿文も、確認ページでコピーできます。</p>
-        <input placeholder="例：info@example.com" type="email" name="email" maxlength="120" required inputmode="email" autocomplete="email">
+        <p class="ex" id="f-loginlead">下のボタンで Google にログインすると、<b>その Google のメールアドレスが送り先</b>になります。</p>
+        <!-- 2026-11-07 タケシの指示：送り先のメールアドレスを大きく出し、このアドレスに送ることを強調する -->
+        <div class="login" id="f-login">
+          <div class="gbtn"></div>
+          <div class="me mailto" hidden>
+            <div class="mailto-lab">✉ メールの送り先</div>
+            <div class="mailto-addr"></div>
+            <p class="mailto-note"><b>受付のメール</b>と、<b>できあがった動画の確認・ダウンロードのリンク</b>は、<b class="warn">このメールアドレスにお送りします。</b></p>
+            <a href="#" id="f-out">別のメールアドレスにする（ログアウトして、別の Google アカウントでログイン）</a>
+          </div>
+          <p class="loginmsg"></p>
+        </div>
+        <p class="ex">Instagram・TikTok・X の3つの投稿文は、確認ページでコピーできます。</p>
+        <p class="ex" id="f-loginhelp"></p>
       </div>
     </section>
 
     <section>
-      <h2><span class="no">8</span>確認して申し込む</h2>
+      <h2><span class="no">7</span>確認して申し込む</h2>
       <ul class="notes">
-        <li>「申し込む」のあと、メールが届きます。<b>メールの「申し込みを確定する」を押すと、動画づくりが始まります</b>（<?= data.confirmHours ?>時間以内に押されないと取り消しになります）。</li>
+        <li>「申し込む」を押すと受付になり、<b>動画づくりが始まります</b>。受付のメールを、ログインした Google のメールアドレスにお送りします。</li>
         <li>できあがった動画は、メールのページから<b>ダウンロード</b>していただきます。SNS への投稿は、お店で行っていただきます。</li>
         <li>送っていただいた動画（素材）は、受付から<b><?= data.keepDays ?>日で消します</b>。</li>
-        <li><b>無料版は、動画の直しはできません。</b>有料版は、読み上げの読み方を<b>1回まで</b>直せます（確認ページで、ひらがなの読み方を書きかえます）。直したあとは、直す前と直したあとの2本から選んでいただきます。</li>
-        <li>お送りする投稿文には、広告であることを示す「#PR」と、お酒の注意書き（20歳未満の飲酒・飲酒運転の禁止）を入れます。投稿するときも消さずにお使いください。</li>
+        <li><b>体験版は、動画の直しはできません。</b>有料版は、読み上げの読み方を<b>1回まで</b>直せます（確認ページで、ひらがなの読み方を書きかえます）。直したあとは、直す前と直したあとの2本から選んでいただきます。</li>
+        <li>お送りする投稿文には、広告であることを示す「#PR」を入れます。投稿するときも消さずにお使いください。</li>
         <li>投稿した内容と、投稿のあとに起きたことについては、<b>投稿したお店の責任</b>となります。</li>
         <li>送っていただく動画に映っている<b>場所・人・商品・音楽・看板やロゴなど</b>は、撮影と SNS への掲載について、<b>お申し込みいただいた方が、すべて了承を得ているもの</b>とします。</li>
         <li>送っていただいた動画・文・お店の情報について、ほかの人や会社とのあいだで問題が起きた場合は、<b>お申し込みいただいた方の責任と費用で解決</b>していただきます。<b>ALCOHOLIDAY は一切の責任を負いません。</b></li>
@@ -163,7 +161,7 @@
       </ul>
       <label class="agree"><input type="checkbox" name="agree" value="1">上の内容に同意します</label>
       <button class="submit" id="btn">申し込む</button>
-      <p class="sendnote" id="sendnote" hidden><b>アップロードの時間は約3分</b>です。電波や混み具合によって変わります。<br>終わるまで、<b>画面を消さずに</b>、この画面のままお待ちください。<br>もし画面が消えてしまっても、画面をつけ直せば、続きから自動で送ります。</p>
+      <p class="sendnote" id="sendnote" hidden><b>アップロードの時間は約3分</b>です。電波や混み具合によって変わります。<br>終わるまで、<b>画面を消さずに</b>、この画面のままお待ちください。</p>
       <div class="progress" id="progress"></div>
       <div class="err" id="err"></div>
     </section>
@@ -180,11 +178,32 @@
 
   /* ───── 「前回の内容でもう一度申し込む」のリンクから来たときは、前回のお店の情報を最初から入れておく（2026-11-03） ───── */
   const M = DATA.prefill || {};
-  ['shop', 'kana', 'email', 'tel', 'pref', 'address', 'area', 'hours', 'sns'].forEach(k => {
+  ['shop', 'kana', 'tel', 'pref', 'address', 'area', 'hours', 'sns'].forEach(k => {
     const el = document.querySelector('[name=' + k + ']');
     if (el && M[k]) el.value = M[k];
   });
   if (M.shop) $('prefillnote').hidden = false;
+
+  /* ───── Google でログイン（2026-11-07）：メールアドレスは、ログインした Google のもの ───── */
+  let me = loginNow();
+  const fLoginMsg = document.querySelector('#f-login .loginmsg');
+  $('f-loginhelp').textContent = LOGIN_HELP;
+  function showMe() {
+    me = loginNow() || (me && me.until > Date.now() ? me : null);   // 端末に覚えられない設定でも、このページのあいだは使う
+    $('me-bar').hidden = !me;
+    document.querySelector('#f-login .gbtn').hidden = !!me;
+    document.querySelector('#f-login .me').hidden = !me;
+    $('f-loginhelp').hidden = !!me;
+    $('f-loginlead').hidden = !!me;
+    if (me) {
+      $('me-mail').textContent = me.email;
+      document.querySelector('#f-login .mailto-addr').textContent = me.email;
+    } else {
+      googleButton([document.querySelector('#f-login .gbtn')], fLoginMsg, v => { me = v; showMe(); });
+    }
+  }
+  $('me-out').onclick = $('f-out').onclick = ev => { ev.preventDefault(); logout(); me = null; showMe(); };
+  showMe();
 
   document.querySelectorAll('[data-mic]').forEach(addMic);
   document.querySelectorAll('[data-count]').forEach(addCount);
@@ -332,7 +351,7 @@
 
   // 動画を約4MBずつに分けて送る（大きい動画でも送れるように）。st.done[i]＝動画iの送れた区切りの数（続きから送るため）
   async function sendVideos() {
-    if (!st.upload) { st.upload = await run('startUpload'); st.sent = []; st.done = []; }
+    if (!st.upload) { st.upload = await run('startUpload', me.session); st.sent = []; st.done = []; }
     const total = st.videos.reduce((n, v) => n + v.file.size, 0);
     let done = st.videos.reduce((n, v, i) => n + (st.sent[i] ? v.file.size : Math.min(v.file.size, (st.done[i] || 0) * CHUNK)), 0);
     const show = () => { $('progress').textContent = '動画を送っています… ' + Math.round(done / total * 100) + '%\n（画面を消さずに、この画面のままお待ちください）'; };
@@ -362,25 +381,24 @@
     }
   }
 
-  /* ───── 送り終わった画面（申し込み画面と同じ見た目）。まだ確定していないので、メールを開いてもらう ───── */
+  /* ───── 送り終わった画面（申し込み画面と同じ見た目）。Google でログインしているので、そのまま受付（2026-11-07） ───── */
   function showDone(r, email) {
     $('app').innerHTML =
       '<header>' + DATA.logo + '</header>' +
       '<section class="donebox">' +
       '  <div class="okmark">✔</div>' +
-      '  <h2 class="donetitle">メールで申し込みを確定してください</h2>' +
-      '  <p class="donelead">動画を受け取りました。<b class="warn">まだお申し込みは終わっていません。</b><br>届いたメールを開いて「申し込みを確定する」を押してください（' + (r.confirmHours || 24) + '時間以内）。</p>' +
+      '  <h2 class="donetitle">お申し込みを受け付けました</h2>' +
+      '  <p class="donelead">動画を受け取りました。動画づくりを始めます。<br>受付のメールをお送りしましたので、ご確認ください。</p>' +
       '  <dl class="summary"><dt>受付番号</dt><dd class="id"></dd><dt>プラン</dt><dd class="plan"></dd><dt>投稿文をつくる SNS</dt><dd class="when"></dd><dt>メールの送り先</dt><dd class="mail"></dd></dl>' +
       '  <div class="note"></div>' +
       '</section>' +
       '<section>' +
       '  <h2><span class="no">✉</span>このあとの流れ</h2>' +
       '  <ol class="flow">' +
-      '    <li><b>1</b>メールの「申し込みを確定する」を押してください</li>' +
-      '    <li><b>2</b>ALCOHOLIDAY が動画をつくります</li>' +
-      '    <li><b>3</b>動画ができたら、メールでお知らせします</li>' +
-      '    <li><b>4</b>メールのページで動画を見て、ダウンロードしてください（受付から' + DATA.approveDays + '日以内）</li>' +
-      '    <li><b>5</b>確認ページでコピーできる SNS ごとの投稿文を使って、お店の SNS に投稿してください</li>' +
+      '    <li><b>1</b>ALCOHOLIDAY が動画をつくります</li>' +
+      '    <li><b>2</b>動画ができたら、メールでお知らせします</li>' +
+      '    <li><b>3</b>メールのページで動画を見て、ダウンロードしてください（受付から' + DATA.approveDays + '日以内）</li>' +
+      '    <li><b>4</b>確認ページでコピーできる SNS ごとの投稿文を使って、お店の SNS に投稿してください</li>' +
       '  </ol>' +
       '  <div class="help">メールが届かないときは、<b>迷惑メール</b>のフォルダもご覧ください。</div>' +
       '</section>' +
@@ -388,8 +406,8 @@
     // 受付番号などは文字として入れる（記号がそのまま表示されるように）
     document.querySelector('.summary .id').textContent = r.id;
     document.querySelector('.summary .when').textContent = r.when;
-    document.querySelector('.summary .plan').textContent = (r.plan || '無料') + '版';
-    document.querySelector('.summary .mail').textContent = email;
+    document.querySelector('.summary .plan').textContent = r.plan || '体験版';
+    document.querySelector('.summary .mail').textContent = r.email || email;
     if (r.note) document.querySelector('.donebox .note').innerHTML = r.note;   // お試し版だけが使う案内
     window.scrollTo(0, 0);
   }
@@ -401,6 +419,7 @@
     const fd = new FormData($('f'));
     const f = Object.fromEntries(fd.entries());
     f.agree = !!f.agree; f.limited = !!f.limited; f.guide = st.guide;
+    if (me) { f.session = me.session; f.email = me.email; }
     f.platforms = DATA.platforms.map(p => p.key);   // 3つとも（2026-11-03）
     const miss = [];
     if (!String(f.shop || '').trim()) miss.push('1 の「店名」を入れてください');
@@ -411,16 +430,16 @@
     if (!String(f.product || '').trim()) miss.push('2 の「商品の名前」を入れてください');
     if (!String(f.desc || '').trim()) miss.push('2 の「商品とお店の説明」を入れてください');
     st.videos.forEach((v, i) => { if (!v) miss.push('3 の「動画' + (i + 1) + '（' + DATA.videos[i].title + '）」をえらんでください'); });
-    if (!f.music) miss.push('5 の「背景の音楽」をえらんでください');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(f.email || ''))) miss.push('7 の「メールアドレス」を正しく入れてください');
-    if (!f.agree) miss.push('8 の「同意します」に印をつけてください');
+    if (!f.music) miss.push('4 の「背景の音楽」をえらんでください');
+    if (!me) miss.push('6 の「Google でログイン」を押してください');
+    if (!f.agree) miss.push('7 の「同意します」に印をつけてください');
     if (miss.length) { $('err').textContent = 'まだ入っていないところがあります：\n・' + miss.join('\n・'); return false; }
     $('btn').disabled = true; $('btn').textContent = '送っています…';
     $('btn').classList.add('sending'); $('sendnote').hidden = false;   // 点滅と「約3分」の案内（2026-10-10・文は 2026-10-11）
     sending = true; keepAwake();   // 送っているあいだ、画面が消えないようにする（2026-10-17）
     try {
-      // 動画を送る前に、申し込めるか（無料版の回数など）を確かめる（送ってから断られないように。2026-11-03）
-      if (!st.upload) { $('progress').textContent = '確かめています…'; await run('checkLimit', { email: f.email, shop: f.shop, tel: f.tel, plan: f.plan }); }
+      // 動画を送る前に、申し込めるか（体験版の回数など）を確かめる（送ってから断られないように。2026-11-03）
+      if (!st.upload) { $('progress').textContent = '確かめています…'; await run('checkLimit', { session: f.session, shop: f.shop, tel: f.tel, plan: f.plan }); }
       await sendVideos();
       $('progress').textContent = '申し込みを登録しています…';
       f.upload = st.upload;
@@ -445,6 +464,8 @@
       letSleep();
       $('progress').textContent = '';
       $('err').textContent = errText(e);
+      // ログインの期限が切れていたら、Google のボタンを出し直す（ログインし直して、もう一度「申し込む」。送れた動画は送り直さない）
+      if (/ログインの期限/.test(errText(e))) { logout(); me = null; showMe(); }
       $('btn').disabled = false; $('btn').textContent = '申し込む';
       $('btn').classList.remove('sending'); $('sendnote').hidden = true;
     }

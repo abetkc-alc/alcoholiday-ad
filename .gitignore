@@ -44,3 +44,5 @@ __pycache__/
 # AWS の受付ページ：config.js は Amplify が置くときにつくる（パソコンで試すときは tools/web_config.py でつくる）
 09_広告事業/web/config.js
 dist/
+09_広告事業/ALCニュース/案件/
+09_広告事業/ALCニュース/声見本/*.wav

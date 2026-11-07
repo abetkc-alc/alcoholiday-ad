@@ -5,7 +5,7 @@
 #   python tools/bar_sync.py pull                   … 「受付」の依頼を 案件/<受付番号>/ に取り込み（動画3本は 素材/video1〜3）、状態を「制作中」にする
 #   python tools/bar_sync.py local <依頼ファイル.json> … お試し版の受付ページで保存した依頼を 案件/ に取り込む（Google を通さない）
 #   python tools/bar_sync.py fixes                  … 「修正依頼」の一覧とお客さんのコメント
-#   python tools/bar_sync.py check <受付番号> <投稿文.json>  … 投稿文の決まり（#PR・提供・注意書き・住所・営業時間・電話・X の長さ）を確かめるだけ
+#   python tools/bar_sync.py check <受付番号> <投稿文.json>  … 投稿文の決まり（#PR・動画制作・住所・営業時間・電話・X の長さ）を確かめるだけ
 #   python tools/bar_sync.py deliver <受付番号> <動画.mp4> <投稿文.json>
 #                                                   … 動画と投稿文を届け、お客さんに「動画ができました」メールを送る
 #   python tools/bar_sync.py voice <A|B|C|D> <見本.mp3> … 受付ページの「▶ 声を聞く」で流す声の見本を登録する（09_広告事業/声見本/）
@@ -25,6 +25,7 @@ import subprocess
 import json
 import os
 import pathlib
+import re
 import sys
 import time
 
@@ -77,7 +78,7 @@ def show(rows):
     if not rows:
         print("（該当なし）")
     for r in rows:
-        print(f"{r['id']}  [{r['状態']}]  {r.get('プラン') or '無料'}  {r.get('SNS') or ''}  {r['店名']}（{r['都道府県']}）  {r['商品名']}  声:{GUIDE_NAMES.get(r['案内役'], 'おまかせ')}")
+        print(f"{r['id']}  [{r['状態']}]  {r.get('プラン') or '体験'}  {r.get('SNS') or ''}  {r['店名']}（{r['都道府県']}）  {r['商品名']}  声:{GUIDE_NAMES.get(r['案内役'], 'おまかせ')}")
 
 
 def unique(path):
@@ -185,7 +186,7 @@ tags: [広告事業, BAR広告]
 | おすすめ商品 | {r['商品名']}（{r['価格']}） |
 | 数量限定 | {r.get('数量限定') or 'いいえ'}（はい なら 制作.json に "limited": true） |
 | 投稿文をつくる SNS | {r.get('SNS') or 'instagram,tiktok,x'}（投稿はお客さんが自分のアカウントで行う） |
-| プラン | {r.get('プラン') or '無料'}（無料＝上下に透かしのロゴ＋締め画像／有料＝最後に商品の動画＋Designed by とロゴ） |
+| プラン | {r.get('プラン') or '体験'}（体験・前の無料＝上下に透かしのロゴ＋締め画像／有料＝最後に商品の動画＋Designed by とロゴ） |
 | 背景の音楽 | {r.get('音楽') or 'おまかせ'} |
 | ナレーションの声 | {r['案内役']}（{GUIDE_NAMES.get(r['案内役'], 'おまかせ')}） |
 
@@ -214,17 +215,24 @@ def videos_table(r):
     return "\n".join(rows)
 
 
+# お酒の注意書き。2026-11-07 タケシの指示で投稿文には入れない（入っていたら add_credit が外す。動画の画面の注意書きは build_bar_ad.py）
 NOTICE = "お酒は20歳になってから。飲酒運転は法律で禁止されています。"
 # 投稿文の最後に必ず付ける一文（2026-10-10 社長の指示。お客さんが自分の SNS に載せるときも、ALCOHOLIDAY の名前が出るように）
+#   2026-11-07 タケシの指示で「提供：」を「動画制作：」に変えた
 SITE_URL = "https://www.alcoholiday.org/"
-CREDIT = "提供：アルコホリディ\n" + SITE_URL
+CREDIT_LINE = "動画制作：アルコホリディ"
+CREDIT = CREDIT_LINE + "\n" + SITE_URL
+OLD_CREDIT_LINES = (CREDIT_LINE, "提供：アルコホリディ")
+X_MAX = 140   # X の投稿文は、最後の「動画制作」と URL も入れて140文字まで（2026-11-07 タケシの指示）
 PLATFORM_NAMES = {"instagram": "Instagram", "tiktok": "TikTok", "x": "X"}
 
 
 def add_credit(text):
-    """投稿文の最後に「提供：アルコホリディ」と URL を付ける（すでにあれば外してから、最後に1回だけ付ける）"""
-    t = str(text).replace(CREDIT, "").replace(SITE_URL, "")
-    t = "\n".join(ln for ln in t.splitlines() if ln.strip() != "提供：アルコホリディ").rstrip()
+    """投稿文の最後に「動画制作：アルコホリディ」と URL を付ける（すでにあれば外してから、最後に1回だけ付ける）。
+    前の「提供：アルコホリディ」と、お酒の注意書きも外す（2026-11-07）"""
+    t = str(text).replace(CREDIT, "").replace(SITE_URL, "").replace(NOTICE, "")
+    t = "\n".join(ln for ln in t.splitlines() if ln.strip() not in OLD_CREDIT_LINES)
+    t = re.sub(r"\n{3,}", "\n\n", t).rstrip()
     return t + "\n\n" + CREDIT
 
 
@@ -234,9 +242,9 @@ def platforms_of(r):
     return got or list(PLATFORM_NAMES)
 
 
-def x_weight(text):
-    """X の文字数の数え方（日本語などは2、英数字は1。URL は長さにかかわらず23。合計280まで）"""
-    return sum(1 if ord(ch) < 0x1100 else 2 for ch in str(text).replace(SITE_URL, "")) + 23 * str(text).count(SITE_URL)
+def x_len(text):
+    """X の投稿文の文字数（見たままの文字数。URL も改行も1文字ずつ数える。X_MAX まで）"""
+    return len(str(text))
 
 
 def check_captions(oid, cap):
@@ -256,9 +264,9 @@ def check_captions(oid, cap):
         if "#PR" not in t:
             probs.append(f"{name}：「#PR」がない（広告の表示）")
         if not t.rstrip().endswith(CREDIT):
-            probs.append(f"{name}：最後に「提供：アルコホリディ」と {SITE_URL} がない")
-        if NOTICE not in t:
-            probs.append(f"{name}：お酒の注意書きがない")
+            probs.append(f"{name}：最後に「{CREDIT_LINE}」と {SITE_URL} がない")
+        if NOTICE in t:
+            probs.append(f"{name}：お酒の注意書きは入れない（2026-11-07 から）")
         if r.get("住所") and flat(r["住所"]) not in flat(t):
             probs.append(f"{name}：住所（{r['住所']}）がない")
         if r.get("営業時間") and flat(r["営業時間"]) not in flat(t):
@@ -267,8 +275,8 @@ def check_captions(oid, cap):
             probs.append(f"{name}：電話番号（{r['電話']}）がない")
     if not order.exists():
         probs.append(f"注意：{order} がないので、住所・営業時間・電話は確かめていません")
-    if "x" in names and x_weight(cap["x"]) > 280:
-        probs.append(f"X が長すぎます（{x_weight(cap['x'])}／280。日本語は1文字2と数える）")
+    if "x" in names and x_len(cap["x"]) > X_MAX:
+        probs.append(f"X が長すぎます（{x_len(cap['x'])}／{X_MAX}文字。最後の「{CREDIT_LINE}」と URL もふくめる）")
     return probs
 
 
@@ -326,7 +334,7 @@ def main():
         probs = check_captions(a[1], json.loads(pathlib.Path(a[2]).read_text(encoding="utf-8")))
         print("OK：投稿文の決まりは守られています" if not probs else "直すところ：\n・" + "\n・".join(probs))
         x = json.loads(pathlib.Path(a[2]).read_text(encoding="utf-8")).get("x", "")
-        print(f"X の長さ：{x_weight(x)}／280")
+        print(f"X の長さ：{x_len(x)}／{X_MAX}文字")
     elif cmd == "deliver" and len(a) == 4:
         deliver(a[1], a[2], a[3])
     elif cmd == "voice" and len(a) == 3:

@@ -8,7 +8,8 @@
 <body>
 <div class="wrap wide" id="app">
   <!-- 上の帯（ロゴ・ログイン・会員登録）は 2026-10-10 社長の指示で外した（ホームページに埋め込むとロゴが2つ並ぶため・上に詰める）。
-       2026-11-03 タケシの指示で会員登録・ログインをやめた。「申し込む」を押すと、そのまま申し込みのページになる -->
+       2026-11-03 タケシの指示で会員登録・ログインをやめた。
+       2026-11-07 タケシの指示：ログインは Google だけ。「Google でログイン」のあと、そのまま申し込みのページになる -->
   <div class="info" id="topmsg"></div>
 
   <!-- はじめの画面 -->
@@ -17,8 +18,10 @@
       <div>
         <h1>あなたのお店の<br>おすすめを、<br>SNS で届けよう</h1>
         <p class="lead">お店の Instagram・TikTok・X に載せる、おすすめ商品のショート動画をおつくりします。</p>
-        <div class="btns">
-          <button type="button" class="pill red" data-go>申し込む（会員登録はいりません）</button>
+        <div class="login" data-login>
+          <div class="gbtn"></div>
+          <div class="me" hidden><span></span><button type="button" class="pill red" data-go>申し込みへ進む</button><a href="#" data-logout>ログアウト</a></div>
+          <p class="loginmsg"></p>
         </div>
       </div>
       <div class="collage" id="collage"></div>
@@ -38,23 +41,26 @@
     <section>
       <h2><span class="no">✎</span>申し込みの流れ</h2>
       <ol class="flow">
-        <li><b>1</b>お店とおすすめ商品のことを入力</li>
-        <li><b>2</b>動画をアップロード</li>
-        <li><b>3</b>届いたメールで「申し込みを確定する」</li>
+        <li><b>1</b>Google のアカウントでログイン</li>
+        <li><b>2</b>お店とおすすめ商品のことを入力</li>
+        <li><b>3</b>動画をアップロード</li>
         <li><b>4</b>メールで届いた URL から動画をダウンロード</li>
         <li><b>5</b>お店の SNS に投稿</li>
       </ol>
       <ul class="tips">
-        <li><b>会員登録やパスワードはいりません。</b>申し込みのたびに、メールで確かめます</li>
-        <li>無料版は、同じお店で<b><?= data.freeDays ?>日に1回</b>までです</li>
+        <li><b>会員登録やパスワードはいりません。</b>Google のアカウントでログインします。メールは、その Google のメールアドレスにお送りします</li>
+        <li>体験版（0円）は、1つの Google アカウントで<b>1回だけ</b>お使いいただけます</li>
       </ul>
     </section>
 
     <div class="band">
       <h2>さっそく始めましょう</h2>
-      <div class="bigbtns">
-        <button type="button" class="btn" data-go>申し込む<small>会員登録はいりません</small></button>
+      <div class="login" data-login>
+        <div class="gbtn"></div>
+        <div class="me" hidden><span></span><button type="button" class="pill red" data-go>申し込みへ進む</button><a href="#" data-logout>ログアウト</a></div>
+        <p class="loginmsg"></p>
       </div>
+      <p class="ex" id="loginhelp"></p>
     </div>
   </div>
 
@@ -82,9 +88,26 @@
   if (DATA.msg) $('topmsg').textContent = DATA.msg;
   else if (DATA.testOnly) $('topmsg').textContent = 'ただいま準備中です（テスト中）。公開まで、もうしばらくお待ちください。';
 
+  // Google でログイン（2026-11-07）：ログインしていなければ Google のボタン、していれば「申し込みへ進む」とログアウト
+  $('loginhelp').textContent = LOGIN_HELP;
+  const loginMsg = { set textContent(t) { document.querySelectorAll('.loginmsg').forEach(m => { m.textContent = t; }); } };   // 上と下の両方に出す
+  function showLogin() {
+    const me = loginNow();
+    document.querySelectorAll('[data-login]').forEach(box => {
+      box.querySelector('.gbtn').hidden = !!me;
+      box.querySelector('.me').hidden = !me;
+      if (me) box.querySelector('.me span').textContent = me.email + ' でログイン中';
+    });
+    if (!me) googleButton([...document.querySelectorAll('[data-login] .gbtn')], loginMsg, () => openForm());
+  }
+  document.querySelectorAll('[data-logout]').forEach(a => a.onclick = ev => { ev.preventDefault(); logout(); showLogin(); });
+  showLogin();
+
   // 申し込みのページへ：このページの中身を申し込みのページに入れ替える（うまくいかないときは、ボタンを押してもらう）
-  document.querySelectorAll('[data-go]').forEach(b => b.onclick = async () => {
+  document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => openForm());
+  async function openForm() {
     document.querySelectorAll('[data-go]').forEach(x => { x.disabled = true; x.textContent = '申し込みのページを開いています…'; });
+    loginMsg.textContent = '申し込みのページを開いています…';
     $('go-link').href = DATA.formUrl;
     try {
       const html = await run('formPage', '');
@@ -94,7 +117,7 @@
       document.querySelectorAll('.panel').forEach(p => { p.hidden = p.id !== 'p-go'; });
       window.scrollTo(0, 0);
     }
-  });
+  }
 </script>
 </body>
 </html>
