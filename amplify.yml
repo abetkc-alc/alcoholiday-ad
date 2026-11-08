@@ -1,5 +1,5 @@
 # AWS Amplify：受付ページ（09_広告事業/web/）を置くときの決まり（2026-10-11）
-#   ・置くのは index.html と config.js だけ（ノートやプログラムなど、ほかのファイルは公開しない）
+#   ・置くのは index.html と config.js、検索対策の robots.txt・sitemap.xml・favicon.svg・og.jpg だけ（ノートやプログラムなど、ほかのファイルは公開しない）
 #   ・config.js は、Amplify の「環境変数」ALC_API（GAS のウェブアプリの URL）から、置くときに自動でつくる（GitHub には送らない）
 version: 1
 frontend:
@@ -9,6 +9,9 @@ frontend:
         - test -n "$ALC_API" || (echo "Amplify の環境変数 ALC_API がありません" && exit 1)
         - mkdir -p dist
         - cp "09_広告事業/web/index.html" dist/index.html
+        # 2026-11-08 検索対策：robots.txt・サイトの地図・タブのマーク・共有画像（写真は photos.html から取り出す。失敗しても受付ページは置く）
+        - cp "09_広告事業/web/robots.txt" "09_広告事業/web/sitemap.xml" "09_広告事業/web/favicon.svg" dist/
+        - python3 "09_広告事業/tools/og_image.py" "09_広告事業/google/photos.html" dist/og.jpg || echo "og.jpg をつくれませんでした（受付ページはそのまま置きます）"
         - echo "window.ALC_API = '${ALC_API}';" > dist/config.js
   artifacts:
     baseDirectory: dist

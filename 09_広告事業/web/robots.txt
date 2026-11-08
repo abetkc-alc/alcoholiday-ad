@@ -1,0 +1,6 @@
+# 2026-11-08 検索対策：トップページだけを検索に出す（?〜 の付くお客さん専用のページは見せない）
+User-agent: *
+Allow: /$
+Disallow: /*?
+
+Sitemap: https://ad.alcoholiday.org/sitemap.xml

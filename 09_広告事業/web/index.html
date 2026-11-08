@@ -3,22 +3,127 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ALCOHOLIDAY ショート動画作成</title>
 <!-- AWS（Amplify）に置く受付ページの入口（2026-10-11）
      ページの中身（トップ・申し込み・動画の確認）は GAS（09_広告事業/google/）から受け取って、そのまま表示する。
      ボタンの動きも GAS を呼ぶ（common.html の run）。だから、ページを直すときは google/ のファイルだけ直せばよい。
-     GAS の住所は config.js（Amplify が置くときに、設定の ALC_API から自動でつくる。GitHub には送らない） -->
+     GAS の住所は config.js（Amplify が置くときに、設定の ALC_API から自動でつくる。GitHub には送らない）
+
+     2026-11-08 検索（SEO）対策：
+     ・Google の検索ロボットにも中身がわかるように、トップページの説明を、このページにも最初から書いておく（下の #seo）。
+       GAS のページが届いたら入れ替わる。トップページ（google/top.html）の文を変えたら、ここも合わせて直す
+     ・検索結果や SNS で共有したときに出る題名・説明・画像（data-seo の付いたもの）は、入れ替えたあとも残す
+     ・お客さん専用のページ（住所に ?〜 が付く確認ページなど）は検索に出さない（noindex と robots.txt） -->
+<title data-seo>飲食店・BARのおすすめ紹介ショート動画作成｜スマホ動画3本でSNS用に｜ALCOHOLIDAY</title>
+<meta data-seo name="description" content="お店のおすすめ商品を、Instagram・TikTok・X に載せるショート動画にします。スマホで撮った動画を3本送るだけで、声の案内と字幕入りの紹介動画と SNS ごとの投稿文をお届け。Google アカウントでかんたん申し込み、体験版は0円。BAR・居酒屋・飲食店の集客に。">
+<link data-seo rel="canonical" href="https://ad.alcoholiday.org/">
+<meta data-seo name="theme-color" content="#e60023">
+<link data-seo rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta data-seo property="og:type" content="website">
+<meta data-seo property="og:site_name" content="ALCOHOLIDAY（アルコホリディ）">
+<meta data-seo property="og:locale" content="ja_JP">
+<meta data-seo property="og:url" content="https://ad.alcoholiday.org/">
+<meta data-seo property="og:title" content="お店のおすすめを、SNS で届けよう｜ALCOHOLIDAY ショート動画作成">
+<meta data-seo property="og:description" content="スマホで撮った動画を3本送るだけ。声の案内と字幕入りの紹介ショート動画と、Instagram・TikTok・X の投稿文をお届けします。体験版は0円。">
+<meta data-seo property="og:image" content="https://ad.alcoholiday.org/og.jpg">
+<meta data-seo property="og:image:alt" content="バーのカウンターに並ぶ2杯のカクテル">
+<meta data-seo name="twitter:card" content="summary">
+<script data-seo type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://www.alcoholiday.org/#org",
+      "name": "ALCOHOLIDAY",
+      "alternateName": "アルコホリディ",
+      "url": "https://www.alcoholiday.org/",
+      "slogan": "お酒との時間をもっと楽しく",
+      "sameAs": [
+        "https://www.instagram.com/alcohol_iday/",
+        "https://www.amazon.co.jp/stores/ALCOHOLIDAY/page/F79A1788-B8AA-4248-973D-17D360788C0C"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://ad.alcoholiday.org/#site",
+      "name": "ALCOHOLIDAY ショート動画作成",
+      "url": "https://ad.alcoholiday.org/",
+      "inLanguage": "ja",
+      "publisher": { "@id": "https://www.alcoholiday.org/#org" }
+    },
+    {
+      "@type": "Service",
+      "name": "飲食店・BARのおすすめ紹介ショート動画作成",
+      "serviceType": "SNS 用ショート動画作成",
+      "description": "お店で撮った動画3本と商品・お店の説明から、声の案内と字幕を入れた紹介ショート動画をつくり、Instagram・TikTok・X の投稿文といっしょにお届けします。",
+      "provider": { "@id": "https://www.alcoholiday.org/#org" },
+      "areaServed": { "@type": "Country", "name": "日本" },
+      "audience": { "@type": "BusinessAudience", "audienceType": "BAR・居酒屋・飲食店" },
+      "url": "https://ad.alcoholiday.org/",
+      "offers": { "@type": "Offer", "name": "体験版", "price": "0", "priceCurrency": "JPY" }
+    }
+  ]
+}
+</script>
 <script src="config.js"></script>
 <style>
-  body { margin:0; background:#fff; color:#111; font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic","Meiryo",sans-serif; }
-  .load { padding:80px 16px; text-align:center; font-size:20px; line-height:1.8; color:#5f5f5f; }
+  body { margin:0; background:#fff; color:#111; font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic","Meiryo",sans-serif; font-size:19px; line-height:1.8; }
+  .load { padding:14px 16px; text-align:center; font-size:18px; color:#5f5f5f; background:#f6f6f3; }
+  #seo { max-width:760px; margin:0 auto; padding:10px 16px 60px; }
+  #seo h1 { font-size:clamp(30px, 8vw, 44px); line-height:1.35; margin:20px 0 12px; }
+  #seo h2 { font-size:clamp(24px, 6.5vw, 32px); line-height:1.4; margin:36px 0 10px; }
+  #seo h3 { font-size:21px; margin:18px 0 2px; }
+  #seo p, #seo li { color:#333; }
+  #seo ol, #seo ul { padding-left:1.4em; }
+  #seo a { color:#ad081b; }
 </style>
 </head>
 <body>
 <div class="load" id="msg">読み込んでいます…</div>
+
+<!-- 検索ロボット向けにも見える、トップページの中身（google/top.html と同じ内容）。GAS のページが届くと入れ替わる -->
+<main id="seo">
+  <h1>あなたのお店のおすすめを、SNS で届けよう</h1>
+  <p>お店の Instagram・TikTok・X に載せる、おすすめ商品のショート動画をおつくりします。BAR・居酒屋・飲食店の集客や、おすすめメニューの紹介にお使いください。</p>
+
+  <h2>スマホで撮った動画が、紹介動画に</h2>
+  <p>動画を3本送るだけ。あとは ALCOHOLIDAY（アルコホリディ）が仕上げて、お店の SNS に載せられる動画にします。</p>
+  <h3>動画を3本撮るだけ</h3>
+  <p>1本5秒くらい。お店の雰囲気・おすすめの商品・自由の3本です。</p>
+  <h3>声の案内と字幕で仕上げ</h3>
+  <p>3本をつなぎ、声の案内と字幕を入れた1本の紹介動画（縦型のショート動画）にします。</p>
+  <h3>見てからダウンロード</h3>
+  <p>できあがった動画はメールでお知らせします。有料版は、読み上げの読み方を1回まで直せます。</p>
+  <h3>SNS ごとの投稿文つき</h3>
+  <p>Instagram・TikTok・X の3つの投稿文を、すべてお送りします。</p>
+
+  <h2>申し込みの流れ</h2>
+  <ol>
+    <li>Google のアカウントでログイン</li>
+    <li>お店とおすすめ商品のことを入力</li>
+    <li>動画をアップロード</li>
+    <li>メールで届いた URL から動画をダウンロード</li>
+    <li>お店の SNS に投稿</li>
+  </ol>
+  <ul>
+    <li>会員登録やパスワードはいりません。Google のアカウントでログインします。</li>
+    <li>体験版（0円）は、1つの Google アカウントで1回だけお使いいただけます。</li>
+  </ul>
+
+  <p>ALCOHOLIDAY（アルコホリディ）　お酒との時間をもっと楽しく<br><a href="https://www.alcoholiday.org/">https://www.alcoholiday.org/</a></p>
+</main>
+
 <script>
   (async () => {
     const params = Object.fromEntries(new URLSearchParams(location.search));
+    // お客さん専用のページ（?〜 付き）は検索に出さない
+    if (location.search.length > 1) {
+      const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex'; m.setAttribute('data-seo', '');
+      document.head.appendChild(m);
+    }
+    // 題名・説明など（data-seo）は、ページを入れ替えると消えるので、とっておいて入れ直す
+    const seoTags = [...document.querySelectorAll('[data-seo]')].map(el => el.outerHTML).join('');
+    const seoTitle = document.title;
     // 2026-11-03 会員登録・ログインをやめた。前に端末におぼえたログインの合言葉は消す
     try { localStorage.removeItem('alc_session'); } catch (e) { /* おぼえられない設定のとき */ }
     try {
@@ -26,6 +131,8 @@
       const j = await r.json();
       if (!j.ok) throw new Error(j.error);
       document.open(); document.write(j.result); document.close();
+      document.head.insertAdjacentHTML('beforeend', seoTags.replace(/<title[\s\S]*?<\/title>/, ''));
+      if (!document.title || location.search.length <= 1) document.title = seoTitle;   // トップページは検索用の題名にする
       window.scrollTo(0, 0);
     } catch (e) {
       document.getElementById('msg').textContent = '読み込めませんでした。電波のよい場所で、ページを開き直してください。';
