@@ -70,7 +70,9 @@ def form():
                     for i, (k, n, s) in enumerate(KINDS))
     fields = "".join(f'<div class="f"><label>{n}</label><input type="text" name="{k}" placeholder="{p}" required></div>' for k, n, p in FIELDS)
     jobs = sorted([d for d in JOBS.glob("*") if (d / "依頼.json").exists()], reverse=True)[:15]
-    past = "".join(f'<a href="/job/{d.name}">{d.name}　{html.escape(job_title(d))}{"" if (d / "ALCニュース.mp4").exists() else "（未完成）"}</a>' for d in jobs)
+    mark = {"done": "", "script_ok": "（台本の確認待ち）", "too_long": "（台本が長すぎ）", "script": "（台本づくり中）",
+            "video": "（動画づくり中）", "error": "（失敗）"}
+    past = "".join(f'<a href="/job/{d.name}">{d.name}　{html.escape(job_title(d))}{mark.get(state_of(d), "")}</a>' for d in jobs)
     return page("ALCニュース 試作", f"""
 <form method="post" action="/new" enctype="multipart/form-data">
 <h2>ニュースの種類</h2><div class="kinds">{kinds}</div>
@@ -78,32 +80,116 @@ def form():
 <div class="f"><label>⑥ 状況（300字まで）</label><textarea name="situation" maxlength="300" required
 oninput="this.nextElementSibling.textContent=this.value.length+' / 300字'"></textarea><div class="count">0 / 300字</div></div>
 <h2>投稿する動画</h2><div class="f"><input type="file" name="video" accept="video/*" required></div>
-<h2>キャスターの映像</h2><div class="f"><select name="caster">
-<option value="still">写真のまま（無料・中身の確認用）</option>
-<option value="lipsync">声に合わせて口を動かす（Higgsfield・480p・1本 約2.3ドル）</option></select>
-<p class="note">口を動かすほうは、お金がかかります。見積もりが3.5ドルをこえたら作らずに止まります。</p></div>
-<button>ニュースをつくる（ニュース20秒以内＋ブランドボード）</button>
+<h2>キャスターの映像</h2><div class="f">{caster_select("still")}
+<p class="note">あとで台本を確かめる画面でも変えられます。</p></div>
+<button>台本をつくる（まだ動画はつくりません）</button>
+<p class="note">1〜2分で台本ができます。台本を確かめて・直してから「この台本で動画をつくる」を押します。</p>
 </form>
 <h2>これまでにつくったもの</h2><div class="box jobs">{past or "まだありません"}</div>""")
 
 
+def caster_select(cur):
+    opts = [("still", "写真のまま（無料・中身の確認用）"), ("lipsync", "声に合わせて口を動かす（Higgsfield・480p・1本 約2.3ドル）")]
+    o = "".join(f'<option value="{k}" {"selected" if k == cur else ""}>{n}</option>' for k, n in opts)
+    return (f'<select name="caster">{o}</select>'
+            '<p class="note">口を動かすほうは、お金がかかります（約2.3ドル）。見積もりが3.5ドルをこえたら作らずに止まります。</p>')
+
+
+def state_of(d):
+    s = d / "状態.txt"
+    if s.exists():
+        return s.read_text(encoding="utf-8", errors="replace").strip() or "video"
+    if (d / "完了").exists() and (d / "ALCニュース.mp4").exists():   # 2026-11-07 までの案件
+        return "done"
+    return "error" if (d / "失敗").exists() else "video"
+
+
+def read_json(f, default):
+    try:
+        return json.loads(f.read_text(encoding="utf-8"))
+    except Exception:   # noqa: BLE001
+        return default
+
+
+# 台本の欄（名前・見出し・字数の目安）
+SCRIPT_FIELDS = [("headline", "画面の上の見出し（「速報」のとなり）", 10), ("panel_title", "モニターの大きな言葉", 6),
+                 ("panel_sub", "その上の赤い札", 11), ("when_label", "画面に出す日時", 10), ("where_label", "画面に出す場所", 10),
+                 ("open", "キャスターの最初の原稿（声と字幕）", 38), ("broll_telop", "投稿動画の上のテロップ", 13),
+                 ("vo", "投稿動画にかぶせるキャスターの声（情報のとき）", 28), ("close_line", "キャスターの締めの一言（声と字幕）", 16)]
+
+
+def script_page(jid, d):
+    spec = read_json(d / "台本.json", {})
+    order = read_json(d / "依頼.json", {})
+    ln = read_json(d / "台本の長さ.json", {})
+    warn = ""
+    if state_of(d) == "too_long":
+        logf = d / "制作ログ.txt"
+        last = [x for x in logf.read_text(encoding="utf-8", errors="replace").splitlines() if "長すぎ" in x] if logf.exists() else []
+        warn = f'<div class="box" style="border-color:var(--red);color:var(--red)">{html.escape(last[-1] if last else "台本が長すぎます。短くしてください")}</div>'
+    rows = ""
+    for k, n, lim in SCRIPT_FIELDS:
+        if k == "vo" and order.get("kind") != "info":
+            continue
+        v = spec.get(k, "")
+        tag = (f'<textarea name="{k}" style="height:80px">{html.escape(v)}</textarea>' if lim > 20 else
+               f'<input type="text" name="{k}" value="{html.escape(v)}">')
+        rows += f'<div class="f"><label>{n}<span class="note">（{lim}字くらいまで・いま{len(v)}字）</span></label>{tag}</div>'
+    subs = spec.get("subs") or []
+    if subs:
+        rows += '<h2>投稿動画の字幕（投稿した人の声）</h2>'
+        for i, s in enumerate(subs):
+            rows += (f'<div class="f"><label>元の動画の {float(s.get("start", 0)):.1f}〜{float(s.get("end", 0)):.1f}秒</label>'
+                     f'<input type="text" name="sub_{i}" value="{html.escape(s.get("text", ""))}"></div>')
+    info = ""
+    if ln:
+        info = (f'<p class="note">ニュースの長さ：約{ln["news"]}秒（20秒まで）＋ブランドボード約5秒。'
+                f'投稿動画は元の {ln["broll_start"]}秒から {ln["broll_len"]}秒ぶん使います。'
+                '原稿を長くすると20秒をこえることがあります。こえたときは、ここに戻って短くするようお知らせします。</p>')
+    return page("ALCニュース 台本の確認", f"""
+<h2>受付番号 {html.escape(jid)}　台本の確認</h2>{warn}
+<p>台本ができました。読んで、直したいところは書きかえてから「この台本で動画をつくる」を押してください。</p>{info}
+<form method="post" action="/make/{jid}">{rows}
+<h2>キャスターの映像</h2><div class="f">{caster_select(order.get("caster", "still"))}</div>
+<button>この台本で動画をつくる</button></form>
+<h2>台本をまるごとつくり直す</h2>
+<form method="post" action="/redo/{jid}"><div class="f"><label>どう直してほしいか（なくてもよい）</label>
+<textarea name="wish" style="height:80px" placeholder="例：締めの一言をもっと短く・見出しに「高校生」を入れる"></textarea></div>
+<button style="background:#5a6270">台本をつくり直す（前の台本は 台本-旧.json として残す）</button></form>
+<p><a href="/">← 新しいニュースをつくる</a></p>""")
+
+
 def job_page(jid):
+    d = JOBS / jid
+    if state_of(d) in ("script_ok", "too_long"):
+        return script_page(jid, d)
     return page("ALCニュース 制作中", f"""
 <h2>受付番号 {html.escape(jid)}</h2>
-<div id="v" class="box">つくっています…（2〜3分。口を動かすときは10分ほど）</div>
+<div id="v" class="box">つくっています…</div>
 <h2>進みぐあい</h2><pre id="log"></pre>
 <p><a href="/">← 新しいニュースをつくる</a></p>
 <script>
+const msg={{script:'台本をつくっています…（1〜2分）',video:'動画をつくっています…（2〜3分。口を動かすときは10分ほど）'}};
 async function tick(){{
   const r=await fetch('/status/{jid}');const s=await r.json();
   document.getElementById('log').textContent=s.log;
+  if(s.state==='script_ok'||s.state==='too_long'){{location.reload();return;}}
   if(s.done){{document.getElementById('v').innerHTML='<video src="/file/{jid}/ALCニュース.mp4?'+s.mtime+'" controls playsinline></video>'+
     '<p style="text-align:center"><a href="/file/{jid}/ALCニュース.mp4?dl=1">ダウンロード</a></p>';return;}}
   if(s.error){{document.getElementById('v').textContent='うまくいきませんでした。下の「進みぐあい」を Claude に見せてください。';return;}}
+  document.getElementById('v').textContent=msg[s.state]||msg.video;
   setTimeout(tick,3000);
 }}
 tick();
 </script>""")
+
+
+def launch(d, args, first=False):
+    """alc_news.py を別に動かす。落ちたときは 状態.txt を error に"""
+    script = (f'"{sys.executable}" -X utf8 "{HERE / "alc_news.py"}" "{d / "依頼.json"}" {args} '
+              f'{">" if first else ">>"} "{d / "制作ログ.txt"}" 2>&1 || echo error> "{d / "状態.txt"}"')
+    (d / "状態.txt").write_text("script" if "--script-only" in args else "video", encoding="utf-8")
+    subprocess.Popen(script, shell=True, cwd=str(HERE.parent))
 
 
 class H(BaseHTTPRequestHandler):
@@ -130,8 +216,9 @@ class H(BaseHTTPRequestHandler):
             log = logf.read_text(encoding="utf-8", errors="replace") if logf.exists() else ""
             log = "\n".join(ln for ln in log.splitlines() if not re.match(r"組み立て [1-9]", ln))
             mp4 = d / "ALCニュース.mp4"
-            done = (d / "完了").exists() and mp4.exists()
-            return self.send(200, json.dumps({"log": log[-4000:], "done": done, "error": (d / "失敗").exists(),
+            st = state_of(d)
+            done = st == "done" and mp4.exists()
+            return self.send(200, json.dumps({"log": log[-4000:], "done": done, "error": st == "error", "state": st,
                                               "mtime": int(mp4.stat().st_mtime) if done else 0}), "application/json")
         if len(parts) == 3 and parts[0] == "file" and parts[2] == "ALCニュース.mp4":
             f = JOBS / parts[1] / parts[2]
@@ -153,6 +240,11 @@ class H(BaseHTTPRequestHandler):
         self.send(200, data, "video/mp4", extra)
 
     def do_POST(self):
+        parts = [urllib.parse.unquote(p) for p in self.path.strip("/").split("/")]
+        if len(parts) == 2 and parts[0] in ("make", "redo") and (JOBS / parts[1]).is_dir():
+            raw = self.rfile.read(int(self.headers["Content-Length"])).decode("utf-8")
+            vals = {k: v[0].strip() for k, v in urllib.parse.parse_qs(raw, keep_blank_values=True).items()}
+            return (self.make if parts[0] == "make" else self.redo)(parts[1], vals)
         if self.path != "/new":
             return self.send(404, "ありません")
         raw = self.rfile.read(int(self.headers["Content-Length"]))
@@ -177,13 +269,43 @@ class H(BaseHTTPRequestHandler):
         order = {k: vals.get(k, "") for k in ("kind", "when", "where", "who", "what", "how")}
         order["situation"] = vals.get("situation", "")[:300]
         order["video"] = f"投稿動画{ext}"
+        order["caster"] = "lipsync" if vals.get("caster") == "lipsync" else "still"
         (d / "依頼.json").write_text(json.dumps(order, ensure_ascii=False, indent=1), encoding="utf-8")
-        caster = "lipsync" if vals.get("caster") == "lipsync" else "still"
-        # 動画づくりは別のプログラムで。終わったら「完了」、だめなら「失敗」の印を置く
-        script = (f'"{sys.executable}" -X utf8 "{HERE / "alc_news.py"}" "{d / "依頼.json"}" --caster {caster} '
-                  f'> "{d / "制作ログ.txt"}" 2>&1 && type nul > "{d / "完了"}" || type nul > "{d / "失敗"}"')
-        subprocess.Popen(script, shell=True, cwd=str(HERE.parent))
-        self.send(303, "", extra={"Location": f"/job/{jid}"})
+        # まず台本だけ（2026-11-08 タケシさんの指示「動画生成の前に台本を教えて」）
+        launch(d, "--script-only", first=True)
+        self.send(303, "", extra={"Location": "/job/" + urllib.parse.quote(jid)})
+
+    def make(self, jid, vals):
+        """確かめた（直した）台本で動画をつくる"""
+        d = JOBS / jid
+        spec = read_json(d / "台本.json", {})
+        for k, *_ in SCRIPT_FIELDS:
+            if k in vals:
+                spec[k] = vals[k]
+        for i, s in enumerate(spec.get("subs") or []):
+            if f"sub_{i}" in vals:
+                s["text"] = vals[f"sub_{i}"]
+        (d / "台本.json").write_text(json.dumps(spec, ensure_ascii=False, indent=1), encoding="utf-8")
+        order = read_json(d / "依頼.json", {})
+        order["caster"] = "lipsync" if vals.get("caster") == "lipsync" else "still"
+        (d / "依頼.json").write_text(json.dumps(order, ensure_ascii=False, indent=1), encoding="utf-8")
+        launch(d, f"--confirmed --caster {order['caster']}")
+        self.send(303, "", extra={"Location": "/job/" + urllib.parse.quote(jid)})
+
+    def redo(self, jid, vals):
+        """台本をまるごとつくり直す。前の台本は消さずに名前を変えて残す"""
+        d = JOBS / jid
+        sp = d / "台本.json"
+        if sp.exists():
+            n = 1
+            while (d / f"台本-旧{n}.json").exists():
+                n += 1
+            sp.rename(d / f"台本-旧{n}.json")
+        if vals.get("wish"):
+            with open(d / "台本の直し.txt", "a", encoding="utf-8") as f:   # 前の希望も残して、ぜんぶ反映する
+                f.write("- " + vals["wish"].replace("\n", " ") + "\n")
+        launch(d, "--script-only")
+        self.send(303, "", extra={"Location": "/job/" + urllib.parse.quote(jid)})
 
     def log_message(self, *a):
         pass

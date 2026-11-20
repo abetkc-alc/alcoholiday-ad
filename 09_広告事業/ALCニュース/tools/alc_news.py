@@ -8,16 +8,22 @@
 #         明るいニュース（bright）：動画の音そのまま＋テロップ＋字幕
 #         困ったニュース（trouble）：顔にモザイク＋声を変える＋テロップ＋字幕＋「映像と音声を加工しています」
 #         情報（info）　　　　　　　：動画の音は小さく、キャスターの声で要約を伝える＋テロップ＋字幕
-#     C キャスターにもどり、明るく楽しい一言で終わる（「ご視聴ありがとうございました。」は 2026-11-07 にやめた）
+#     C キャスターにもどり、辛辣でシュールな一言で終わる（「ご視聴ありがとうございました。」は 2026-11-07 にやめた）
 #     D ALCOHOLIDAY のブランドボード＋「お酒との時間をもっと楽しく」の声（2026-11-07 タケシさんの指示。この分だけ20秒より長くなる）
 #   ・キャスター「大舞 剛（おおまい つよし）」は笑わない。語尾は推測・伝聞（〜とのことです／〜とみられます）
 #   ・テロップの字は報道番組で使われるUDゴシック系（BIZ UDPゴシック）
 #   ・キャスターの映像：still＝写真のまま（無料・確認用）／lipsync＝Higgsfield の Seedance 2.5 で声に口を合わせる（お金がかかる）
 #
-# 使い方: python tools/alc_news.py 案件/<番号>/依頼.json [--caster still|lipsync] [--max-usd 3.5]
+#   ・動画をつくる前に台本を見せる（2026-11-08 タケシさんの指示）：--script-only で台本.json だけつくって止まる。
+#     受付ページで確かめ・直してから「この台本で動画をつくる」→ --confirmed で、その台本のまま動画にする
+#   ・日時と場所を画面に出す（2026-11-08 タケシさんの指示）
+#   ・進みぐあいは 状態.txt（script / script_ok / video / done / too_long / error）
+#
+# 使い方: python tools/alc_news.py 案件/<番号>/依頼.json [--script-only] [--confirmed] [--caster still|lipsync] [--max-usd 3.5]
 #   依頼.json：{"kind": "bright|trouble|info", "when": "", "where": "", "who": "", "what": "", "how": "", "situation": "", "video": "動画のファイル名"}
 import argparse
 import base64
+import hashlib
 import datetime
 import json
 import math
@@ -185,6 +191,8 @@ def make_prompt(order, segs, src_len, feedback=""):
  "open": キャスターの最初の原稿。必ず「ALCニュースです。」で始め、そのあと要約を1文（全部で38字以内）,
  "broll_start": Bロールに使う、元の動画のはじまりの秒,
  "broll_end": 終わりの秒（長さは5〜8秒。いちばん内容が伝わる・いちばんシュールな部分。{src_len:.1f}秒をこえない）,
+ "when_label": 画面に出す日時（10字以内。投稿の「いつ」を短く。例：「11月7日」「11月7日 午前9時ごろ」。わからなければ空）,
+ "where_label": 画面に出す場所（10字以内。投稿の「どこで」を短く。「で」「界隈で」などは付けない。例：「東京・池袋」「東京都豊島区」。わからなければ空）,
  "broll_telop": Bロールの上に出すテロップ（13字以内・報道ふう。例：「“きょうの予定”を熱弁」）,
  {subs_rule}
  {vo_rule}
@@ -251,6 +259,9 @@ def cards(text, per_line=15, lines=2):
             lo, hi = max(1, len(c) - per_line), min(per_line, len(c) - 1)
             cands = [i + 1 for i, ch in enumerate(c[:-1]) if lo <= i + 1 <= hi and (ch == "、" or (ch in "はがをにでともて" and c[i + 1] not in "っゃゅょぁぃぅぇぉー"))]
             cands = [i for i in cands if c[i - 1] == "、"] or cands
+            if not cands:   # 読点で分けると1行が少し長くなるが、画面の幅に入るならそこで分ける（2026-11-08「1／万8000円」と数字の途中で切れた）
+                fits = lambda t: font(66).getlength(t) <= W - 80   # noqa: E731
+                cands = [i + 1 for i, ch in enumerate(c[:-1]) if ch == "、" and fits(c[:i + 1]) and fits(c[i + 1:])]
             if cands:
                 cut = min(cands, key=lambda i: abs(i - len(c) / 2))
                 c = c[:cut] + "\n" + c[cut:]
@@ -264,7 +275,9 @@ def cards(text, per_line=15, lines=2):
 def wrap_words(c, per_line, lines):
     """言葉のまとまり（カタカナ・漢字の続き）を切らずに per_line 字で折り返し、lines 行ずつの字幕にする"""
     kind = lambda ch: "k" if re.match(r"[ァ-ヶー]", ch) else "h" if re.match(r"[一-龥々]", ch) else "o"   # noqa: E731
+    num = lambda ch: ch.isdigit()   # noqa: E731
     ok = {i for i in range(1, len(c)) if c[i - 1] in "、はがをにでともて" or kind(c[i - 1]) != kind(c[i]) and kind(c[i]) != "o"}
+    ok = {i for i in ok if not num(c[i - 1]) and not (num(c[i]) and c[i - 1] in "万千百億兆")}   # 数字と単位（1万8000円）は切らない
     rows, s = [], 0
     while s < len(c):
         if len(c) - s <= per_line:
@@ -298,7 +311,7 @@ def fit_font(text, size, max_w, min_size=30):
     return font(size)
 
 
-def header(headline):
+def header(headline, when="", where="", plain=False):
     """画面上の帯（2026-11-07 タケシさんの直し「わかりやすく」）
     1段目：番組ロゴ／2段目：「速報」と白い見出しを横いっぱいに大きく
     SNS の画面の上の部分（アカウント名など）にかからないよう、上から110px あける"""
@@ -307,6 +320,7 @@ def header(headline):
     x0, x1 = 36, W - 36
     # 1段目：番組ロゴ（素材/make_logo.py でつくる）。時刻は出さない（2026-11-07 タケシさんの指示）
     im.alpha_composite(Image.open(LOGO).convert("RGBA"), (x0, 104))
+    im.alpha_composite(place_label(when, where, plain))   # 右上端に日時（と場所）（2026-11-08 タケシさんの直し）
     # 2段目：速報＋見出し
     t2, b2 = 200, 290
     d.rectangle([x0, t2, x0 + 150, b2], fill=RED)
@@ -327,6 +341,35 @@ def viewer_label(x, y):
     d.rectangle([x, y, x + w, y + 52], fill=(0, 0, 0, 165))
     d.text((x + 16, y + 26), "視聴者投稿", font=f, fill=WHITE, anchor="lm")
     return im
+
+
+def place_label(when, where, plain=False):
+    """日時と場所（2026-11-08 タケシさんの指示）。画面の右上端（番組ロゴの右）に、キャスターの場面も投稿動画の場面も同じ所
+    キャスターの場面：日時だけ、「視聴者投稿」と同じ黒い札／投稿動画の場面：場所と日時を、札なしの白い字（黒いふち）だけで
+    （2026-11-08 タケシさんの直し）。2段あわせてロゴと同じ高さ（92px）"""
+    im = layer()
+    d = ImageDraw.Draw(im)
+    right, top = W - 36, 104
+    max_w = right - (36 + 461 + 24)                   # ロゴ（幅461）にかからない
+    rows = [(t, fit_font(t, s, max_w - 28, 22), h) for t, s, h in ((where, 36, 48), (when, 30, 40)) if t]
+    if len(rows) == 1:
+        top += (92 - rows[0][2]) // 2
+    for t, f, h in rows:
+        w = int(f.getlength(t)) + 28
+        if plain:
+            d.text((right, top + h // 2), t, font=f, fill=WHITE, anchor="rm", stroke_width=4, stroke_fill=(0, 0, 0, 230))
+        else:
+            d.rectangle([right - w, top, right, top + h], fill=(0, 0, 0, 165))
+            d.text((right - 14, top + h // 2), t, font=f, fill=WHITE, anchor="rm")
+        top += h + 4
+    return im
+
+
+def labels_of(spec, order):
+    """台本の日時・場所。なければ依頼の「いつ」「どこで」から（最後の「で」は取る）"""
+    when = (spec.get("when_label") or order.get("when", "")).strip()
+    where = (spec.get("where_label") or re.sub(r"(界隈)?で$", "", order.get("where", "").strip())).strip()
+    return when[:14], where[:12]
 
 
 def panel_title(box, title, sub):
@@ -652,8 +695,17 @@ def lip_timeline(lip, voice_wav, hop=0.02, pen=0.15):
 def lipsync(work, voice_wav, max_usd):
     """キャスターの顔と胸の部分を、声（voice_wav）に口を合わせた動画にする。できた mp4 の場所を返す"""
     out = work / "caster_lipsync.mp4"
-    if out.exists():
+    memo = work / "caster_lipsync.txt"            # どの声で口を合わせたか（声の指紋）
+    sig = hashlib.md5(pathlib.Path(voice_wav).read_bytes()).hexdigest()
+    if out.exists() and memo.exists() and memo.read_text(encoding="utf-8").strip() == sig:
+        log("口の動画は前につくったものを使う（同じ声なので、お金はかからない）")
         return out
+    if out.exists():   # 台本の原稿が変わった → 前の口の動画は合わないので、名前を変えて残し、つくり直す（2026-11-08）
+        n = 1
+        while (work / f"caster_lipsync-旧{n}.mp4").exists():
+            n += 1
+        out.rename(work / f"caster_lipsync-旧{n}.mp4")
+        log(f"原稿が変わったので、口の動画をつくり直す（前のものは caster_lipsync-旧{n}.mp4）")
     x0, y0, x1, y1 = LIP_BOX
     crop = work / "caster_crop.png"
     Image.open(STUDIO).convert("RGB").resize((W, H), Image.LANCZOS).crop(LIP_BOX).save(crop)
@@ -691,6 +743,7 @@ def lipsync(work, voice_wav, max_usd):
             raise RuntimeError(f"Higgsfield の生成が止まりました：{st}")
         if st.get("status") == "completed":
             out.write_bytes(requests.get(st["video"]["url"], timeout=300).content)
+            memo.write_text(sig, encoding="utf-8")
             return out
     raise RuntimeError(f"Higgsfield が20分たっても終わりません。request_id={rid}（二重にお金がかかるので、作り直す前に確かめる）")
 
@@ -738,7 +791,15 @@ def fade(a, sec=0.06):
 
 
 # ---------------------------------------------------------------- 8. 組み立て
-def build(order_path, caster_mode="still", max_usd=3.5):
+class TooLong(Exception):
+    pass
+
+
+def set_state(work, s):
+    (work / "状態.txt").write_text(s, encoding="utf-8")
+
+
+def build(order_path, caster_mode="still", max_usd=3.5, script_only=False, confirmed=False):
     order_path = pathlib.Path(order_path).resolve()
     work = order_path.parent
     order = json.loads(order_path.read_text(encoding="utf-8"))
@@ -746,15 +807,18 @@ def build(order_path, caster_mode="still", max_usd=3.5):
     if kind not in KINDS:
         raise SystemExit("kind は bright / trouble / info のどれか")
     src = work / order["video"]
-    log(f"■ ALCニュース：{KINDS[kind]}・キャスター {caster_mode}")
+    set_state(work, "script" if script_only else "video")
+    log(f"■ ALCニュース：{KINDS[kind]}・" + ("台本づくり" if script_only else f"動画づくり（キャスター {caster_mode}）"))
 
     mp4, swav = prepare_source(src, work)
     src_len = media_len(mp4)
     segs = transcribe(swav, work)
     log(f"書き起こし：{len(segs)}文")
 
-    # 台本と声（長すぎたら1回だけ短くしてもらう）
-    feedback = ""
+    # 台本と声（長すぎたら短くしてもらう。タケシさんが確かめた台本は、勝手に書きかえない）
+    wish = work / "台本の直し.txt"                  # 受付ページの「台本をつくり直す」で書いた希望
+    feedback = ("\n\n## タケシさんの直しの希望（必ず反映する）\n" + wish.read_text(encoding="utf-8").strip()
+                if wish.exists() and wish.read_text(encoding="utf-8").strip() else "")
     for attempt in range(3):
         sp = work / "台本.json"
         if attempt == 0 and sp.exists():
@@ -771,8 +835,13 @@ def build(order_path, caster_mode="still", max_usd=3.5):
         room = MAX_TOTAL - LA - LC
         if room >= max(B_MIN, d_vo + 0.8):
             break
-        feedback = (f"\n\n## 直し\n前の台本は長すぎました（最初の原稿 {d_open:.1f}秒・最後 {d_close:.1f}秒"
-                    + (f"・Bロールの要約 {d_vo:.1f}秒" if d_vo else "") + "）。全体20秒に入るよう、どれも2〜3割短くしてください。")
+        if confirmed:
+            log(f"直した台本が長すぎます（最初の原稿 {d_open:.1f}秒・最後 {d_close:.1f}秒"
+                + (f"・Bロールの要約 {d_vo:.1f}秒" if d_vo else "") + f"）。ニュースは20秒までなので、あと {max(B_MIN, d_vo + 0.8) - room:.1f}秒ぶん短くしてください")
+            set_state(work, "too_long")
+            raise TooLong()
+        feedback += (f"\n\n## 直し\n前の台本は長すぎました（最初の原稿 {d_open:.1f}秒・最後 {d_close:.1f}秒"
+                     + (f"・Bロールの要約 {d_vo:.1f}秒" if d_vo else "") + "）。全体20秒に入るよう、どれも2〜3割短くしてください。")
         log("長すぎるので短くしてもらう")
     else:
         raise RuntimeError("台本が20秒に入りませんでした")
@@ -781,6 +850,14 @@ def build(order_path, caster_mode="still", max_usd=3.5):
     be = min(float(spec["broll_end"]), src_len)
     LB = round(min(max(be - bs, B_MIN, d_vo + 0.8), room, src_len - bs), 2)
     news = LA + LB + LC
+    if script_only:
+        (work / "台本の長さ.json").write_text(json.dumps(
+            {"open": round(d_open, 1), "close": round(d_close, 1), "vo": round(d_vo, 1), "broll_start": round(bs, 1),
+             "broll_len": LB, "news": round(news, 1), "src_len": round(src_len, 1)}, ensure_ascii=False), encoding="utf-8")
+        log(f"台本ができました（ニュースの長さ 約{news:.1f}秒）。受付ページで確かめてください")
+        set_state(work, "script_ok")
+        return None
+    when_l, where_l = labels_of(spec, order)
     end_wav = work / "ending.wav"                      # ブランドボードの声（この動画の音の形にそろえる）
     run([FFMPEG, "-hide_banner", "-loglevel", "error", "-y", "-i", str(ENDING_WAV), "-ar", str(SR), "-ac", "2", str(end_wav)])
     LE = E_HEAD + media_len(end_wav) + E_TAIL
@@ -828,7 +905,8 @@ def build(order_path, caster_mode="still", max_usd=3.5):
     caster, box = studio_layer()
     px0, py0, px1, py1 = box
     pw, ph = px1 - px0, py1 - py0
-    hd = header(spec["headline"])
+    hd = header(spec["headline"], when_l, "")                    # キャスターの場面は日時だけ（2026-11-08）
+    hd_b = header(spec["headline"], when_l, where_l, plain=True)  # 投稿動画の場面は場所と日時を字だけで
     static_ac = layer()
     static_ac.alpha_composite(panel_title(box, spec["panel_title"], spec.get("panel_sub", "")))
     vw = int(font(34).getlength("視聴者投稿")) + 32
@@ -838,7 +916,7 @@ def build(order_path, caster_mode="still", max_usd=3.5):
     static_ac = np.asarray(static_ac)
     static_b = layer()
     static_b.alpha_composite(broll_telop(spec["broll_telop"], kind))
-    static_b.alpha_composite(hd)
+    static_b.alpha_composite(hd_b)
     static_b = np.asarray(static_b)
     sub_imgs = {}
 
@@ -954,6 +1032,7 @@ def build(order_path, caster_mode="still", max_usd=3.5):
             if r:
                 r.close()
     log(f"できました：{out}（{media_len(out):.1f}秒）")
+    set_state(work, "done")
     return out
 
 
@@ -963,5 +1042,13 @@ if __name__ == "__main__":
     ap.add_argument("order")
     ap.add_argument("--caster", choices=["still", "lipsync"], default="still")
     ap.add_argument("--max-usd", type=float, default=3.5)
+    ap.add_argument("--script-only", action="store_true", help="台本だけつくって止まる（動画はつくらない）")
+    ap.add_argument("--confirmed", action="store_true", help="確かめた台本のまま動画にする（長すぎても書きかえない）")
     a = ap.parse_args()
-    build(a.order, a.caster, a.max_usd)
+    try:
+        build(a.order, a.caster, a.max_usd, a.script_only, a.confirmed)
+    except TooLong:
+        pass
+    except BaseException:
+        set_state(pathlib.Path(a.order).resolve().parent, "error")
+        raise

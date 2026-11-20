@@ -1,0 +1,45 @@
+{
+  "out": "動画/sample-v1.mp4",
+  "voice": "A",
+  "clips": [
+    {
+      "file": "素材/source.mp4",
+      "start": 26.0,
+      "narr": "きれいな店内の餃子酒場、にくじる とっつぁん",
+      "subs": [
+        "きれいな店内の餃子酒場、",
+        "肉汁とっつぁん"
+      ]
+    },
+    {
+      "file": "素材/source.mp4",
+      "start": 19.2,
+      "narr": "おすすめランキング いちいは、あふれる肉汁餃子",
+      "subs": [
+        "おすすめランキング1位は、",
+        "溢れる肉汁餃子"
+      ],
+      "show": "product"
+    },
+    {
+      "file": "素材/source.mp4",
+      "start": 12.5,
+      "narr": "にせんえんだいの食べ飲みで、人気メニューがいっぱい",
+      "subs": [
+        "2000円代の食べ飲みで、",
+        "人気メニューがいっぱい"
+      ],
+      "show": "shop"
+    }
+  ],
+  "product": "肉汁餃子",
+  "price": "280円",
+  "shop": "餃子酒場 肉汁とっつぁん",
+  "area": "",
+  "hours": "",
+  "music": "C:/Users/abetk/Desktop/ALCOHOLIDAY/音声/backmusic/pop.mp3",
+  "music_ss": 0,
+  "limited": false,
+  "date": "2026-11-03",
+  "plan": "paid"
+}

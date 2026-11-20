@@ -1,0 +1,45 @@
+{
+  "out": "動画/sample-v1.mp4",
+  "voice": "A",
+  "clips": [
+    {
+      "file": "素材/source.mp4",
+      "start": 0.0,
+      "narr": "しぶやえき徒歩にふん、にくじるとっつぁん",
+      "subs": [
+        "渋谷駅 徒歩2分",
+        "肉汁とっつぁん"
+      ]
+    },
+    {
+      "file": "素材/source.mp4",
+      "start": 13.4,
+      "narr": "とっつぁんのイチオシは、伝説のレバニラ！",
+      "subs": [
+        "とっつぁんのイチオシは",
+        "伝説のレバニラ！"
+      ],
+      "show": "product"
+    },
+    {
+      "file": "素材/source.mp4",
+      "start": 5.5,
+      "narr": "お酒がすすむ一品と、明るいスタッフがお出迎え",
+      "subs": [
+        "お酒がすすむ一品と",
+        "明るいスタッフがお出迎え"
+      ],
+      "show": "shop"
+    }
+  ],
+  "product": "伝説のレバニラ",
+  "price": "",
+  "shop": "餃子酒場 肉汁とっつぁん 渋谷本店",
+  "area": "東京都渋谷区神南・JR渋谷駅から徒歩2分",
+  "hours": "月〜木16:00〜24:00／金・祝前16:00〜翌1:00／土14:00〜翌1:00／日祝14:00〜24:00",
+  "music": "C:/Users/abetk/Desktop/ALCOHOLIDAY/音声/backmusic/pop.mp3",
+  "music_ss": 0,
+  "limited": false,
+  "date": "2026-11-03",
+  "plan": "paid"
+}

@@ -1,0 +1,46 @@
+{
+  "out": "動画/sample-v1.mp4",
+  "voice": "A",
+  "clips": [
+    {
+      "file": "素材/source.mp4",
+      "start": 2.6,
+      "narr": "えーぴっつぁは 連日大盛況の人気店",
+      "subs": [
+        "【A】PIZZAは",
+        "連日大盛況の人気店"
+      ]
+    },
+    {
+      "file": "素材/source.mp4",
+      "start": 7.0,
+      "narr": "ビスマルクは卵がトロける、もちもち生地のピザ",
+      "subs": [
+        "ビスマルクは",
+        "卵がトロける",
+        "もちもち生地のピザ"
+      ],
+      "show": "product"
+    },
+    {
+      "file": "素材/source.mp4",
+      "start": 11.3,
+      "narr": "こだわりの逸品料理や、可愛いドリンクも",
+      "subs": [
+        "こだわりの逸品料理や",
+        "可愛いドリンクも"
+      ],
+      "show": "shop"
+    }
+  ],
+  "product": "ビスマルク",
+  "price": "",
+  "shop": "【A】PIZZA 池袋東通り本店",
+  "area": "東京都豊島区南池袋・池袋駅東口から徒歩7分",
+  "hours": "11:30〜22:00（日曜〜21:30）",
+  "music": "C:/Users/abetk/Desktop/ALCOHOLIDAY/音声/backmusic/pop.mp3",
+  "music_ss": 0,
+  "limited": false,
+  "date": "2026-11-03",
+  "plan": "paid"
+}

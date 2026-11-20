@@ -1,7 +1,7 @@
 ---
 部署: ai-alcoholiday（統括）
 管理者: KAYO
-部下: "[[design]]／[[scripts]]／[[editing]]"
+部下: "[[design]]／[[scripts]]／[[editing]]／[[marketing]]"
 管理ページ: 08_AI部署/管理ページ.html
 データ: 08_AI部署/data/board.json
 tags: [AI部署, 統括]
@@ -25,8 +25,11 @@ tags: [AI部署, 統括]
 ai-alcoholiday ─ 管理者 KAYO（Claude Code）
   ├─ design  ：部屋に飾った写真をつくる（Codex）        → [[design]]
   ├─ scripts ：構成・画面の文字・投稿文をつくる          → [[scripts]]
-  └─ editing ：Higgsfieldで動画化・1本に組み立てる       → [[editing]]
+  ├─ editing ：Higgsfieldで動画化・1本に組み立てる       → [[editing]]
+  └─ marketing：Amazonの売上を伸ばす（広告1日1,000円まで・週3つの改善案）→ [[marketing]]（2026-11-08 新設）
 ```
+
+「KAYO、マーケの数字を見て」と言われたら、[[marketing]] の「毎週の仕事」に従う（サブエージェント `marketing` に任せてよい）
 
 ## 仕事の流れ
 

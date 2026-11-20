@@ -1,0 +1,13 @@
+﻿{
+    "generated_at":  "2026-10-10T21:36:14.2677723+09:00",
+    "model":  "kling-video/v3.0/std/image-to-video",
+    "request_id":  "57d71b20-bfd1-4736-8368-ccbe87b47697",
+    "estimate_usd":  "0.630",
+    "source":  "tshirt1966-A-base.png",
+    "input":  {
+                  "prompt":  "The camera is completely locked off like a tripod shot: no zoom, no push-in, no drift, no pan, no camera movement at all. The yellow print on her black T-shirt (the words \u00271966\u0027, \u0027ISLAY\u0027, \u0027WAS\u0027, \u0027FRUIT\u0027 and the seagull line drawing) stays exactly the same: same letters, same spelling, same shapes, perfectly upright typewriter-style serif letters, never italic, never slanted, never redrawn, never morphing. Her face stays exactly the same person as in the first frame in every frame: same eyes, same eyebrows, same nose, same lips, same face shape, same bangs; her identity never changes. A calm young Japanese woman with a black bob haircut leans quietly against a warm whisky bar counter. She looks into the camera with a calm, gentle face and speaks slowly and softly in natural, fluent Japanese, in a calm, gentle, warm, relaxed female voice, like quietly talking to a friend at a bar: 「ねえ、この意味わかる？シングルモルト好きなら、わかるよね。」 Her lips move in exact sync with the Japanese words. She says only this sentence, nothing else. Very small, slow movements only: a slight gentle tilt of her head, a slow blink, a faint soft smile at the end with lips closed. Her hands stay still at her sides, her shoulders, chest and T-shirt stay still. Audio: only her voice and a very faint quiet bar ambience, no music, no other voices. The warm bokeh lights of the bar softly glimmer in the background. Avoid: zoom, zooming in, zooming out, camera push-in, dolly, pan, tilt, camera shake, garbled text, changing letters, misspelled words, nonsense text, extra text, new text, morphing print, print redrawing, italic letters, slanted letters, warped logo, extra fingers, deformed hands, distorted face, face morphing, identity change, different person, teeth distortion, flicker, watermark, captions, subtitles, big smile, laughing, teeth, exaggerated expression, waving, hand gestures, leaning forward, fast movement, music, singing, English speech, extra words",
+                  "duration":  5,
+                  "image_url":  "https://d3snorpfx4xhv8.cloudfront.net/30af197c-76ac-4037-b137-705ad83dab27/73a4ed1f-0e35-4da2-a857-6a8386d34393.png",
+                  "sound":  "on"
+              }
+}

@@ -1,0 +1,45 @@
+{
+  "out": "動画/sample-v1.mp4",
+  "voice": "A",
+  "clips": [
+    {
+      "file": "素材/video1.mp4",
+      "start": 0.0,
+      "narr": "池袋駅から徒歩3分、島の料理とお酒のお店",
+      "subs": [
+        "池袋駅から徒歩3分",
+        "島の料理とお酒のお店"
+      ]
+    },
+    {
+      "file": "素材/video2.mp4",
+      "start": 0.0,
+      "narr": "名物の真鯛カブト焼き、脂ののった身が絶品",
+      "subs": [
+        "名物の真鯛カブト焼き",
+        "脂ののった身が絶品"
+      ],
+      "show": "product"
+    },
+    {
+      "file": "素材/video3.mp4",
+      "start": 0.0,
+      "narr": "島焼酎 やえつばきを、ロックでかんぱい！",
+      "subs": [
+        "島焼酎「八重椿」を",
+        "ロックでかんぱい！"
+      ],
+      "show": "shop"
+    }
+  ],
+  "product": "真鯛カブト焼き",
+  "price": "",
+  "shop": "島酎と地酒の八丈島",
+  "area": "東京都豊島区西池袋・池袋駅西口から徒歩3分",
+  "hours": "11時〜23時（金土〜23時半・日祝〜22時）",
+  "music": "C:/Users/abetk/Desktop/ALCOHOLIDAY/音声/backmusic/BAND_SOUND.mp3",
+  "music_ss": 0,
+  "limited": false,
+  "date": "2026-11-03",
+  "plan": "paid"
+}

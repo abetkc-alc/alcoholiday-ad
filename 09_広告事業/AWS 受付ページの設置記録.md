@@ -81,7 +81,7 @@ GAS（今のまま）… 台帳・メール・動画の受け渡し・自動制�
 
 ## これから
 
-- [ ] Google Search Console に ad.alcoholiday.org を登録し、sitemap.xml を送る（タケシの Google アカウントで）
+- [x] Google Search Console（ドメイン alcoholiday.org）に https://ad.alcoholiday.org/sitemap.xml を送った（2026-11-08「成功しました」・ページ数1）
 
 - [ ] ホームページ（Google サイトの「美味しいもの」）の埋め込みを、「申し込み・ログインはこちら」のボタン（https://ad.alcoholiday.org/）に替える
 - [ ] 会員のログインを AWS（Cognito・OAuth）に変える（社長の方針。まだ実行しない）

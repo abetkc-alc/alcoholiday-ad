@@ -1,0 +1,13 @@
+﻿{
+    "generated_at":  "2026-10-10T19:46:36.5244802+09:00",
+    "model":  "kling-video/v3.0/std/image-to-video",
+    "request_id":  "69361a95-94ca-4779-a961-3e861d5f2a50",
+    "estimate_usd":  "0.630",
+    "source":  "tshirt1966-A-base.png",
+    "input":  {
+                  "prompt":  "The camera is completely locked off like a tripod shot: no zoom, no push-in, no drift, no pan, no camera movement at all. The yellow print on her black T-shirt (the words \u00271966\u0027, \u0027ISLAY\u0027, \u0027WAS\u0027, \u0027FRUIT\u0027 and the seagull line drawing) stays exactly the same: same letters, same spelling, same shapes, perfectly upright typewriter-style serif letters, never italic, never slanted, never redrawn, never morphing. A cheerful young Japanese woman with a black bob haircut at a warm whisky bar counter. She starts with a bright, curious look, tilts her head playfully to one side, then lifts her left hand beside her face (away from her chest) in a small friendly wave and leans her head a little toward the camera as she talks. She speaks to the viewer in natural, fluent Japanese, in a bright, cheerful, warm and friendly young female voice, lively and smiling while she talks: 「ねえ、この意味わかる？シングルモルト好きなら、わかるよね！」 Her lips move in exact sync with the Japanese words. She says only this sentence, nothing else. Her eyes sparkle and her expression is happy and lively, her bob hair sways softly. Her chest and the T-shirt print stay calm and do not twist; her hand never covers the print. Audio: only her voice and a very faint quiet bar ambience, no music, no other voices. The warm bokeh lights of the bar glimmer in the background. Avoid: zoom, zooming in, zooming out, camera push-in, dolly, pan, tilt, camera shake, garbled text, changing letters, misspelled words, nonsense text, extra text, new text, morphing print, print redrawing, italic letters, slanted letters, warped logo, extra fingers, deformed hands, distorted face, face morphing, identity change, different person, teeth distortion, flicker, watermark, captions, subtitles, hand covering the chest, body twisting, music, singing, English speech, extra words",
+                  "duration":  5,
+                  "image_url":  "https://d3snorpfx4xhv8.cloudfront.net/30af197c-76ac-4037-b137-705ad83dab27/b6b507f0-54ad-46ad-9faa-b6f734fab187.png",
+                  "sound":  "on"
+              }
+}

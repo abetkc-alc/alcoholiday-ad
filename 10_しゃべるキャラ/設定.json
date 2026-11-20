@@ -1,0 +1,7 @@
+{
+  "name": "ホリィ",
+  "chat_model": "gpt-5.4-mini",
+  "tts_model": "gpt-4o-mini-tts",
+  "voice": "coral",
+  "voice_instructions": "明るく親しみやすい若い女性の声で、ゆっくりめに、にこにこしながら話すように。日本語として自然な抑揚で。"
+}

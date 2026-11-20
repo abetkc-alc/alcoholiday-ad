@@ -27,7 +27,7 @@
 - ノートどうしのリンクは自動（2026-10-10）：`08_AI部署/data/auto_link.py` が10分ごとに、日誌・メモ・申し込みなどの一番下の「%% 自動リンク %%」から下を書きかえる。つなぐ言葉は `08_AI部署/自動リンクのきまり.md`
 
 ## AI部署（08_AI部署）
-- 統括 ai-alcoholiday の管理者は **KAYO**（Claude Code が務める）。部下は design／scripts／editing の3部署
+- 統括 ai-alcoholiday の管理者は **KAYO**（Claude Code が務める）。部下は design／scripts／editing／marketing の4部署（marketing＝Amazon の売上アップ。2026-11-08 新設・広告は1日1,000円まで・手順は `08_AI部署/marketing/marketing.md`）
 - 「KAYO、〜」と話しかけられたら `08_AI部署/ai-alcoholiday.md` の手順に従う
 - 指示と成果物は `08_AI部署/data/board.json` で管理し、社長は `08_AI部署/管理ページ.html` で確認・選択する
 - 各部署のノウハウ：`08_AI部署/design/design.md`／`scripts/scripts.md`／`editing/editing.md`（新しく学んだことはここへ追記する）

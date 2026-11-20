@@ -1,0 +1,13 @@
+﻿{
+    "generated_at":  "2026-10-10T19:52:08.3759312+09:00",
+    "model":  "kling-video/v3.0/std/image-to-video",
+    "request_id":  "ad10a34a-4d93-47f1-9cef-a42d126578c4",
+    "estimate_usd":  "0.420",
+    "source":  "tshirt1966-A-closeup-v1-blend.png",
+    "input":  {
+                  "prompt":  "The camera is completely locked off like a tripod shot: no zoom, no push-in, no drift, no pan, no camera movement at all. The yellow print on her black T-shirt (the words \u00271966\u0027, \u0027ISLAY\u0027, \u0027WAS\u0027, \u0027FRUIT\u0027 and the seagull line drawing) stays exactly the same: same letters, same spelling, same shapes, perfectly upright typewriter-style serif letters, never italic, never slanted, never redrawn, never morphing. Close-up of a woman\u0027s chest wearing a black T-shirt with a yellow print at a whisky bar. The T-shirt fabric and the print do not move at all. In her hand at her side, the whisky on the rocks gently swirls: she slowly turns the glass, the ice cubes rotate and clink, the amber whisky catches the warm light and sparkles. The warm bokeh lights of the bar twinkle in the background. Only the glass, the ice and the whisky move. Realistic cinematic product shot. Avoid: zoom, zooming in, zooming out, camera push-in, dolly, pan, tilt, camera shake, garbled text, changing letters, misspelled words, nonsense text, extra text, new text, morphing print, print redrawing, italic letters, slanted letters, warped logo, extra fingers, deformed hands, distorted face, face morphing, identity change, different person, teeth distortion, flicker, watermark, captions, subtitles, fabric movement, wrinkles moving, glass covering the print, face, head, steam, smoke",
+                  "duration":  5,
+                  "image_url":  "https://d3snorpfx4xhv8.cloudfront.net/30af197c-76ac-4037-b137-705ad83dab27/4e0a3e93-b60c-4af0-a76c-1dd0c90f08cc.png",
+                  "sound":  "off"
+              }
+}

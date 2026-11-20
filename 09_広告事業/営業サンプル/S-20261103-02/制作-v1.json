@@ -1,0 +1,45 @@
+{
+  "out": "動画/sample-v1.mp4",
+  "voice": "A",
+  "clips": [
+    {
+      "file": "素材/source.mp4",
+      "start": 5.0,
+      "narr": "にくじるとっつぁんは、木のぬくもりある酒場",
+      "subs": [
+        "肉汁とっつぁんは",
+        "木のぬくもりある酒場"
+      ]
+    },
+    {
+      "file": "素材/source.mp4",
+      "start": 37.0,
+      "narr": "山盛りポテトを、手袋でつまんでパクッと",
+      "subs": [
+        "山盛りポテトを",
+        "手袋でつまんでパクッと"
+      ],
+      "show": "product"
+    },
+    {
+      "file": "素材/source.mp4",
+      "start": 55.1,
+      "narr": "名物のにくじる餃子と、ハイボールでかんぱい",
+      "subs": [
+        "名物の肉汁餃子と",
+        "ハイボールでかんぱい"
+      ],
+      "show": "shop"
+    }
+  ],
+  "product": "山盛りフライドポテト",
+  "price": "",
+  "shop": "餃子酒場 肉汁とっつぁん",
+  "area": "",
+  "hours": "",
+  "music": "C:/Users/abetk/Desktop/ALCOHOLIDAY/音声/backmusic/pop.mp3",
+  "music_ss": 0,
+  "limited": false,
+  "date": "2026-11-03",
+  "plan": "paid"
+}
